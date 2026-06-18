@@ -37,7 +37,7 @@ export async function GET(request: Request) {
         mission: {
           title: home.mission_title,
           description: home.mission_description,
-          image: home.mission_image?.public_url || ''
+          image: home.mission_image?.[0]?.public_url || ''
         },
         differentiation: { points: diff },
         featuredProductIds: featured.map(f => f.product_id)
