@@ -32,7 +32,7 @@ export async function GET(request: Request) {
         hero: {
           title: home.hero_title,
           description: home.hero_description,
-          image: home.hero_image?.public_url || ''
+          image: home.hero_image?.[0]?.public_url || ''
         },
         mission: {
           title: home.mission_title,
