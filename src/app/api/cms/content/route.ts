@@ -67,7 +67,7 @@ export async function POST(request: Request) {
     } else {
       // Save homepage logic
       // Helper to update/insert image record to get ID
-      async function getMediaId(url) {
+      // Option 1: If url is always a string async function getMediaId(url: string) {  // Option 2: If url might be null/undefined (safer) async function getMediaId(url: string | null | undefined) {
           if (!url) return null;
           const { data: media } = await supabase.from('media').select('id').eq('public_url', url).single();
           return media ? media.id : null;
