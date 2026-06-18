@@ -1,0 +1,142 @@
+"use client";
+
+import { products } from "@/data/products";
+import { notFound } from "next/navigation";
+import { use, useState } from "react";
+import { motion } from "framer-motion";
+import { ArrowLeft, ArrowUpRight, Info } from "lucide-react";
+import Link from "next/link";
+
+export default function ProductPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = use(params);
+  const product = products.find(p => p.id === resolvedParams.id);
+  const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [selectedColor, setSelectedColor] = useState<string | null>(null);
+
+  if (!product) {
+    notFound();
+  }
+
+  const addToCart = () => {
+    if (!selectedSize || !selectedColor) {
+      alert("Please select size and color");
+      return;
+    }
+    alert(`Added ${product.name} (${selectedSize}, ${selectedColor}) to cart!`);
+  };
+
+  return (
+    <div className="w-full bg-background min-h-screen selection:bg-primary selection:text-primary-foreground pt-32 pb-24">
+      <div className="container mx-auto px-4 md:px-8 max-w-7xl">
+        
+        {/* Breadcrumb / Back */}
+        <motion.div 
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: [0.32, 0.72, 0, 1] }}
+          className="mb-12"
+        >
+          <Link href="/shop" className="group inline-flex items-center text-xs uppercase tracking-[0.2em] text-foreground/50 hover:text-foreground transition-colors">
+            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-foreground/5 mr-3 transition-transform group-hover:-translate-x-1">
+              <ArrowLeft className="w-3 h-3" />
+            </span>
+            Back to Archive
+          </Link>
+        </motion.div>
+
+        <div className="flex flex-col lg:flex-row gap-16 lg:gap-24 items-start">
+          
+          {/* Product Image: Double Bezel Presentation */}
+          <div className="w-full lg:w-1/2 lg:sticky lg:top-32 mb-8 lg:mb-0">
+            <motion.div 
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 1, ease: [0.32, 0.72, 0, 1] }}
+              className="p-2 rounded-[2.5rem] bg-foreground/5 ring-1 ring-foreground/10"
+            >
+              <div className="aspect-[3/4] relative rounded-[calc(2.5rem-0.5rem)] overflow-hidden shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]">
+                {product.images[0] ? (
+                  <img 
+                    src={product.images[0]} 
+                    alt={product.name} 
+                    className="w-full h-full object-cover transition-transform duration-[2s] hover:scale-105"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-foreground/5 flex items-center justify-center text-foreground/40">No Image</div>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-background/20 to-transparent pointer-events-none"></div>
+              </div>
+            </motion.div>
+          </div>
+
+          {/* Product Info: Editorial Layout */}
+          <div className="w-full lg:w-1/2 flex flex-col pt-8">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.2, ease: [0.32, 0.72, 0, 1] }}
+            >
+              <div className="mb-6 flex flex-wrap gap-2">
+                {product.tags.map(tag => (
+                  <span key={tag} className="bg-foreground/5 text-foreground/70 text-[10px] uppercase tracking-[0.2em] px-3 py-1 rounded-full border border-foreground/10">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+              
+              <h1 className="text-5xl md:text-6xl lg:text-7xl font-heading font-light mb-4 leading-[0.9] tracking-tight">{product.name}</h1>
+              <p className="text-2xl font-light text-foreground/60 mb-10 tracking-widest">${product.price.toFixed(2)}</p>
+              
+              <div className="w-full h-px bg-foreground/10 mb-10"></div>
+              
+              <p className="text-foreground/70 leading-relaxed font-light text-lg mb-12 max-w-xl">
+                {product.description}
+              </p>
+
+              {/* Sizes Selection */}
+              <div className="mb-10">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xs font-medium uppercase tracking-[0.2em] text-foreground/50">Size</h3>
+                  <button className="text-[10px] uppercase tracking-widest text-foreground/40 hover:text-foreground underline underline-offset-4 transition-colors">Size Guide</button>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  {product.variations?.sizes?.map(size => (
+                    <button key={size} onClick={() => setSelectedSize(size)} className={`w-14 h-14 rounded-full border border-foreground/10 flex items-center justify-center text-sm font-light hover:border-foreground hover:bg-foreground/5 transition-all focus:ring-1 focus:ring-foreground focus:outline-none ${selectedSize === size ? 'bg-foreground text-background' : ''}`}>
+                      {size}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Colors Selection */}
+              <div className="mb-16">
+                <h3 className="text-xs font-medium uppercase tracking-[0.2em] text-foreground/50 mb-4">Color</h3>
+                <div className="flex flex-wrap gap-3">
+                  {product.variations?.colors?.map(color => (
+                    <button key={color} onClick={() => setSelectedColor(color)} className={`px-6 h-12 rounded-full border border-foreground/10 flex items-center justify-center text-sm font-light hover:border-foreground hover:bg-foreground/5 transition-all focus:ring-1 focus:ring-foreground focus:outline-none ${selectedColor === color ? 'bg-foreground text-background' : ''}`}>
+                      {color}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Fluid Add to Cart Button */}
+              <button onClick={addToCart} className="group relative w-full inline-flex items-center justify-center gap-4 rounded-full bg-foreground pl-8 pr-2 py-2 text-sm font-medium tracking-wide text-background transition-all active:scale-[0.98] hover:bg-foreground/90 mb-6">
+                <span className="uppercase tracking-widest text-xs py-3">Add to Cart</span>
+                <div className="absolute right-2 flex h-10 w-10 items-center justify-center rounded-full bg-background/20 transition-transform duration-300 ease-spring group-hover:scale-105">
+                  <ArrowUpRight className="h-4 w-4 stroke-[1.5]" />
+                </div>
+              </button>
+              
+              <div className="flex items-center justify-center text-[10px] uppercase tracking-[0.1em] text-foreground/40 gap-4">
+                <span className="flex items-center"><Info className="w-3 h-3 mr-1.5" /> Free Global Shipping over $150</span>
+                <span>•</span>
+                <span>Ethical Returns</span>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
