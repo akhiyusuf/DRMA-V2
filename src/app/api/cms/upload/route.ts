@@ -23,11 +23,16 @@ export async function POST(request: Request) {
 
     const { data: { publicUrl } } = supabase.storage.from('media').getPublicUrl(fileName);
     
-    await supabase.from('media').insert({ file_path: fileName, public_url: publicUrl });
+    try {
+      await supabase.from('media').insert({ file_path: fileName, public_url: publicUrl });
+    } catch (e) {
+      // Ignore if media table doesn't exist
+      console.log('Media table insert skipped');
+    }
 
-    return NextResponse.json({ success: true, path: publicUrl });
+    return NextResponse.json({ success: true, path: publicUrl, fileName });
   } catch (error) {
-    console.error(error);
+    console.error('Upload error:', error);
     return NextResponse.json({ success: false, error: 'Failed to upload' }, { status: 500 });
   }
 }
