@@ -12,7 +12,13 @@ export default function Home() {
   useEffect(() => {
     fetch('/api/cms/content?type=homepage')
       .then(res => res.json())
-      .then(setHomepageData);
+      .then(data => {
+        setHomepageData(data);
+      })
+      .catch(err => {
+        console.error('Error fetching homepage data:', err);
+        setHomepageData(null);
+      });
   }, []);
 
   if (!homepageData) return null;
@@ -39,8 +45,8 @@ export default function Home() {
                 className="flex items-center gap-3 mb-4 md:mb-8"
               >
                 <span className="h-[1px] w-8 md:w-12 bg-[#CA8A04]/60"></span>
-                <span className="rounded-full px-4 py-1.5 text-[10px] md:text-[11px] uppercase tracking-[0.25em] font-medium bg-[#1C1917]/5 text-[#1C1917]/80 border border-[#1C1917]/10 backdrop-blur-xl">
-                  {homepageData.hero.collectionLabel}
+                <span className="rounded-full px-4 py-1.5 text-[10px] md:text-[11px] uppercase tracking-[0.25em] font-medium bg-[#1C1917]/5 text-[#1C1917]/80 border border-[#1C1917]/10 backdrop-blur-sm">
+                  {homepageData.hero?.collectionLabel || 'Collection'}
                 </span>
               </motion.div>
               
@@ -50,10 +56,10 @@ export default function Home() {
                 transition={{ duration: 1.2, ease: [0.32, 0.72, 0, 1] }}
                 className="text-5xl sm:text-7xl md:text-8xl lg:text-[10rem] font-heading font-normal tracking-tighter text-[#0C0A09] leading-[0.85] lg:leading-[0.85] lg:-ml-2 z-10"
               >
-                {(homepageData?.hero?.title || "").split(", ")[0]}, <br className="hidden sm:block" /> 
+                {(homepageData.hero?.title || "").split(", ")[0]}, <br className="hidden sm:block" /> 
                 <span className="italic font-medium text-[#1C1917]/80 flex flex-col lg:flex-row items-center gap-4 md:gap-8 mt-2 md:mt-4">
                   <span className="hidden lg:block w-32 h-[1px] bg-[#CA8A04]/40 mt-4"></span>
-                  {(homepageData?.hero?.title || "").split(", ")[1]}
+                  {(homepageData.hero?.title || "").split(", ")[1]}
                 </span>
               </motion.h1>
               
@@ -64,17 +70,17 @@ export default function Home() {
                 className="mt-8 md:mt-16 flex flex-col items-center lg:items-start gap-6 md:gap-8"
               >
                 <Link 
-                  href={homepageData?.hero?.ctaUrl || "#"} 
-                  className="group relative inline-flex items-center gap-4 rounded-full bg-[#1C1917] pl-8 pr-2 py-2 text-sm font-medium tracking-wide text-white transition-colors duration-300 hover:bg-[#CA8A04] active:scale-[0.98] cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#CA8A04] focus:ring-offset-2 shadow-lg"
+                  href={homepageData.hero?.ctaUrl || "/shop"} 
+                  className="group relative inline-flex items-center gap-4 rounded-full bg-[#1C1917] pl-8 pr-2 py-2 text-sm font-medium tracking-wide text-white transition-colors duration-300 hover:bg-[#1C1917]/90"
                 >
-                  <span className="uppercase tracking-widest text-xs">{homepageData?.hero?.buttonLabel || "Shop Now"}</span>
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-1 group-hover:-translate-y-[1px] group-hover:scale-105">
+                  <span className="uppercase tracking-widest text-xs">{homepageData.hero?.buttonLabel || "Shop Now"}</span>
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-1 group-hover:scale-110">
                     <ArrowUpRight className="h-4 w-4 stroke-[1.5]" />
                   </div>
                 </Link>
 
                 <p className="text-sm md:text-base text-[#44403C] max-w-sm font-light leading-relaxed">
-                  {homepageData?.hero?.description || ""}
+                  {homepageData.hero?.description || ""}
                 </p>
               </motion.div>
             </div>
@@ -87,7 +93,7 @@ export default function Home() {
                 transition={{ duration: 1.6, delay: 0.2, ease: [0.32, 0.72, 0, 1] }}
                 className="w-full max-w-[650px] lg:max-w-[1920px] z-20 flex items-end"
               >
-                {homepageData?.hero?.image && (
+                {homepageData.hero?.image && (
                   <img 
                     src={homepageData.hero.image} 
                     alt="Modest Fashion Model" 
@@ -104,7 +110,7 @@ export default function Home() {
             </div>
             </div>
             </section>
-
+      
       {/* 
         SECTION BREAKER: Scrolling Editorial Statement
       */}
@@ -152,7 +158,7 @@ export default function Home() {
             >
               <div className="p-2 rounded-[2rem] bg-foreground/5 ring-1 ring-foreground/10">
                 <div className="relative aspect-square md:aspect-[4/5] rounded-[calc(2rem-0.5rem)] overflow-hidden shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]">
-                  {homepageData?.mission?.image && (
+                  {homepageData.mission?.image && (
                     <img 
                       src={homepageData.mission.image} 
                       alt="Hand-loomed organic fabric texture" 
@@ -172,9 +178,9 @@ export default function Home() {
                 transition={{ duration: 1, ease: [0.32, 0.72, 0, 1] }}
                 className="mb-8"
               >
-                <span className="rounded-full px-3 py-1 text-[10px] uppercase tracking-[0.2em] font-medium bg-primary/10 text-primary border border-primary/20">{homepageData?.mission?.label || "Mission"}</span>
+                <span className="rounded-full px-3 py-1 text-[10px] uppercase tracking-[0.2em] font-medium bg-primary/10 text-primary border border-primary/20">{homepageData.mission?.label || "Mission"}</span>
                 <h2 className="text-4xl md:text-5xl lg:text-6xl font-heading font-light mt-8 leading-tight text-foreground">
-                  {(homepageData?.mission?.title || " ").split(" <br/> ")[0]} <br/> <span className="italic text-foreground/60">{(homepageData?.mission?.title || " ").split(" <br/> ")[1]}</span>
+                  {(homepageData.mission?.title || " ").split(" <br/> ")[0]} <br/> <span className="italic text-foreground/60">{(homepageData.mission?.title || " ").split(" <br/> ")[1]}</span>
                 </h2>
               </motion.div>
 
@@ -186,11 +192,11 @@ export default function Home() {
                 className="flex flex-col justify-start"
               >
                 <p className="text-foreground/70 text-lg md:text-xl leading-relaxed mb-10 font-light max-w-lg">
-                  {homepageData?.mission?.description || ""}
+                  {homepageData.mission?.description || ""}
                 </p>
                 
-                <Link href={homepageData?.mission?.ctaUrl || "#"} className="group inline-flex items-center text-primary font-medium tracking-wide uppercase text-xs w-max">
-                  {homepageData?.mission?.buttonLabel || "Learn More"}
+                <Link href={homepageData.mission?.ctaUrl || "#"} className="group inline-flex items-center text-primary font-medium tracking-wide uppercase text-xs w-max">
+                  {homepageData.mission?.buttonLabel || "Learn More"}
                   <span className="relative ml-3 flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 transition-transform duration-300 ease-spring group-hover:translate-x-2">
                     <ArrowRight className="h-3 w-3" />
                   </span>
@@ -224,7 +230,7 @@ export default function Home() {
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-6 gap-6 relative z-0">
-            {(homepageData?.featuredProductIds || []).map((id: string, index: number) => {
+            {(homepageData.featuredProductIds || []).map((id: string, index: number) => {
               const product = products.find(p => p.id === id);
               if (!product) return null;
               
@@ -243,7 +249,7 @@ export default function Home() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: "-50px" }}
                   transition={{ duration: 0.8, delay: index * 0.1, ease: [0.32, 0.72, 0, 1] }}
-                  className={`group relative flex flex-col bg-white rounded-[1.5rem] md:rounded-[2rem] border border-[#E5E5E1] p-1.5 overflow-hidden shadow-sm hover:shadow-md transition-all duration-500 ${bentoClasses[index % bentoClasses.length]}`}
+                  className={`group relative flex flex-col bg-white rounded-[1.5rem] md:rounded-[2rem] border border-[#E5E5E1] p-1.5 overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 ${bentoClasses[index]}`}
                 >
                   <Link href={`/product/${product.id}`} className="absolute inset-0 z-30 block" aria-label={`View ${product.name}`} />
                   
@@ -270,7 +276,7 @@ export default function Home() {
                       <p className="text-xs md:text-sm text-[#44403C]/70">${product.price.toFixed(2)}</p>
                     </div>
                  
-                    <div className="flex h-8 w-8 md:h-10 md:w-10 items-center justify-center rounded-full bg-[#1C1917] text-white shrink-0 shadow-md transition-all duration-300 group-hover:scale-110 group-hover:bg-[#CA8A04]">
+                    <div className="flex h-8 w-8 md:h-10 md:w-10 items-center justify-center rounded-full bg-[#1C1917] text-white shrink-0 shadow-md transition-all duration-300 group-hover:scale-110">
                       <Plus className="h-4 w-4 md:h-5 md:w-5 stroke-[2.5]" />
                     </div>
                   </div>
@@ -294,27 +300,29 @@ export default function Home() {
             className="flex flex-col items-center text-center max-w-3xl mx-auto mb-24"
           >
             <span className="rounded-full px-3 py-1 text-[10px] uppercase tracking-[0.2em] font-medium bg-background/10 text-background border border-background/20 mb-8">
-              {homepageData?.differentiation?.label || "Why Us"}
+              {homepageData.differentiation?.label || "Why Us"}
             </span>
             <h2 className="text-4xl md:text-6xl font-heading font-light leading-tight">
-              {(homepageData?.differentiation?.title || " ").split(" <br/> ")[0]} <br/> <span className="italic text-background/60">{(homepageData?.differentiation?.title || " ").split(" <br/> ")[1]}</span>
+              {(homepageData.differentiation?.title || " ").split(" <br/> ")[0]} <br/> <span className="italic text-background/60">{(homepageData.differentiation?.title || " ").split(" <br/> ")[1]}</span>
             </h2>
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-8">
-            {(homepageData?.differentiation?.points || []).map((point: any, index: number) => (
+            {(homepageData.differentiation?.points || []).map((point: any, index: number) => (
               <motion.div 
                 key={point.number}
                 initial={{ opacity: 0, y: 40 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-100px" }}
                 transition={{ duration: 1, delay: index * 0.1, ease: [0.32, 0.72, 0, 1] }}
-                className={index === 2 ? "md:col-span-12 p-1.5 rounded-[2rem] bg-background/5 ring-1 ring-background/10" : index === 1 ? "md:col-span-4 p-1.5 rounded-[2rem] bg-background/5 ring-1 ring-background/10" : "md:col-span-8 p-1.5 rounded-[2rem] bg-background/5 ring-1 ring-background/10"}
+                className={index === 2 ? "md:col-span-12 p-1.5 rounded-[2rem] bg-background/5 ring-1 ring-background/10" : index === 1 ? "md:col-span-4 p-1.5 rounded-[2rem] bg-background/5 ring-1 ring-background/10" : "md:col-span-4 p-1.5 rounded-[2rem] bg-background/5 ring-1 ring-background/10"}
               >
                 <div className="h-full rounded-[calc(2rem-0.375rem)] bg-background/5 p-8 md:p-12 flex flex-col justify-between shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
                   <div className={index === 2 ? "text-4xl font-heading font-light text-primary/80 mb-8 md:mb-12" : "text-4xl font-heading font-light text-primary/80 mb-12"}>{point.number}</div>
                   <div>
-                    <h3 className={index === 2 ? "text-2xl md:text-3xl font-heading mb-4 text-background" : index === 1 ? "text-xl md:text-2xl font-heading mb-3 text-background" : "text-2xl md:text-3xl font-heading mb-4 text-background"}>{point.title}</h3>
+                    <h3 className={index === 2 ? "text-2xl md:text-3xl font-heading mb-4 text-background" : index === 1 ? "text-xl md:text-2xl font-heading mb-3 text-background" : "text-2xl md:text-2xl font-heading mb-4 text-background"}>
+                      {point.title}
+                    </h3>
                     <p className={index === 2 ? "text-background/60 text-base md:text-lg leading-relaxed max-w-2xl font-light" : "text-background/60 text-sm md:text-base leading-relaxed font-light"}>
                       {point.description}
                     </p>
@@ -322,10 +330,10 @@ export default function Home() {
                   {index === 2 && (
                     <Link 
                       href="/shop" 
-                      className="group relative inline-flex items-center gap-4 rounded-full bg-background pl-6 pr-2 py-2 text-sm font-medium tracking-wide text-foreground transition-all active:scale-[0.98] mt-8"
+                      className="group relative inline-flex items-center gap-4 rounded-full bg-background pl-6 pr-2 py-2 text-sm font-medium tracking-wide text-foreground transition-all active:scale-95 mt-8"
                     >
                       <span className="uppercase tracking-widest text-[10px]">Shop Now</span>
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-foreground/10 transition-transform duration-300 ease-spring group-hover:translate-x-1 group-hover:scale-105">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-foreground/10 transition-transform duration-300 ease-spring group-hover:translate-x-1 group-hover:scale-110">
                         <ArrowRight className="h-3 w-3 stroke-[1.5]" />
                       </div>
                     </Link>
