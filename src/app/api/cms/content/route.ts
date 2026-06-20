@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
-import { createAdminClient } from '@/utils/supabase/admin';
+import { promises as fs } from 'fs';
+import path from 'path';
 
-const supabase = createAdminClient();
+const dataFilePath = path.join(process.cwd(), 'src/data/cms/homepage.json');
 
 // ---- GET ----
 export async function GET(request: Request) {
@@ -10,49 +11,40 @@ export async function GET(request: Request) {
 
   try {
     if (type === 'products') {
-      const { data, error } = await supabase.from('products').select('*');
-      if (error) throw error;
-      // Map database field 'in_stock' to frontend-friendly 'inStock'
-      return NextResponse.json(data.map((p) => ({ ...p, inStock: p.in_stock })));
+      // Read products from JSON
+      const productsPath = path.join(process.cwd(), 'src/data/products.json');
+      const productsData = await fs.readFile(productsPath, 'utf-8');
+      const products = JSON.parse(productsData);
+      return NextResponse.json(products);
     }
 
-    // Homepage data
-    const { data: home, error: homeError } = await supabase
-      .from('cms_homepage')
-      .select(`
-        hero_title, hero_description, mission_title, mission_description,
-        hero_image:media!hero_image_id(public_url),
-        mission_image:media!mission_image_id(public_url)
-      `)
-      .eq('id', 1)
-      .single();
-    if (homeError) throw homeError;
-
-    const { data: featured, error: featError } = await supabase
-      .from('cms_featured_products')
-      .select('product_id')
-      .order('display_order');
-    if (featError) throw featError;
-
-    const { data: diff, error: diffError } = await supabase
-      .from('cms_differentiation_points')
-      .select('*')
-      .order('display_order');
-    if (diffError) throw diffError;
+    // Homepage data - read from JSON file
+    const fileContent = await fs.readFile(dataFilePath, 'utf-8');
+    const homepageData = JSON.parse(fileContent);
 
     return NextResponse.json({
       hero: {
-        title: home.hero_title,
-        description: home.hero_description,
-        image: home.hero_image?.[0]?.public_url || '',
+        title: homepageData.hero?.title || '',
+        description: homepageData.hero?.description || '',
+        collectionLabel: homepageData.hero?.collectionLabel || '',
+        buttonLabel: homepageData.hero?.buttonLabel || 'Shop Now',
+        ctaUrl: homepageData.hero?.ctaUrl || '/shop',
+        image: homepageData.hero?.image || '',
       },
       mission: {
-        title: home.mission_title,
-        description: home.mission_description,
-        image: home.mission_image?.[0]?.public_url || '',
+        label: homepageData.mission?.label || '',
+        title: homepageData.mission?.title || '',
+        description: homepageData.mission?.description || '',
+        buttonLabel: homepageData.mission?.buttonLabel || 'Learn More',
+        ctaUrl: homepageData.mission?.ctaUrl || '#',
+        image: homepageData.mission?.image || '',
       },
-      differentiation: { points: diff },
-      featuredProductIds: featured.map((f) => f.product_id),
+      differentiation: {
+        label: homepageData.differentiation?.label || '',
+        title: homepageData.differentiation?.title || '',
+        points: homepageData.differentiation?.points || [],
+      },
+      featuredProductIds: homepageData.featuredProductIds || [],
     });
   } catch (error) {
     console.error('GET /api/cms/content error:', error);
@@ -65,81 +57,49 @@ export async function POST(request: Request) {
   try {
     const { type, data } = await request.json();
 
-    // Helper: get media ID from public URL (create if missing?)
-    const getMediaId = async (url: string | null | undefined): Promise<number | null> => {
-      if (!url) return null;
-      const { data: media } = await supabase
-        .from('media')
-        .select('id')
-        .eq('public_url', url)
-        .single();
-      return media?.id ?? null;
-    };
-
     if (type === 'products') {
-      // Upsert a single product
-      const { error } = await supabase.from('products').upsert({
-        id: data.id,
-        name: data.name,
-        price: data.price,
-        description: data.description,
-        category: data.category,
-        tags: data.tags,
-        in_stock: data.inStock,
-      });
-      if (error) throw error;
+      // Save products to JSON file
+      const productsPath = path.join(process.cwd(), 'src/data/products.json');
+      
+      // If data is an array, save it directly; if single product, update the array
+      let productsToSave = Array.isArray(data) ? data : [data];
+      
+      if (!Array.isArray(data)) {
+        // Single product update - merge with existing
+        const existingContent = await fs.readFile(productsPath, 'utf-8');
+        const existingProducts = JSON.parse(existingContent);
+        productsToSave = existingProducts.map((p: any) => p.id === data.id ? data : p);
+      }
+      
+      await fs.writeFile(productsPath, JSON.stringify(productsToSave, null, 2), 'utf-8');
     } else {
-      // Save homepage content
-      const heroImageId = await getMediaId(data.hero?.image);
-      const missionImageId = await getMediaId(data.mission?.image);
+      // Save homepage content to JSON file
+      const homepageData = {
+        hero: {
+          collectionLabel: data.hero?.collectionLabel || 'Collection 2026',
+          title: data.hero?.title || '',
+          description: data.hero?.description || '',
+          buttonLabel: data.hero?.buttonLabel || 'Shop Now',
+          ctaUrl: data.hero?.ctaUrl || '/shop',
+          image: data.hero?.image || '',
+        },
+        mission: {
+          label: data.mission?.label || '',
+          title: data.mission?.title || '',
+          description: data.mission?.description || '',
+          buttonLabel: data.mission?.buttonLabel || 'Learn More',
+          ctaUrl: data.mission?.ctaUrl || '#',
+          image: data.mission?.image || '',
+        },
+        differentiation: {
+          label: data.differentiation?.label || '',
+          title: data.differentiation?.title || '',
+          points: data.differentiation?.points || [],
+        },
+        featuredProductIds: data.featuredProductIds || [],
+      };
 
-      // Upsert homepage record
-      const { error: homeError } = await supabase.from('cms_homepage').upsert({
-        id: 1,
-        hero_title: data.hero?.title ?? '',
-        hero_description: data.hero?.description ?? '',
-        hero_image_id: heroImageId,
-        mission_title: data.mission?.title ?? '',
-        mission_description: data.mission?.description ?? '',
-        mission_image_id: missionImageId,
-      });
-      if (homeError) throw homeError;
-
-      // Update featured products (replace all)
-      const { error: deleteFeatError } = await supabase
-        .from('cms_featured_products')
-        .delete()
-        .neq('product_id', 'none'); // delete all rows
-      if (deleteFeatError) throw deleteFeatError;
-
-      if (data.featuredProductIds?.length) {
-        const featuredInserts = data.featuredProductIds.map((pid: string, i: number) => ({
-          product_id: pid,
-          display_order: i,
-        }));
-        const { error: insertFeatError } = await supabase
-          .from('cms_featured_products')
-          .insert(featuredInserts);
-        if (insertFeatError) throw insertFeatError;
-      }
-
-      // Update differentiation points (replace all)
-      const { error: deleteDiffError } = await supabase
-        .from('cms_differentiation_points')
-        .delete()
-        .neq('id', -1);
-      if (deleteDiffError) throw deleteDiffError;
-
-      if (data.differentiation?.points?.length) {
-        const diffInserts = data.differentiation.points.map((p: any, i: number) => ({
-          ...p,
-          display_order: i,
-        }));
-        const { error: insertDiffError } = await supabase
-          .from('cms_differentiation_points')
-          .insert(diffInserts);
-        if (insertDiffError) throw insertDiffError;
-      }
+      await fs.writeFile(dataFilePath, JSON.stringify(homepageData, null, 2), 'utf-8');
     }
 
     return NextResponse.json({ success: true });
