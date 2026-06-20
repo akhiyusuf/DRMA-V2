@@ -1,11 +1,26 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 export default function DashboardPage() {
   const [homepageData, setHomepageData] = useState<any>(null);
   const [productsData, setProductsData] = useState<any[] | null>(null);
   const [filter, setFilter] = useState('');
   const [images, setImages] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const fetchImages = async () => {
+    try {
+      const res = await fetch('/api/cms/images');
+      if (res.ok) {
+        const data = await res.json();
+        setImages(Array.isArray(data) ? data : []);
+      }
+    } catch (err) {
+      console.error('Error fetching images:', err);
+    }
+  };
+
   useEffect(() => {
     fetch('/api/cms/content?type=homepage')
         .then(res => res.json())
@@ -43,25 +58,65 @@ export default function DashboardPage() {
             setProductsData([]);
         });
     
-    // Fetch images from the new API route
-    fetch('/api/cms/images').then(res => res.json()).then(data => {
-        if (!data.error) setImages(data);
-    });
+    // Fetch images
+    fetchImages();
   }, []);
 
   const save = async (type: string, data: any, id?: string) => {
     let payload = data;
     if (type === 'products' && id) {
-        // Fetch current full list to update only one product
         const currentData = await fetch('/api/cms/content?type=products').then(res => res.json());
         payload = currentData.map((p: any) => p.id === id ? data : p);
     }
     
-    await fetch('/api/cms/content', {
-      method: 'POST',
-      body: JSON.stringify({ type, data: payload }),
-    });
-    alert('Saved!');
+    try {
+      const res = await fetch('/api/cms/content', {
+        method: 'POST',
+        body: JSON.stringify({ type, data: payload }),
+      });
+      if (res.ok) {
+        alert('✓ Saved successfully!');
+      } else {
+        alert('✗ Failed to save');
+      }
+    } catch (err) {
+      alert('✗ Error saving: ' + err);
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !e.target.files[0]) return;
+
+    const file = e.target.files[0];
+    setUploading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const res = await fetch('/api/cms/upload', { 
+        method: 'POST', 
+        body: formData 
+      });
+
+      const result = await res.json();
+
+      if (res.ok && result.success) {
+        // Add image immediately to list
+        setImages([...images, result.path]);
+        alert('✓ Image uploaded successfully!');
+        // Reset input
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+      } else {
+        alert('✗ Upload failed: ' + (result.error || 'Unknown error'));
+      }
+    } catch (err) {
+      alert('✗ Upload error: ' + err);
+    } finally {
+      setUploading(false);
+    }
   };
 
   // Helper for dynamic tagging lists
@@ -118,35 +173,41 @@ export default function DashboardPage() {
       <aside className="col-span-12 lg:col-span-5 xl:col-span-4 border border-foreground/10 p-6 rounded-3xl lg:sticky lg:top-28 bg-foreground/5 self-start">
         <h2 className="text-xl font-heading mb-6 flex justify-between items-center">
             Media Library
-            <label className="cursor-pointer bg-primary text-primary-foreground p-2 rounded-full hover:bg-primary/90 transition-colors">
+            <label className={`cursor-pointer bg-primary text-primary-foreground p-2 rounded-full hover:bg-primary/90 transition-colors ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-                <input type="file" className="hidden" onChange={async (e) => {
-                    if (e.target.files && e.target.files[0]) {
-                        const formData = new FormData();
-                        formData.append('file', e.target.files[0]);
-                        const res = await fetch('/api/cms/upload', { method: 'POST', body: formData });
-                        if (res.ok) {
-                            alert('Uploaded!');
-                            window.location.reload();
-                        }
-                    }
-                }} />
+                <input 
+                  ref={fileInputRef}
+                  type="file" 
+                  className="hidden" 
+                  onChange={handleFileUpload}
+                  disabled={uploading}
+                  accept="image/*"
+                />
             </label>
         </h2>
+        {uploading && <p className="text-sm text-primary mb-4">Uploading...</p>}
         <div className="columns-3 gap-2 overflow-y-auto max-h-[80vh] pr-2">
-            {images.map((img, index) => (
+            {images.length === 0 ? (
+              <p className="text-foreground/40 text-sm">No images uploaded yet</p>
+            ) : (
+              images.map((img, index) => (
                 <div key={`${img}-${index}`} className="relative group border border-foreground/10 p-1 rounded-xl mb-2 break-inside-avoid">
                     <img draggable onDragStart={e => e.dataTransfer.setData('text/plain', img)} src={img} alt="Library" className="w-full h-auto object-contain rounded-lg cursor-grab" />
-                    <button className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100" onClick={async () => {
+                    <button 
+                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100" 
+                      onClick={async () => {
                         const res = await fetch('/api/cms/images/delete', { method: 'POST', body: JSON.stringify({ imageUrl: img }) });
                         if (res.ok) {
                             setImages(images.filter(i => i !== img));
+                            alert('✓ Image deleted');
                         } else {
-                            alert('Failed to delete');
+                            alert('✗ Failed to delete image');
                         }
-                    }}>×</button>
+                      }}
+                    >×</button>
                 </div>
-            ))}
+              ))
+            )}
         </div>
       </aside>
 
@@ -158,8 +219,8 @@ export default function DashboardPage() {
             {/* Hero Section */}
             <div className="space-y-4">
                 <h3 className="text-lg font-bold">Hero Section</h3>
-                <input className="w-full border border-foreground/10 bg-background/5 p-4 rounded-xl" value={homepageData.hero.title} onChange={e => setHomepageData({...homepageData, hero: {...homepageData.hero, title: e.target.value}})} placeholder="Hero Title" />
-                <textarea className="w-full border border-foreground/10 bg-background/5 p-4 rounded-xl" value={homepageData.hero.description || ''} onChange={e => setHomepageData({...homepageData, hero: {...homepageData.hero, description: e.target.value}})} placeholder="Hero Description" />
+                <input className="w-full border border-foreground/10 bg-background/5 p-4 rounded-xl" value={homepageData.hero.title} onChange={e => setHomepageData({...homepageData, hero: {...homepageData.hero, title: e.target.value}})} placeholder="Title" />
+                <textarea className="w-full border border-foreground/10 bg-background/5 p-4 rounded-xl" value={homepageData.hero.description || ''} onChange={e => setHomepageData({...homepageData, hero: {...homepageData.hero, description: e.target.value}})} placeholder="Description" />
                 <div className="border border-foreground/10 p-4 rounded-xl" onDragOver={e => e.preventDefault()} onDrop={e => {
                   const img = e.dataTransfer.getData('text/plain');
                   setHomepageData({...homepageData, hero: {...homepageData.hero, image: img}});
@@ -169,7 +230,7 @@ export default function DashboardPage() {
                     {homepageData.hero.image ? (
                         <div className="relative">
                           <img src={homepageData.hero.image} alt="Hero" className="max-h-80 w-auto object-contain rounded-xl" />
-                          <button className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-80 hover:opacity-100" onClick={() => setHomepageData({...homepageData, hero: {...homepageData.hero, image: ''}})}>×</button>
+                          <button className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-80 hover:opacity-100" onClick={() => setHomepageData({...homepageData, hero: {...homepageData.hero, image: ''}})} >×</button>
                         </div>
                     ) : (
                         <div className="h-40 w-full bg-background/10 rounded-xl flex items-center justify-center text-foreground/40 text-sm">No image set</div>
@@ -181,8 +242,8 @@ export default function DashboardPage() {
             {/* Mission Section */}
             <div className="space-y-4 border-t pt-4">
                 <h3 className="text-lg font-bold">Mission Section</h3>
-                <input className="w-full border border-foreground/10 bg-background/5 p-4 rounded-xl" value={homepageData.mission.title} onChange={e => setHomepageData({...homepageData, mission: {...homepageData.mission, title: e.target.value}})} placeholder="Mission Title" />
-                <textarea className="w-full border border-foreground/10 bg-background/5 p-4 rounded-xl" value={homepageData.mission.description || ''} onChange={e => setHomepageData({...homepageData, mission: {...homepageData.mission, description: e.target.value}})} placeholder="Mission Description" />
+                <input className="w-full border border-foreground/10 bg-background/5 p-4 rounded-xl" value={homepageData.mission.title} onChange={e => setHomepageData({...homepageData, mission: {...homepageData.mission, title: e.target.value}})} placeholder="Title" />
+                <textarea className="w-full border border-foreground/10 bg-background/5 p-4 rounded-xl" value={homepageData.mission.description || ''} onChange={e => setHomepageData({...homepageData, mission: {...homepageData.mission, description: e.target.value}})} placeholder="Description" />
                 <div className="border border-foreground/10 p-4 rounded-xl" onDragOver={e => e.preventDefault()} onDrop={e => {
                   const img = e.dataTransfer.getData('text/plain');
                   setHomepageData({...homepageData, mission: {...homepageData.mission, image: img}});
@@ -192,7 +253,7 @@ export default function DashboardPage() {
                     {homepageData.mission.image ? (
                         <div className="relative">
                           <img src={homepageData.mission.image} alt="Mission" className="max-h-80 w-auto object-contain rounded-xl" />
-                          <button className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-80 hover:opacity-100" onClick={() => setHomepageData({...homepageData, mission: {...homepageData.mission, image: ''}})}>×</button>
+                          <button className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-80 hover:opacity-100" onClick={() => setHomepageData({...homepageData, mission: {...homepageData.mission, image: ''}})} >×</button>
                         </div>
                     ) : (
                         <div className="h-40 w-full bg-background/10 rounded-xl flex items-center justify-center text-foreground/40 text-sm">No image set</div>
@@ -261,7 +322,7 @@ export default function DashboardPage() {
             <div className="flex justify-between items-center mb-8">
                 <h2 className="text-2xl font-heading">Products Editor</h2>
                 <input className="border border-foreground/10 bg-background/5 p-3 rounded-full" placeholder="Filter..." value={filter} onChange={e => setFilter(e.target.value)} />
-                <button onClick={() => setProductsData([...productsData, { id: Date.now().toString(), name: 'New Product', price: 0, images: [''], tags: [], category: '', variations: { sizes: [], colors: [], materials: [] } }])} className="bg-primary text-primary-foreground px-6 py-3 rounded-full font-medium hover:bg-primary/90">+ Add Product</button>
+                <button onClick={() => setProductsData([...productsData, { id: Date.now().toString(), name: 'New Product', price: 0, images: [], tags: [], category: '', variations: { sizes: [], colors: [], materials: [] }, description: '' }])} className="bg-primary text-primary-foreground px-4 py-2 rounded-full text-sm">+ Add Product</button>
             </div>
             {filteredProducts.map((product, index) => (
             <div key={product.id} className="mb-8 p-6 border border-foreground/10 rounded-2xl bg-foreground/5" onDragOver={e => e.preventDefault()} onDrop={e => {
@@ -314,10 +375,10 @@ export default function DashboardPage() {
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4 mt-4">
-                    <TagInput label="Tags" values={product.tags || []} onChange={vals => { const p = [...productsData]; p[index].tags = vals; setProductsData(p); }} listId="tags" placeholder="Type tag and press Enter" />
-                    <TagInput label="Sizes" values={product.variations?.sizes || []} onChange={vals => { const p = [...productsData]; p[index].variations = { ...p[index].variations, sizes: vals }; setProductsData(p); }} listId="sizes" placeholder="Type size and press Enter" />
-                    <TagInput label="Colors" values={product.variations?.colors || []} onChange={vals => { const p = [...productsData]; p[index].variations = { ...p[index].variations, colors: vals }; setProductsData(p); }} listId="colors" placeholder="Type color and press Enter" />
-                    <TagInput label="Materials" values={product.variations?.materials || []} onChange={vals => { const p = [...productsData]; p[index].variations = { ...p[index].variations, materials: vals }; setProductsData(p); }} listId="materials" placeholder="Type material and press Enter" />
+                    <TagInput label="Tags" values={product.tags || []} onChange={vals => { const p = [...productsData]; p[index].tags = vals; setProductsData(p); }} listId="tags" placeholder="Type and press Enter" />
+                    <TagInput label="Sizes" values={product.variations?.sizes || []} onChange={vals => { const p = [...productsData]; p[index].variations = { ...p[index].variations, sizes: vals }; setProductsData(p); }} listId="sizes" placeholder="Type and press Enter" />
+                    <TagInput label="Colors" values={product.variations?.colors || []} onChange={vals => { const p = [...productsData]; p[index].variations = { ...p[index].variations, colors: vals }; setProductsData(p); }} listId="colors" placeholder="Type and press Enter" />
+                    <TagInput label="Materials" values={product.variations?.materials || []} onChange={vals => { const p = [...productsData]; p[index].variations = { ...p[index].variations, materials: vals }; setProductsData(p); }} listId="materials" placeholder="Type and press Enter" />
                 </div>
                 
                 <label className="block text-xs uppercase tracking-widest font-medium mb-3 mt-6">Images (Drag from Library)</label>
@@ -326,7 +387,7 @@ export default function DashboardPage() {
                       <div key={i} className="relative group">
                           {img && img.trim() !== '' ? (
                             <div className="relative">
-                              <img src={img} className="max-h-32 w-auto object-contain border border-foreground/10 rounded-xl" />
+                              <img src={img} className="max-h-32 w-auto object-contain border border-foreground/10 rounded-xl" alt="product" />
                               <button className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100" onClick={() => {
                                   const newProducts = [...productsData];
                                   newProducts[index].images.splice(i, 1);
