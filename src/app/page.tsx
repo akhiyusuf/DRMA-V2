@@ -4,10 +4,11 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { ArrowUpRight, Plus, ArrowRight } from "lucide-react";
-import { products } from "@/data/products";
+import type { Product } from "@/types/product";
 
 export default function Home() {
   const [homepageData, setHomepageData] = useState<any>(null);
+  const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
     fetch('/api/cms/content?type=homepage')
@@ -19,6 +20,13 @@ export default function Home() {
         console.error('Error fetching homepage data:', err);
         setHomepageData(null);
       });
+    
+    fetch('/api/products')
+      .then(res => res.json())
+      .then(data => {
+        if (!data.error) setProducts(data);
+      })
+      .catch(err => console.error('Error fetching products:', err));
   }, []);
 
   if (!homepageData) return null;

@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createAdminClient } from '@/utils/supabase/admin';
-
-const supabase = createAdminClient();
+import { supabaseAdmin } from '@/utils/supabase/admin';
 
 export async function POST(request: Request) {
   const data = await request.formData();
@@ -16,15 +14,15 @@ export async function POST(request: Request) {
   const fileName = `${Date.now()}-${file.name}`;
 
   try {
-    const { error: uploadError } = await supabase.storage.from('media').upload(fileName, buffer, {
+    const { error: uploadError } = await supabaseAdmin.storage.from('media').upload(fileName, buffer, {
         contentType: file.type
     });
     if (uploadError) throw uploadError;
 
-    const { data: { publicUrl } } = supabase.storage.from('media').getPublicUrl(fileName);
+    const { data: { publicUrl } } = supabaseAdmin.storage.from('media').getPublicUrl(fileName);
     
     try {
-      await supabase.from('media').insert({ file_path: fileName, public_url: publicUrl });
+      await supabaseAdmin.from('media').insert({ file_path: fileName, public_url: publicUrl });
     } catch (e) {
       // Ignore if media table doesn't exist
       console.log('Media table insert skipped');

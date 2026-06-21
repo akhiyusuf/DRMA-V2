@@ -1,16 +1,31 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { ArrowRight, Trash2, ArrowUpRight, ShieldCheck, Truck } from "lucide-react";
-import { products } from "@/data/products";
+import type { Product } from "@/types/product";
 
 export default function CartPage() {
-  const [cartItems, setCartItems] = useState([
-    { ...products[0], quantity: 1, selectedSize: "M", selectedColor: "Sand" },
-    { ...products[4], quantity: 1, selectedSize: "One Size", selectedColor: "Beige" }
-  ]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [cartItems, setCartItems] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch('/api/products')
+      .then(res => res.json())
+      .then(data => {
+        if (!data.error) {
+          setProducts(data);
+          if (data.length >= 5) {
+            setCartItems([
+              { ...data[0], quantity: 1, selectedSize: "M", selectedColor: "Sand" },
+              { ...data[4], quantity: 1, selectedSize: "One Size", selectedColor: "Beige" }
+            ]);
+          }
+        }
+      })
+      .catch(err => console.error('Error fetching products:', err));
+  }, []);
 
   const updateQuantity = (id: string, delta: number) => {
     setCartItems(prev => prev.map(item => 

@@ -1,17 +1,40 @@
 "use client";
 
-import { products } from "@/data/products";
 import { notFound } from "next/navigation";
-import { use, useState } from "react";
+import { use, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, ArrowUpRight, Info } from "lucide-react";
 import Link from "next/link";
+import type { Product } from "@/types/product";
 
 export default function ProductPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
-  const product = products.find(p => p.id === resolvedParams.id);
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch('/api/products')
+      .then(res => res.json())
+      .then((data: Product[]) => {
+        const found = data.find(p => p.id === resolvedParams.id);
+        setProduct(found || null);
+        setLoading(false);
+      })
+      .catch(() => {
+        setProduct(null);
+        setLoading(false);
+      });
+  }, [resolvedParams.id]);
+
+  if (loading) {
+    return (
+      <div className="w-full bg-background min-h-screen flex items-center justify-center">
+        <div className="animate-pulse text-foreground/40">Loading...</div>
+      </div>
+    );
+  }
 
   if (!product) {
     notFound();

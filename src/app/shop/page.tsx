@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { products, Product } from "@/data/products";
+import { useState, useEffect } from "react";
+import type { Product } from "@/types/product";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -9,7 +9,17 @@ import { Label } from "@/components/ui/label";
 import { ArrowUpRight, X } from "lucide-react";
 
 export default function ShopPage() {
+  const [products, setProducts] = useState<Product[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+
+  useEffect(() => {
+    fetch('/api/products')
+      .then(res => res.json())
+      .then(data => {
+        if (!data.error) setProducts(data);
+      })
+      .catch(err => console.error('Error fetching products:', err));
+  }, []);
 
   const toggleTag = (tag: string) => {
     setSelectedTags(prev => 

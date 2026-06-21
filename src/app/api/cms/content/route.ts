@@ -1,110 +1,155 @@
-import { NextResponse } from 'next/server';
-import { promises as fs } from 'fs';
-import path from 'path';
+import { NextRequest, NextResponse } from "next/server";
+import { supabaseAdmin } from "@/utils/supabase/admin";
+import { revalidatePath } from "next/cache";
 
-const dataFilePath = path.join(process.cwd(), 'src/data/cms/homepage.json');
-
-// ---- GET ----
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const type = searchParams.get('type');
+  const type = searchParams.get("type");
 
   try {
-    if (type === 'products') {
-      // Read products from JSON
-      const productsPath = path.join(process.cwd(), 'src/data/products.json');
-      const productsData = await fs.readFile(productsPath, 'utf-8');
-      const products = JSON.parse(productsData);
+    if (type === "products") {
+      const { data: products, error } = await supabaseAdmin
+        .from("products")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
       return NextResponse.json(products);
     }
 
-    // Homepage data - read from JSON file
-    const fileContent = await fs.readFile(dataFilePath, 'utf-8');
-    const homepageData = JSON.parse(fileContent);
+    // Homepage data
+    const { data: homepage, error: hpError } = await supabaseAdmin
+      .from("cms_homepage")
+      .select("*")
+      .single();
+    
+    const { data: diffPoints, error: diffError } = await supabaseAdmin
+      .from("cms_differentiation_points")
+      .select("*")
+      .order("display_order", { ascending: true });
+    
+    const { data: featured, error: featError } = await supabaseAdmin
+      .from("cms_featured_products")
+      .select("product_id");
 
     return NextResponse.json({
       hero: {
-        title: homepageData.hero?.title || '',
-        description: homepageData.hero?.description || '',
-        collectionLabel: homepageData.hero?.collectionLabel || '',
-        buttonLabel: homepageData.hero?.buttonLabel || 'Shop Now',
-        ctaUrl: homepageData.hero?.ctaUrl || '/shop',
-        image: homepageData.hero?.image || '',
+        title: homepage?.hero_title || "",
+        description: homepage?.hero_description || "",
+        collectionLabel: homepage?.hero_collection_label || "",
+        buttonLabel: homepage?.hero_button_label || "Shop Now",
+        ctaUrl: homepage?.hero_cta_url || "/shop",
+        image: homepage?.hero_image_id || "",
       },
       mission: {
-        label: homepageData.mission?.label || '',
-        title: homepageData.mission?.title || '',
-        description: homepageData.mission?.description || '',
-        buttonLabel: homepageData.mission?.buttonLabel || 'Learn More',
-        ctaUrl: homepageData.mission?.ctaUrl || '#',
-        image: homepageData.mission?.image || '',
+        label: homepage?.mission_label || "",
+        title: homepage?.mission_title || "",
+        description: homepage?.mission_description || "",
+        buttonLabel: homepage?.mission_button_label || "Learn More",
+        ctaUrl: homepage?.mission_cta_url || "#",
+        image: homepage?.mission_image_id || "",
       },
       differentiation: {
-        label: homepageData.differentiation?.label || '',
-        title: homepageData.differentiation?.title || '',
-        points: homepageData.differentiation?.points || [],
+        label: homepage?.differentiation_label || "",
+        title: homepage?.differentiation_title || "",
+        points: diffPoints || [],
       },
-      featuredProductIds: homepageData.featuredProductIds || [],
+      featuredProductIds: (featured || []).map((f: any) => f.product_id),
     });
   } catch (error) {
-    console.error('GET /api/cms/content error:', error);
-    return NextResponse.json({ error: 'Failed to read data' }, { status: 500 });
+    console.error("GET /api/cms/content error:", error);
+    return NextResponse.json({ error: "Failed to read data" }, { status: 500 });
   }
 }
 
-// ---- POST ----
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const { type, data } = await request.json();
 
-    if (type === 'products') {
-      // Save products to JSON file
-      const productsPath = path.join(process.cwd(), 'src/data/products.json');
+    if (type === "products") {
+      const productsToSave = Array.isArray(data) ? data : [data];
       
-      // If data is an array, save it directly; if single product, update the array
-      let productsToSave = Array.isArray(data) ? data : [data];
-      
-      if (!Array.isArray(data)) {
-        // Single product update - merge with existing
-        const existingContent = await fs.readFile(productsPath, 'utf-8');
-        const existingProducts = JSON.parse(existingContent);
-        productsToSave = existingProducts.map((p: any) => p.id === data.id ? data : p);
+      for (const product of productsToSave) {
+        const { error } = await supabaseAdmin
+          .from("products")
+          .upsert({
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            description: product.description || "",
+            category: product.category || "",
+            tags: product.tags || [],
+            images: product.images || [],
+            variations: product.variations || { sizes: [], colors: [], materials: [] },
+            in_stock: product.inStock ?? true,
+          }, { onConflict: "id" });
+        
+        if (error) throw error;
       }
-      
-      await fs.writeFile(productsPath, JSON.stringify(productsToSave, null, 2), 'utf-8');
     } else {
-      // Save homepage content to JSON file
-      const homepageData = {
-        hero: {
-          collectionLabel: data.hero?.collectionLabel || 'Collection 2026',
-          title: data.hero?.title || '',
-          description: data.hero?.description || '',
-          buttonLabel: data.hero?.buttonLabel || 'Shop Now',
-          ctaUrl: data.hero?.ctaUrl || '/shop',
-          image: data.hero?.image || '',
-        },
-        mission: {
-          label: data.mission?.label || '',
-          title: data.mission?.title || '',
-          description: data.mission?.description || '',
-          buttonLabel: data.mission?.buttonLabel || 'Learn More',
-          ctaUrl: data.mission?.ctaUrl || '#',
-          image: data.mission?.image || '',
-        },
-        differentiation: {
-          label: data.differentiation?.label || '',
-          title: data.differentiation?.title || '',
-          points: data.differentiation?.points || [],
-        },
-        featuredProductIds: data.featuredProductIds || [],
-      };
+      // Homepage data
+      const { error: hpError } = await supabaseAdmin
+        .from("cms_homepage")
+        .upsert({
+          id: 1,
+          hero_title: data.hero?.title || "",
+          hero_description: data.hero?.description || "",
+          hero_collection_label: data.hero?.collectionLabel || "",
+          hero_button_label: data.hero?.buttonLabel || "Shop Now",
+          hero_cta_url: data.hero?.ctaUrl || "/shop",
+          hero_image_id: data.hero?.image || "",
+          mission_label: data.mission?.label || "",
+          mission_title: data.mission?.title || "",
+          mission_description: data.mission?.description || "",
+          mission_button_label: data.mission?.buttonLabel || "Learn More",
+          mission_cta_url: data.mission?.ctaUrl || "#",
+          mission_image_id: data.mission?.image || "",
+          differentiation_label: data.differentiation?.label || "",
+          differentiation_title: data.differentiation?.title || "",
+        }, { onConflict: "id" });
+      
+      if (hpError) throw hpError;
 
-      await fs.writeFile(dataFilePath, JSON.stringify(homepageData, null, 2), 'utf-8');
+      // Save differentiation points
+      if (data.differentiation?.points?.length > 0) {
+        // Delete existing
+        await supabaseAdmin.from("cms_differentiation_points").delete().neq("id", 0);
+        // Insert new
+        const points = data.differentiation.points.map((p: any, i: number) => ({
+          number: p.number || String(i + 1),
+          title: p.title || "",
+          description: p.description || "",
+          display_order: i,
+        }));
+        const { error: diffError } = await supabaseAdmin
+          .from("cms_differentiation_points")
+          .insert(points);
+        if (diffError) throw diffError;
+      }
+
+      // Save featured products
+      if (data.featuredProductIds) {
+        await supabaseAdmin.from("cms_featured_products").delete().neq("product_id", "");
+        if (data.featuredProductIds.length > 0) {
+          const featured = data.featuredProductIds.map((pid: string, i: number) => ({
+            product_id: pid,
+            display_order: i,
+          }));
+          const { error: featError } = await supabaseAdmin
+            .from("cms_featured_products")
+            .insert(featured);
+          if (featError) throw featError;
+        }
+      }
     }
+
+    // Revalidate pages
+    revalidatePath("/");
+    revalidatePath("/shop");
+    revalidatePath("/cms/dashboard");
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('POST /api/cms/content error:', error);
-    return NextResponse.json({ error: 'Failed to save data' }, { status: 500 });
+    console.error("POST /api/cms/content error:", error);
+    return NextResponse.json({ error: "Failed to save data" }, { status: 500 });
   }
 }

@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createAdminClient } from '@/utils/supabase/admin';
-
-const supabase = createAdminClient();
+import { supabaseAdmin } from '@/utils/supabase/admin';
 
 export async function POST(request: Request) {
   const { imageUrl } = await request.json();
@@ -11,7 +9,7 @@ export async function POST(request: Request) {
 
   try {
     // 1. Get file path from media table
-    const { data: media, error: findError } = await supabase
+    const { data: media, error: findError } = await supabaseAdmin
       .from('media')
       .select('id, file_path')
       .eq('public_url', imageUrl)
@@ -20,11 +18,11 @@ export async function POST(request: Request) {
     if (findError) throw findError;
 
     // 2. Delete from storage
-    const { error: storageError } = await supabase.storage.from('media').remove([media.file_path]);
+    const { error: storageError } = await supabaseAdmin.storage.from('media').remove([media.file_path]);
     if (storageError) throw storageError;
 
     // 3. Delete from media table
-    const { error: dbError } = await supabase.from('media').delete().eq('id', media.id);
+    const { error: dbError } = await supabaseAdmin.from('media').delete().eq('id', media.id);
     if (dbError) throw dbError;
 
     return NextResponse.json({ success: true });

@@ -1,16 +1,17 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Truck, ShieldCheck, ArrowLeft, ArrowUpRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { products } from "@/data/products";
+import type { Product } from "@/types/product";
 import Link from "next/link";
 
 export default function CheckoutPage() {
+  const [products, setProducts] = useState<Product[]>([]);
   const [email, setEmail] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -20,6 +21,15 @@ export default function CheckoutPage() {
   const [state, setState] = useState("TX");
   const [shippingMethod, setShippingMethod] = useState("ups_ground");
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch('/api/products')
+      .then(res => res.json())
+      .then(data => {
+        if (!data.error) setProducts(data);
+      })
+      .catch(err => console.error('Error fetching products:', err));
+  }, []);
 
   // Mock calculation
   const subtotal = 180.00;
@@ -194,11 +204,11 @@ export default function CheckoutPage() {
                     {/* Item 1 */}
                     <div className="flex items-center gap-6">
                       <div className="w-20 h-24 rounded-lg bg-foreground/5 overflow-hidden flex-shrink-0 relative ring-1 ring-foreground/10">
-                        <img src={products[0].images[0]} alt="Oasis Linen Abaya" className="w-full h-full object-cover" />
+                        <img src={products[0]?.images?.[0] || ""} alt="Oasis Linen Abaya" className="w-full h-full object-cover" />
                         <span className="absolute -top-1 -right-1 bg-foreground text-background text-[9px] w-5 h-5 rounded-full flex items-center justify-center border border-background">1</span>
                       </div>
                       <div className="flex-1">
-                        <p className="font-heading text-lg mb-1">{products[0].name}</p>
+                        <p className="font-heading text-lg mb-1">{products[0]?.name || "Oasis Linen Abaya"}</p>
                         <div className="flex gap-2">
                            <span className="text-[9px] uppercase tracking-widest text-foreground/50 border border-foreground/10 px-2 py-0.5 rounded-full">Sand</span>
                            <span className="text-[9px] uppercase tracking-widest text-foreground/50 border border-foreground/10 px-2 py-0.5 rounded-full">M</span>
@@ -210,11 +220,11 @@ export default function CheckoutPage() {
                     {/* Item 2 */}
                     <div className="flex items-center gap-6">
                       <div className="w-20 h-24 rounded-lg bg-foreground/5 overflow-hidden flex-shrink-0 relative ring-1 ring-foreground/10">
-                        <img src={products[4].images[0]} alt="Atlas Kimono Cardigan" className="w-full h-full object-cover" />
+                        <img src={products[4]?.images?.[0] || ""} alt="Atlas Kimono Cardigan" className="w-full h-full object-cover" />
                         <span className="absolute -top-1 -right-1 bg-foreground text-background text-[9px] w-5 h-5 rounded-full flex items-center justify-center border border-background">1</span>
                       </div>
                       <div className="flex-1">
-                        <p className="font-heading text-lg mb-1">{products[4].name}</p>
+                        <p className="font-heading text-lg mb-1">{products[4]?.name || "Atlas Kimono Cardigan"}</p>
                         <div className="flex gap-2">
                            <span className="text-[9px] uppercase tracking-widest text-foreground/50 border border-foreground/10 px-2 py-0.5 rounded-full">Beige</span>
                            <span className="text-[9px] uppercase tracking-widest text-foreground/50 border border-foreground/10 px-2 py-0.5 rounded-full">One Size</span>
