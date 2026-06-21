@@ -34,7 +34,7 @@ export function Navbar() {
         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         className={`fixed top-4 inset-x-0 mx-auto z-[60] w-[95%] md:w-[90%] max-w-7xl transition-all duration-500 ${
           scrolled || mobileMenuOpen
-            ? "bg-background/80 backdrop-blur-xl border border-border/50 shadow-lg"
+            ? "bg-background border border-border/50 shadow-sm"
             : "bg-background/0 backdrop-blur-none border-none shadow-none"
         } ${mobileMenuOpen ? "rounded-[2rem]" : "rounded-full"}`}
       >

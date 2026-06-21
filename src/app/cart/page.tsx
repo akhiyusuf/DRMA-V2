@@ -16,12 +16,6 @@ export default function CartPage() {
       .then(data => {
         if (!data.error) {
           setProducts(data);
-          if (data.length >= 5) {
-            setCartItems([
-              { ...data[0], quantity: 1, selectedSize: "M", selectedColor: "Sand" },
-              { ...data[4], quantity: 1, selectedSize: "One Size", selectedColor: "Beige" }
-            ]);
-          }
         }
       })
       .catch(err => console.error('Error fetching products:', err));
@@ -64,6 +58,12 @@ export default function CartPage() {
         <div className="flex flex-col lg:flex-row gap-16 lg:gap-24">
           {/* Cart Items */}
           <div className="w-full lg:w-2/3">
+            {cartItems.length === 0 && (
+              <div className="py-32 text-center">
+                <p className="text-foreground/50 text-lg mb-4">Your cart is empty</p>
+                <Link href="/shop" className="text-primary underline">Browse the collection</Link>
+              </div>
+            )}
             <div className="space-y-8">
               {cartItems.map((item, index) => (
                 <motion.div 

@@ -29,7 +29,12 @@ export default function Home() {
       .catch(err => console.error('Error fetching products:', err));
   }, []);
 
-  if (!homepageData) return null;
+  if (!homepageData) return (
+    <div className="min-h-screen flex flex-col items-center justify-center gap-6 bg-background">
+      <div className="animate-pulse font-heading text-3xl text-primary/40 tracking-[0.3em]">DRMA</div>
+      <div className="w-32 h-0.5 bg-foreground/10 rounded-full animate-pulse" />
+    </div>
+  );
 
   return (
     <div className="w-full bg-background overflow-hidden selection:bg-primary selection:text-primary-foreground">

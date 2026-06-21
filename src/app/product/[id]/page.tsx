@@ -13,6 +13,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
   const [loading, setLoading] = useState(true);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<{ type: 'error' | 'success', message: string } | null>(null);
 
   useEffect(() => {
     fetch('/api/products')
@@ -28,13 +29,21 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
       });
   }, [resolvedParams.id]);
 
-  if (loading) {
-    return (
-      <div className="w-full bg-background min-h-screen flex items-center justify-center">
-        <div className="animate-pulse text-foreground/40">Loading...</div>
+  if (loading) return (
+    <div className="min-h-screen pt-32 container mx-auto px-6">
+      <div className="animate-pulse space-y-8">
+        <div className="h-4 w-24 bg-foreground/10 rounded" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+          <div className="aspect-square bg-foreground/5 rounded-3xl" />
+          <div className="space-y-6">
+            <div className="h-8 w-48 bg-foreground/10 rounded" />
+            <div className="h-6 w-24 bg-foreground/10 rounded" />
+            <div className="h-32 bg-foreground/5 rounded-xl" />
+          </div>
+        </div>
       </div>
-    );
-  }
+    </div>
+  );
 
   if (!product) {
     notFound();
@@ -42,10 +51,12 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
 
   const addToCart = () => {
     if (!selectedSize || !selectedColor) {
-      alert("Please select size and color");
+      setFeedback({ type: 'error', message: 'Please select both a size and a color.' });
+      setTimeout(() => setFeedback(null), 3000);
       return;
     }
-    alert(`Added ${product.name} (${selectedSize}, ${selectedColor}) to cart!`);
+    setFeedback({ type: 'success', message: `Added ${product.name} (${selectedSize}, ${selectedColor}) to cart!` });
+    setTimeout(() => setFeedback(null), 3000);
   };
 
   return (
@@ -142,6 +153,21 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                   ))}
                 </div>
               </div>
+
+              {/* Inline Feedback */}
+              {feedback && (
+                <motion.div
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={`text-sm px-5 py-3 rounded-xl mb-6 ${
+                    feedback.type === 'success'
+                      ? 'bg-green-50 text-green-800 border border-green-200'
+                      : 'bg-amber-50 text-amber-800 border border-amber-200'
+                  }`}
+                >
+                  {feedback.message}
+                </motion.div>
+              )}
 
               {/* Fluid Add to Cart Button */}
               <button onClick={addToCart} className="group relative w-full inline-flex items-center justify-center gap-4 rounded-full bg-foreground pl-8 pr-2 py-2 text-sm font-medium tracking-wide text-background transition-all active:scale-[0.98] hover:bg-foreground/90 mb-6">

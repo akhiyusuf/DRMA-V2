@@ -11,14 +11,20 @@ import { ArrowUpRight, X } from "lucide-react";
 export default function ShopPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [fetching, setFetching] = useState(true);
 
   useEffect(() => {
     fetch('/api/products')
       .then(res => res.json())
       .then(data => {
         if (!data.error) setProducts(data);
+        setFetching(false);
       })
-      .catch(err => console.error('Error fetching products:', err));
+      .catch(err => {
+        console.error('Error fetching products:', err);
+        setFetching(false);
+      });
   }, []);
 
   const toggleTag = (tag: string) => {
@@ -27,7 +33,10 @@ export default function ShopPage() {
     );
   };
 
+  const categories = Array.from(new Set(products.map(p => p.category).filter(Boolean)));
+
   const filteredProducts = products.filter(product => {
+    if (selectedCategory && product.category !== selectedCategory) return false;
     if (selectedTags.length === 0) return true;
     return selectedTags.some(tag => (product.tags as string[]).includes(tag));
   });
@@ -69,6 +78,15 @@ export default function ShopPage() {
           {/* Filters Sidebar: Soft Structuralism */}
           <aside className="w-full lg:w-64 flex-shrink-0">
             <div className="sticky top-32">
+              <h2 className="text-[10px] font-medium mb-8 uppercase tracking-[0.2em] text-foreground/50 border-b border-foreground/10 pb-4">Filter By Category</h2>
+              
+              <div className="flex flex-wrap gap-2 mb-6">
+                <button onClick={() => setSelectedCategory(null)} className={`text-xs uppercase tracking-wider px-3 py-1.5 rounded-full border transition-colors ${!selectedCategory ? 'bg-foreground text-background border-foreground' : 'border-foreground/10 text-foreground/60 hover:border-foreground/30'}`}>All</button>
+                {categories.map(cat => (
+                  <button key={cat} onClick={() => setSelectedCategory(cat)} className={`text-xs uppercase tracking-wider px-3 py-1.5 rounded-full border transition-colors ${selectedCategory === cat ? 'bg-foreground text-background border-foreground' : 'border-foreground/10 text-foreground/60 hover:border-foreground/30'}`}>{cat}</button>
+                ))}
+              </div>
+
               <h2 className="text-[10px] font-medium mb-8 uppercase tracking-[0.2em] text-foreground/50 border-b border-foreground/10 pb-4">Refine By Ethics</h2>
               
               <div className="space-y-4">
@@ -110,6 +128,21 @@ export default function ShopPage() {
 
           {/* Product Grid: Double Bezel Masonry */}
           <div className="flex-1">
+            {fetching && products.length === 0 ? (
+              <div className="columns-1 sm:columns-2 xl:columns-3 gap-8 space-y-8">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="break-inside-avoid mb-8 animate-pulse">
+                    <div className="p-1.5 rounded-[1.5rem] bg-foreground/5 ring-1 ring-foreground/5">
+                      <div className="rounded-[calc(1.5rem-0.375rem)] bg-foreground/5 aspect-[3/4]" />
+                    </div>
+                    <div className="px-2 mt-6 space-y-2">
+                      <div className="h-5 w-32 bg-foreground/10 rounded" />
+                      <div className="h-4 w-16 bg-foreground/10 rounded" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
             <motion.div 
               layout
               className="columns-1 sm:columns-2 xl:columns-3 gap-8 space-y-8"
@@ -168,8 +201,9 @@ export default function ShopPage() {
                 ))}
               </AnimatePresence>
             </motion.div>
+            )}
             
-            {filteredProducts.length === 0 && (
+            {!fetching && filteredProducts.length === 0 && (
               <motion.div 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
