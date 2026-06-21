@@ -298,7 +298,7 @@ export default function Home() {
       {/* 
         DIFFERENTIATION: Asymmetrical Bento 
       */}
-      <section className="py-32 md:py-48 bg-foreground text-background relative rounded-t-[3rem] -mt-10 shadow-2xl">
+      <section className="py-32 md:py-48 bg-[#1C1917] text-[#FAFAF9] relative rounded-t-[3rem] -mt-10 shadow-2xl">
         <div className="container mx-auto px-4 md:px-8">
           <motion.div
             initial={{ opacity: 0, y: 40 }}
@@ -307,11 +307,11 @@ export default function Home() {
             transition={{ duration: 1, ease: [0.32, 0.72, 0, 1] }}
             className="flex flex-col items-center text-center max-w-3xl mx-auto mb-24"
           >
-            <span className="rounded-full px-3 py-1 text-[10px] uppercase tracking-[0.2em] font-medium bg-background/10 text-background border border-background/20 mb-8">
+            <span className="rounded-full px-3 py-1 text-[10px] uppercase tracking-[0.2em] font-medium bg-[#FAFAF9]/15 text-[#CA8A04] border border-[#CA8A04]/30 mb-8">
               {homepageData.differentiation?.label || "Why Us"}
             </span>
-            <h2 className="text-4xl md:text-6xl font-heading font-light leading-tight">
-              {(homepageData.differentiation?.title || " ").split(" <br/> ")[0]} <br/> <span className="italic text-background/60">{(homepageData.differentiation?.title || " ").split(" <br/> ")[1]}</span>
+            <h2 className="text-4xl md:text-6xl font-heading font-light leading-tight text-white">
+              {(homepageData.differentiation?.title || " ").split(" <br/> ")[0]} <br/> <span className="italic text-[#FAFAF9]/80">{(homepageData.differentiation?.title || " ").split(" <br/> ")[1]}</span>
             </h2>
           </motion.div>
 
@@ -323,15 +323,15 @@ export default function Home() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-100px" }}
                 transition={{ duration: 1, delay: index * 0.1, ease: [0.32, 0.72, 0, 1] }}
-                className={index === 2 ? "md:col-span-12 p-1.5 rounded-[2rem] bg-background/5 ring-1 ring-background/10" : index === 1 ? "md:col-span-4 p-1.5 rounded-[2rem] bg-background/5 ring-1 ring-background/10" : "md:col-span-4 p-1.5 rounded-[2rem] bg-background/5 ring-1 ring-background/10"}
+                className={index === 2 ? "md:col-span-12 p-1.5 rounded-[2rem] bg-white/[0.06] ring-1 ring-white/[0.12]" : "md:col-span-4 p-1.5 rounded-[2rem] bg-white/[0.04] ring-1 ring-white/[0.08]"}
               >
-                <div className="h-full rounded-[calc(2rem-0.375rem)] bg-background/5 p-8 md:p-12 flex flex-col justify-between shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
-                  <div className={index === 2 ? "text-4xl font-heading font-light text-primary/80 mb-8 md:mb-12" : "text-4xl font-heading font-light text-primary/80 mb-12"}>{point.number}</div>
+                <div className="h-full rounded-[calc(2rem-0.375rem)] bg-white/[0.03] p-8 md:p-12 flex flex-col justify-between">
+                  <div className="text-4xl font-heading font-light text-[#CA8A04] mb-8 md:mb-12">{point.number}</div>
                   <div>
-                    <h3 className={index === 2 ? "text-2xl md:text-3xl font-heading mb-4 text-background" : index === 1 ? "text-xl md:text-2xl font-heading mb-3 text-background" : "text-2xl md:text-2xl font-heading mb-4 text-background"}>
+                    <h3 className="text-2xl md:text-2xl font-heading mb-4 text-white">
                       {point.title}
                     </h3>
-                    <p className={index === 2 ? "text-background/60 text-base md:text-lg leading-relaxed max-w-2xl font-light" : "text-background/60 text-sm md:text-base leading-relaxed font-light"}>
+                    <p className="text-[#FAFAF9]/70 text-sm md:text-base leading-relaxed font-light">
                       {point.description}
                     </p>
                   </div>
