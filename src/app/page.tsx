@@ -296,10 +296,14 @@ export default function Home() {
       </section>
 
       {/* 
-        DIFFERENTIATION: Asymmetrical Bento 
+        DIFFERENTIATION: Dark luxe — no more dull 
       */}
-      <section className="py-32 md:py-48 bg-[#1C1917] text-[#FAFAF9] relative rounded-t-[3rem] -mt-10 shadow-2xl">
-        <div className="container mx-auto px-4 md:px-8">
+      <section className="py-32 md:py-48 bg-gradient-to-b from-[#1a1614] via-[#14100E] to-[#0D0B0A] text-[#FAFAF9] relative rounded-t-[3rem] -mt-10 shadow-2xl overflow-hidden">
+        {/* Background accents */}
+        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-[#CA8A04]/[0.03] rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-[#CA8A04]/[0.02] rounded-full blur-[100px] pointer-events-none" />
+        
+        <div className="container mx-auto px-4 md:px-8 relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -307,11 +311,15 @@ export default function Home() {
             transition={{ duration: 1, ease: [0.32, 0.72, 0, 1] }}
             className="flex flex-col items-center text-center max-w-3xl mx-auto mb-24"
           >
-            <span className="rounded-full px-3 py-1 text-[10px] uppercase tracking-[0.2em] font-medium bg-[#FAFAF9]/15 text-[#CA8A04] border border-[#CA8A04]/30 mb-8">
-              {homepageData.differentiation?.label || "Why Us"}
-            </span>
-            <h2 className="text-4xl md:text-6xl font-heading font-light leading-tight text-white">
-              {(homepageData.differentiation?.title || " ").split(" <br/> ")[0]} <br/> <span className="italic text-[#FAFAF9]/80">{(homepageData.differentiation?.title || " ").split(" <br/> ")[1]}</span>
+            <div className="flex items-center gap-3 mb-8">
+              <span className="h-px w-8 bg-[#CA8A04]/50" />
+              <span className="text-[11px] uppercase tracking-[0.25em] font-medium text-[#CA8A04]">
+                {homepageData.differentiation?.label || "Why Us"}
+              </span>
+              <span className="h-px w-8 bg-[#CA8A04]/50" />
+            </div>
+            <h2 className="text-5xl md:text-7xl font-heading font-light leading-[1.05] text-white">
+              {(homepageData.differentiation?.title || " ").split(" <br/> ")[0]} <br/> <span className="italic text-[#CA8A04]">{(homepageData.differentiation?.title || " ").split(" <br/> ")[1]}</span>
             </h2>
           </motion.div>
 
@@ -322,16 +330,19 @@ export default function Home() {
                 initial={{ opacity: 0, y: 40 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-100px" }}
-                transition={{ duration: 1, delay: index * 0.1, ease: [0.32, 0.72, 0, 1] }}
-                className={index === 2 ? "md:col-span-12 p-1.5 rounded-[2rem] bg-white/[0.06] ring-1 ring-white/[0.12]" : "md:col-span-4 p-1.5 rounded-[2rem] bg-white/[0.04] ring-1 ring-white/[0.08]"}
+                transition={{ duration: 0.8, delay: index * 0.1, ease: [0.32, 0.72, 0, 1] }}
+                whileHover={{ y: -4 }}
+                className={index === 2 
+                  ? "md:col-span-12 rounded-[2rem] bg-gradient-to-br from-[#262220] to-[#1a1614] border border-[#CA8A04]/20 shadow-[0_8px_40px_rgba(202,138,4,0.06)]" 
+                  : "md:col-span-4 rounded-[2rem] bg-gradient-to-br from-[#262220] to-[#1a1614] border border-white/[0.06] hover:border-[#CA8A04]/20 transition-colors duration-500"}
               >
-                <div className="h-full rounded-[calc(2rem-0.375rem)] bg-white/[0.03] p-8 md:p-12 flex flex-col justify-between">
-                  <div className="text-4xl font-heading font-light text-[#CA8A04] mb-8 md:mb-12">{point.number}</div>
+                <div className="h-full p-8 md:p-12 flex flex-col justify-between">
+                  <div className="text-5xl md:text-6xl font-heading font-semibold text-[#CA8A04] mb-6 md:mb-8 tracking-tight">{point.number}</div>
                   <div>
-                    <h3 className="text-2xl md:text-2xl font-heading mb-4 text-white">
+                    <h3 className="text-xl md:text-2xl font-heading mb-4 text-white font-medium">
                       {point.title}
                     </h3>
-                    <p className="text-[#FAFAF9]/70 text-sm md:text-base leading-relaxed font-light">
+                    <p className="text-[#D1CFCD] text-sm md:text-base leading-relaxed font-light">
                       {point.description}
                     </p>
                   </div>
