@@ -334,7 +334,7 @@ export default function Home() {
                 whileHover={{ y: -4 }}
                 className={index === 2 
                   ? "md:col-span-12 rounded-[2rem] bg-gradient-to-br from-[#262220] to-[#1a1614] border border-[#CA8A04]/20 shadow-[0_8px_40px_rgba(202,138,4,0.06)]" 
-                  : "md:col-span-4 rounded-[2rem] bg-gradient-to-br from-[#262220] to-[#1a1614] border border-white/[0.06] hover:border-[#CA8A04]/20 transition-colors duration-500"}
+                  : "md:col-span-6 rounded-[2rem] bg-gradient-to-br from-[#262220] to-[#1a1614] border border-white/[0.06] hover:border-[#CA8A04]/20 transition-colors duration-500"}
               >
                 <div className="h-full p-8 md:p-12 flex flex-col justify-between">
                   <div className="text-5xl md:text-6xl font-heading font-semibold text-[#CA8A04] mb-6 md:mb-8 tracking-tight">{point.number}</div>
