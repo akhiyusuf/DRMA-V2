@@ -84,9 +84,9 @@ export default function Home() {
               >
                 <Link 
                   href={homepageData.hero?.ctaUrl || "/shop"} 
-                  className="group relative inline-flex items-center gap-4 rounded-full bg-[#1C1917] pl-8 pr-2 py-2 text-sm font-medium tracking-wide text-white transition-colors duration-300 hover:bg-[#1C1917]/90"
+                  className="group relative inline-flex items-center gap-4 rounded-full bg-[#CA8A04] pl-8 pr-2 py-2 text-sm font-medium tracking-wide text-white transition-colors duration-300 hover:bg-[#CA8A04]/90"
                 >
-                  <span className="uppercase tracking-widest text-xs">{homepageData.hero?.buttonLabel || "Shop Now"}</span>
+                  <span className="uppercase tracking-widest text-sm">{homepageData.hero?.buttonLabel || "Shop Now"}</span>
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-1 group-hover:scale-110">
                     <ArrowUpRight className="h-4 w-4 stroke-[1.5]" />
                   </div>
@@ -110,10 +110,7 @@ export default function Home() {
                   <img 
                     src={homepageData.hero.image} 
                     alt="Modest Fashion Model" 
-                    className="w-full h-auto object-contain transition-transform duration-[4s] hover:scale-[1.01]"
-                    style={{
-                      filter: "drop-shadow(20px 20px 0px rgba(202, 138, 4, 0.25)) drop-shadow(0 30px 60px rgba(0,0,0,0.4))"
-                    }}
+                    className="w-full h-auto object-contain transition-transform duration-[4s] hover:scale-[1.01] shadow-[20px_20px_0px_rgba(202,138,4,0.25)] shadow-2xl"
                   />
                 )}
 
@@ -140,15 +137,15 @@ export default function Home() {
           >
             {[1, 2].map((i) => (
               <div key={i} className="flex items-center gap-16 md:gap-24">
-                <span className="text-white/80 text-xs md:text-sm font-medium uppercase tracking-[0.5em]">Conscious Design</span>
+                <span className="text-white/80 text-sm md:text-base font-medium uppercase tracking-[0.25em]">Conscious Design</span>
                 <div className="w-2 h-2 rotate-45 border border-[#CA8A04]/50"></div>
-                <span className="text-white/80 text-xs md:text-sm font-medium uppercase tracking-[0.5em]">Ethical Production</span>
+                <span className="text-white/80 text-sm md:text-base font-medium uppercase tracking-[0.25em]">Ethical Production</span>
                 <div className="w-2 h-2 rotate-45 border border-[#CA8A04]/50"></div>
-                <span className="text-white/80 text-xs md:text-sm font-medium uppercase tracking-[0.5em]">Timeless Elegance</span>
+                <span className="text-white/80 text-sm md:text-base font-medium uppercase tracking-[0.25em]">Timeless Elegance</span>
                 <div className="w-2 h-2 rotate-45 border border-[#CA8A04]/50"></div>
-                <span className="text-white/80 text-xs md:text-sm font-medium uppercase tracking-[0.5em]">Modern Heritage</span>
+                <span className="text-white/80 text-sm md:text-base font-medium uppercase tracking-[0.25em]">Modern Heritage</span>
                 <div className="w-2 h-2 rotate-45 border border-[#CA8A04]/50"></div>
-                <span className="text-white/80 text-xs md:text-sm font-medium uppercase tracking-[0.5em]">Unapologetically Modest</span>
+                <span className="text-white/80 text-sm md:text-base font-medium uppercase tracking-[0.25em]">Unapologetically Modest</span>
                 <div className="w-2 h-2 rotate-45 border border-[#CA8A04]/50"></div>
               </div>
             ))}
@@ -224,7 +221,7 @@ export default function Home() {
         BEST PRODUCTS: Bento Grid 
         5 products arranged in the specific layout requested.
       */}
-      <section className="py-24 md:py-32 relative z-10 bg-[#F9F9F7]">
+      <section className="py-32 md:py-40 relative z-10 bg-[#FAFAF9]">
         <div className="container mx-auto px-4 md:px-8">
           
           <motion.div 
@@ -303,7 +300,7 @@ export default function Home() {
       {/* 
         DIFFERENTIATION: Dark luxe — no more dull 
       */}
-      <section className="py-32 md:py-48 bg-gradient-to-b from-[#1a1614] via-[#14100E] to-[#0D0B0A] text-[#FAFAF9] relative rounded-t-[3rem] -mt-10 shadow-2xl overflow-hidden">
+      <section className="py-32 md:py-40 bg-gradient-to-b from-[#1a1614] via-[#14100E] to-[#0D0B0A] text-[#FAFAF9] relative rounded-t-[3rem] -mt-10 shadow-2xl overflow-hidden">
         {/* Background accents */}
         <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-[#CA8A04]/[0.03] rounded-full blur-[120px] pointer-events-none" />
         <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-[#CA8A04]/[0.02] rounded-full blur-[100px] pointer-events-none" />
@@ -341,7 +338,7 @@ export default function Home() {
                   ? "md:col-span-12 rounded-[2rem] bg-gradient-to-br from-[#262220] to-[#1a1614] border border-[#CA8A04]/20 shadow-[0_8px_40px_rgba(202,138,4,0.06)]" 
                   : "md:col-span-6 rounded-[2rem] bg-gradient-to-br from-[#262220] to-[#1a1614] border border-white/[0.06] hover:border-[#CA8A04]/20 transition-colors duration-500"}
               >
-                <div className="h-full p-8 md:p-12 flex flex-col justify-between">
+                <div className="h-full p-6 md:p-12 flex flex-col justify-between">
                   <div className="text-5xl md:text-6xl font-heading font-semibold text-[#CA8A04] mb-6 md:mb-8 tracking-tight">{point.number}</div>
                   <div>
                     <h3 className="text-xl md:text-2xl font-heading mb-4 text-white font-medium">
