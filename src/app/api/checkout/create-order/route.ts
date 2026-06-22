@@ -1,8 +1,94 @@
 import { NextRequest, NextResponse } from "next/server";
+import { supabaseAdmin } from "@/utils/supabase/admin";
 
 const PAYPAL_CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "";
 const PAYPAL_APP_SECRET = process.env.PAYPAL_APP_SECRET || "";
 const PAYPAL_BASE_URL = process.env.NEXT_PUBLIC_PAYPAL_BASE_URL || "https://api-m.sandbox.paypal.com";
+
+// Save order to Supabase (non-blocking — doesn't fail checkout if Supabase is down)
+async function saveOrderToDatabase(payload: OrderPayload, paypalOrderId: string | null, mockMode: boolean) {
+  try {
+    const orderId = `ord_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+    
+    const { error: orderError } = await supabaseAdmin
+      .from("orders")
+      .insert({
+        id: orderId,
+        paypal_order_id: paypalOrderId,
+        status: mockMode ? "paid" : "pending",
+        customer_email: payload.email,
+        customer_first_name: payload.firstName,
+        customer_last_name: payload.lastName,
+        shipping_address: payload.address,
+        shipping_city: payload.city,
+        shipping_state: payload.state,
+        shipping_zip: payload.zip,
+        shipping_method: payload.shippingMethod,
+        subtotal: payload.subtotal,
+        tax_amount: payload.taxAmount,
+        shipping_cost: payload.shippingCost,
+        total: payload.total,
+      });
+    
+    if (orderError) {
+      console.warn("Failed to save order to Supabase:", orderError.message);
+      return;
+    }
+
+    // Save order items
+    const orderItems = payload.items.map(item => ({
+      order_id: orderId,
+      product_id: item.id,
+      product_name: item.name,
+      price: item.price,
+      quantity: item.quantity,
+      selected_size: item.selectedSize,
+      selected_color: item.selectedColor,
+    }));
+
+    const { error: itemsError } = await supabaseAdmin
+      .from("order_items")
+      .insert(orderItems);
+
+    if (itemsError) console.warn("Failed to save order items:", itemsError.message);
+
+    // Log initial status
+    try {
+      await supabaseAdmin
+        .from("order_status_history")
+        .insert({
+          order_id: orderId,
+          status: mockMode ? "paid" : "pending",
+          note: mockMode ? "Mock payment — PayPal not configured" : "Order placed, awaiting PayPal payment",
+        });
+    } catch {}
+
+    // Attempt to decrement stock
+    for (const item of payload.items) {
+      try {
+        // Fetch current stock, decrement, and update
+        const { data: prod } = await supabaseAdmin
+          .from("products")
+          .select("stock_quantity")
+          .eq("id", item.id)
+          .single();
+
+        if (prod && prod.stock_quantity !== null && prod.stock_quantity >= 0) {
+          const newStock = Math.max(0, (prod.stock_quantity || 0) - item.quantity);
+          await supabaseAdmin
+            .from("products")
+            .update({
+              stock_quantity: newStock,
+              in_stock: newStock > 0,
+            })
+            .eq("id", item.id);
+        }
+      } catch {}
+    }
+  } catch (err) {
+    console.warn("Non-blocking: could not save order to database:", err);
+  }
+}
 
 interface OrderPayload {
   email: string;
@@ -61,6 +147,8 @@ export async function POST(request: NextRequest) {
       // PayPal not configured — return a mock success response
       // This allows the store to function during development without PayPal credentials
       console.warn("PayPal credentials not configured. Running in mock mode.");
+      // Save order to database in background
+      saveOrderToDatabase(payload, null, true);
       return NextResponse.json({
         approvalUrl: null,
         orderId: `mock_${Date.now()}`,
@@ -143,6 +231,9 @@ export async function POST(request: NextRequest) {
 
     // Find the approval URL from the HATEOAS links
     const approvalLink = data.links?.find((link: any) => link.rel === "approve");
+
+    // Save order to database in background
+    saveOrderToDatabase(payload, data.id, false);
 
     return NextResponse.json({
       approvalUrl: approvalLink?.href || null,
