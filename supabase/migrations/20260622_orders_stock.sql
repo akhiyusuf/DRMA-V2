@@ -41,6 +41,7 @@ ALTER TABLE products ADD COLUMN IF NOT EXISTS stock_quantity INT DEFAULT -1;
 -- -1 means "infinite / not tracked" (backwards compatible with in_stock boolean)
 ALTER TABLE products ADD COLUMN IF NOT EXISTS low_stock_threshold INT DEFAULT 5;
 ALTER TABLE products ADD COLUMN IF NOT EXISTS sku TEXT;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS max_per_order INT DEFAULT 3;
 
 -- 4. Order status history (for tracking changes)
 CREATE TABLE IF NOT EXISTS order_status_history (

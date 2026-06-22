@@ -49,7 +49,7 @@ export async function PATCH(
       } catch {}
     }
 
-    // If cancelled or refunded, restore stock atomically
+    // If cancelled or refunded, restore stock atomically (aggregate by product ID)
     if (status === "cancelled" || status === "refunded") {
       const { data: items } = await supabaseAdmin
         .from("order_items")
@@ -57,30 +57,35 @@ export async function PATCH(
         .eq("order_id", id);
 
       if (items) {
+        // Aggregate quantities by product ID
+        const restoreByProduct = new Map<string, number>();
         for (const item of items) {
           if (!item.product_id) continue;
+          restoreByProduct.set(item.product_id, (restoreByProduct.get(item.product_id) || 0) + item.quantity);
+        }
+
+        for (const [productId, totalQty] of restoreByProduct) {
           try {
             // Fetch current stock
             const { data: prod } = await supabaseAdmin
               .from("products")
               .select("stock_quantity")
-              .eq("id", item.product_id)
+              .eq("id", productId)
               .single();
 
             if (prod && prod.stock_quantity !== null && prod.stock_quantity >= 0) {
-              const newStock = prod.stock_quantity + item.quantity;
+              const newStock = prod.stock_quantity + totalQty;
               await supabaseAdmin
                 .from("products")
                 .update({
                   stock_quantity: newStock,
                   in_stock: newStock > 0,
                 })
-                .eq("id", item.product_id);
+                .eq("id", productId);
             }
-            // If stock_quantity is null or -1, it's untracked — nothing to restore
           } catch (restoreErr) {
             console.warn(
-              `Failed to restore stock for product ${item.product_id}:`,
+              `Failed to restore stock for product ${productId}:`,
               restoreErr
             );
           }

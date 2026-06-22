@@ -197,15 +197,15 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                 </motion.div>
               )}
 
-              {/* Stock Status */}
+              {/* Stock Status — exact quantities hidden from customers */}
               {stockIsTracked && (
                 <div className="mb-6 space-y-1">
                   {isOutOfStock ? (
                     <p className="text-xs uppercase tracking-widest text-red-500 font-medium">Out of Stock</p>
                   ) : isLowStock ? (
-                    <p className="text-xs uppercase tracking-widest text-amber-600 font-medium">Only {product.stock_quantity} left</p>
+                    <p className="text-xs uppercase tracking-widest text-amber-600 font-medium">Low Stock — order soon</p>
                   ) : (
-                    <p className="text-xs uppercase tracking-widest text-foreground/40">In Stock ({product.stock_quantity} available)</p>
+                    <p className="text-xs uppercase tracking-widest text-foreground/40">In Stock</p>
                   )}
                   <p className="text-[10px] uppercase tracking-widest text-foreground/30">Limit {effectiveMax} per order</p>
                 </div>

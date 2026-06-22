@@ -64,7 +64,7 @@ async function validateStock(items: OrderPayload["items"]): Promise<string | nul
         .filter(i => i.id === item.id)
         .reduce((sum, i) => sum + i.quantity, 0);
       if (totalRequested > product.stock_quantity) {
-        return `Only ${product.stock_quantity} unit(s) of "${product.name}" available, but ${totalRequested} requested.`;
+        return `Not enough stock for "${product.name}". Please reduce the quantity in your cart.`;
       }
     }
     // Enforce max_per_order limit
@@ -186,11 +186,16 @@ async function saveOrderToDatabase(
       });
   } catch {}
 
-  // Decrement stock for each unique product
+  // Decrement stock aggregated by unique product ID
+  // (same product in different sizes/colors should be one decrement with summed quantity)
+  const quantityByProduct = new Map<string, number>();
   for (const item of payload.items) {
-    const success = await decrementStock(item.id, item.quantity);
+    quantityByProduct.set(item.id, (quantityByProduct.get(item.id) || 0) + item.quantity);
+  }
+  for (const [productId, totalQty] of quantityByProduct) {
+    const success = await decrementStock(productId, totalQty);
     if (!success) {
-      console.warn(`Stock decrement failed for product ${item.id}, quantity ${item.quantity}`);
+      console.warn(`Stock decrement failed for product ${productId}, quantity ${totalQty}`);
     }
   }
 
@@ -336,22 +341,26 @@ export async function POST(request: NextRequest) {
           .from("orders")
           .update({ status: "cancelled", notes: "PayPal order creation failed" })
           .eq("id", dbOrderId);
-        // Restore stock since order failed
+        // Restore stock since order failed (aggregate by unique product ID)
+        const restoreByProduct = new Map<string, number>();
         for (const item of payload.items) {
+          restoreByProduct.set(item.id, (restoreByProduct.get(item.id) || 0) + item.quantity);
+        }
+        for (const [productId, totalQty] of restoreByProduct) {
           try {
             const { data: prod } = await supabaseAdmin
               .from("products")
               .select("stock_quantity")
-              .eq("id", item.id)
+              .eq("id", productId)
               .single();
             if (prod && prod.stock_quantity !== null && prod.stock_quantity >= 0) {
               await supabaseAdmin
                 .from("products")
                 .update({
-                  stock_quantity: prod.stock_quantity + item.quantity,
+                  stock_quantity: prod.stock_quantity + totalQty,
                   in_stock: true,
                 })
-                .eq("id", item.id);
+                .eq("id", productId);
             }
           } catch {}
         }

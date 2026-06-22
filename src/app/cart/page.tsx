@@ -132,7 +132,7 @@ export default function CartPage() {
                           </span>
                         </div>
 
-                        {/* Stock warning */}
+                        {/* Stock warning — no exact quantities shown */}
                         {isOutOfStock && (
                           <div className="flex items-center gap-2 mt-3 text-red-500">
                             <AlertTriangle className="w-3.5 h-3.5" />
@@ -142,7 +142,7 @@ export default function CartPage() {
                         {isLowStock && !isOutOfStock && (
                           <div className="flex items-center gap-2 mt-3 text-amber-600">
                             <AlertTriangle className="w-3.5 h-3.5" />
-                            <span className="text-xs">Only {stock.stock_quantity} left</span>
+                            <span className="text-xs">Low stock — order soon</span>
                           </div>
                         )}
                       </div>
