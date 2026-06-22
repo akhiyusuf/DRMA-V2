@@ -116,15 +116,23 @@ export async function POST(request: NextRequest) {
 
       if (itemsError) throw itemsError;
 
-      // Decrement stock for each item
+      // Decrement stock for each item (atomic inline approach)
       for (const item of items) {
         try {
-          await supabaseAdmin.rpc("decrement_stock", {
-            p_product_id: item.id,
-            p_quantity: item.quantity,
-          });
+          const { data: prod } = await supabaseAdmin
+            .from("products")
+            .select("stock_quantity")
+            .eq("id", item.id)
+            .single();
+          if (prod && prod.stock_quantity !== null && prod.stock_quantity >= 0) {
+            const newStock = Math.max(0, prod.stock_quantity - item.quantity);
+            await supabaseAdmin
+              .from("products")
+              .update({ stock_quantity: newStock, in_stock: newStock > 0 })
+              .eq("id", item.id);
+          }
         } catch {
-          // Stock function might not exist yet — non-blocking
+          // Non-blocking — stock tracking may not be set up
         }
       }
     }

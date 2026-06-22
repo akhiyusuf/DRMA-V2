@@ -4,7 +4,7 @@ import { useEffect, useState, Suspense } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Check, Package, ArrowRight } from "lucide-react";
+import { Check, Package, ArrowRight, Loader2 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 
 interface OrderData {
@@ -28,6 +28,8 @@ interface OrderData {
   shippingCost: number;
   total: number;
   shippingMethod: string;
+  dbOrderId?: string;
+  paypalOrderId?: string;
 }
 
 function OrderConfirmationContent() {
@@ -36,11 +38,14 @@ function OrderConfirmationContent() {
   const [order, setOrder] = useState<OrderData | null>(null);
   const [isMock, setIsMock] = useState(false);
   const [isCancelled, setIsCancelled] = useState(false);
+  const [captureError, setCaptureError] = useState<string | null>(null);
+  const [capturing, setCapturing] = useState(false);
 
   useEffect(() => {
     const success = searchParams.get("success");
     const cancelled = searchParams.get("cancelled");
     const mock = searchParams.get("mock");
+    const token = searchParams.get("token");
 
     if (cancelled === "true") {
       setIsCancelled(true);
@@ -52,15 +57,41 @@ function OrderConfirmationContent() {
       try {
         const stored = sessionStorage.getItem("drma_pending_order");
         if (stored) {
-          setOrder(JSON.parse(stored));
+          const parsed = JSON.parse(stored) as OrderData;
+          setOrder(parsed);
           sessionStorage.removeItem("drma_pending_order");
           clearCart();
+
+          // If this is a PayPal return (has token param and a paypalOrderId),
+          // capture the payment in the background
+          if (!mock && token && parsed.paypalOrderId) {
+            capturePayPalPayment(parsed.paypalOrderId, parsed.dbOrderId);
+          }
         }
       } catch {
         // ignore
       }
     }
   }, [searchParams, clearCart]);
+
+  const capturePayPalPayment = async (paypalOrderId: string, dbOrderId?: string) => {
+    setCapturing(true);
+    try {
+      const res = await fetch("/api/checkout/capture-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId: paypalOrderId, dbOrderId }),
+      });
+      const data = await res.json();
+      if (!data.captured) {
+        setCaptureError("Payment capture is being processed. Your order is confirmed.");
+      }
+    } catch {
+      setCaptureError("Payment confirmation is being processed in the background.");
+    } finally {
+      setCapturing(false);
+    }
+  };
 
   if (isCancelled) {
     return (
@@ -122,9 +153,29 @@ function OrderConfirmationContent() {
           <p className="text-foreground/60 font-light text-lg">
             {isMock 
               ? "Your test order has been received. Connect PayPal credentials for live payments."
-              : "Your order has been confirmed. A confirmation email will be sent shortly."
+              : capturing
+                ? "Your order is confirmed and payment is being processed."
+                : "Your order has been confirmed. A confirmation email will be sent shortly."
             }
           </p>
+
+          {/* Order ID display */}
+          {order.dbOrderId && (
+            <p className="mt-3 text-xs font-mono text-foreground/40 tracking-wider">
+              Order ID: {order.dbOrderId.substring(0, 30)}
+            </p>
+          )}
+
+          {capturing && (
+            <div className="flex items-center justify-center gap-2 mt-4 text-foreground/50 text-sm">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>Confirming payment...</span>
+            </div>
+          )}
+
+          {captureError && (
+            <p className="mt-3 text-xs text-amber-600">{captureError}</p>
+          )}
         </motion.div>
 
         <motion.div 

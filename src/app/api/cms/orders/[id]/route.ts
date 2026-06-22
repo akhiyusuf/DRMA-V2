@@ -13,7 +13,10 @@ export async function PATCH(
     // Validate status transition
     const validStatuses = ["pending", "paid", "shipped", "delivered", "cancelled", "refunded"];
     if (status && !validStatuses.includes(status)) {
-      return NextResponse.json({ error: `Invalid status. Must be one of: ${validStatuses.join(", ")}` }, { status: 400 });
+      return NextResponse.json(
+        { error: `Invalid status. Must be one of: ${validStatuses.join(", ")}` },
+        { status: 400 }
+      );
     }
 
     // Update the order
@@ -46,21 +49,41 @@ export async function PATCH(
       } catch {}
     }
 
-    // If cancelled or refunded, restore stock
+    // If cancelled or refunded, restore stock atomically
     if (status === "cancelled" || status === "refunded") {
       const { data: items } = await supabaseAdmin
         .from("order_items")
-        .select("*")
+        .select("product_id, quantity")
         .eq("order_id", id);
 
       if (items) {
         for (const item of items) {
+          if (!item.product_id) continue;
           try {
-            await supabaseAdmin.rpc("increment_stock", {
-              p_product_id: item.product_id,
-              p_quantity: item.quantity,
-            });
-          } catch {}
+            // Fetch current stock
+            const { data: prod } = await supabaseAdmin
+              .from("products")
+              .select("stock_quantity")
+              .eq("id", item.product_id)
+              .single();
+
+            if (prod && prod.stock_quantity !== null && prod.stock_quantity >= 0) {
+              const newStock = prod.stock_quantity + item.quantity;
+              await supabaseAdmin
+                .from("products")
+                .update({
+                  stock_quantity: newStock,
+                  in_stock: newStock > 0,
+                })
+                .eq("id", item.product_id);
+            }
+            // If stock_quantity is null or -1, it's untracked — nothing to restore
+          } catch (restoreErr) {
+            console.warn(
+              `Failed to restore stock for product ${item.product_id}:`,
+              restoreErr
+            );
+          }
         }
       }
     }

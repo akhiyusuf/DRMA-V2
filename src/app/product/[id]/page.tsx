@@ -51,9 +51,19 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
     notFound();
   }
 
+  const isOutOfStock = product.stock_quantity === 0;
+  const isLowStock = product.stock_quantity != null && product.stock_quantity > 0 && product.stock_quantity !== -1 && product.stock_quantity <= (product.low_stock_threshold ?? 5);
+  const stockIsTracked = product.stock_quantity !== null && product.stock_quantity !== undefined && product.stock_quantity >= 0;
+
   const addToCart = () => {
     if (!selectedSize || !selectedColor) {
       setFeedback({ type: 'error', message: 'Please select both a size and a color.' });
+      setTimeout(() => setFeedback(null), 3000);
+      return;
+    }
+
+    if (isOutOfStock) {
+      setFeedback({ type: 'error', message: 'This item is currently out of stock.' });
       setTimeout(() => setFeedback(null), 3000);
       return;
     }
@@ -182,12 +192,37 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                 </motion.div>
               )}
 
-              {/* Fluid Add to Cart Button */}
-              <button onClick={addToCart} className="group relative w-full inline-flex items-center justify-center gap-4 rounded-full bg-foreground pl-8 pr-2 py-2 text-sm font-medium tracking-wide text-background transition-all active:scale-[0.98] hover:bg-foreground/90 mb-6">
-                <span className="uppercase tracking-widest text-xs py-3">Add to Cart</span>
-                <div className="absolute right-2 flex h-10 w-10 items-center justify-center rounded-full bg-background/20 transition-transform duration-300 ease-spring group-hover:scale-105">
-                  <ArrowUpRight className="h-4 w-4 stroke-[1.5]" />
+              {/* Stock Status */}
+              {stockIsTracked && (
+                <div className="mb-6">
+                  {isOutOfStock ? (
+                    <p className="text-xs uppercase tracking-widest text-red-500 font-medium">Out of Stock</p>
+                  ) : isLowStock ? (
+                    <p className="text-xs uppercase tracking-widest text-amber-600 font-medium">Only {product.stock_quantity} left</p>
+                  ) : (
+                    <p className="text-xs uppercase tracking-widest text-foreground/40">In Stock ({product.stock_quantity} available)</p>
+                  )}
                 </div>
+              )}
+
+              {/* Add to Cart Button */}
+              <button 
+                onClick={addToCart} 
+                disabled={isOutOfStock}
+                className={`group relative w-full inline-flex items-center justify-center gap-4 rounded-full pl-8 pr-2 py-2 text-sm font-medium tracking-wide transition-all active:scale-[0.98] mb-6 ${
+                  isOutOfStock
+                    ? 'bg-foreground/10 text-foreground/30 cursor-not-allowed'
+                    : 'bg-foreground text-background hover:bg-foreground/90'
+                }`}
+              >
+                <span className="uppercase tracking-widest text-xs py-3">
+                  {isOutOfStock ? 'Sold Out' : 'Add to Cart'}
+                </span>
+                {!isOutOfStock && (
+                  <div className="absolute right-2 flex h-10 w-10 items-center justify-center rounded-full bg-background/20 transition-transform duration-300 ease-spring group-hover:scale-105">
+                    <ArrowUpRight className="h-4 w-4 stroke-[1.5]" />
+                  </div>
+                )}
               </button>
               
               <div className="flex items-center justify-center text-[10px] uppercase tracking-[0.1em] text-foreground/40 gap-4">

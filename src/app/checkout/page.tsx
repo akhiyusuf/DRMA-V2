@@ -104,16 +104,27 @@ export default function CheckoutPage() {
       const data = await res.json();
 
       if (data.approvalUrl) {
-        // Store cart data in sessionStorage so we can confirm after PayPal redirect
-        sessionStorage.setItem('drma_pending_order', JSON.stringify(orderPayload));
+        // Store cart data + dbOrderId in sessionStorage for confirmation page
+        sessionStorage.setItem('drma_pending_order', JSON.stringify({
+          ...orderPayload,
+          dbOrderId: data.dbOrderId,
+          paypalOrderId: data.paypalOrderId,
+        }));
         // Redirect to PayPal
         window.location.href = data.approvalUrl;
       } else if (data.mockMode) {
         // PayPal not configured — simulate a successful order
-        sessionStorage.setItem('drma_pending_order', JSON.stringify(orderPayload));
+        sessionStorage.setItem('drma_pending_order', JSON.stringify({
+          ...orderPayload,
+          dbOrderId: data.dbOrderId,
+        }));
         window.location.href = `/order-confirmation?success=true&mock=true`;
       } else if (data.error) {
-        setErrors({ form: data.error });
+        if (data.code === 'OUT_OF_STOCK') {
+          setErrors({ form: data.error });
+        } else {
+          setErrors({ form: data.error });
+        }
         setSubmitting(false);
       }
     } catch (err) {
@@ -272,7 +283,11 @@ export default function CheckoutPage() {
                       You will be securely redirected to PayPal to complete your purchase. You can use your PayPal account or a credit card.
                     </p>
                   </div>
-                  {errors.form && <p className="text-red-500 text-sm mt-4 text-center">{errors.form}</p>}
+                  {errors.form && (
+                    <div className={`text-sm mt-4 text-center px-4 py-3 rounded-xl border ${errors.stock ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
+                      {errors.form}
+                    </div>
+                  )}
                 </div>
               </div>
             </motion.div>

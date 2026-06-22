@@ -2,11 +2,52 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { ArrowRight, Trash2, ArrowUpRight, ShieldCheck, Truck } from "lucide-react";
+import { ArrowRight, Trash2, ArrowUpRight, ShieldCheck, Truck, AlertTriangle } from "lucide-react";
 import { useCart } from "@/context/CartContext";
+import { useEffect, useState } from "react";
+
+interface StockInfo {
+  [productId: string]: {
+    stock_quantity: number | null;
+    in_stock: boolean;
+    name: string;
+  };
+}
 
 export default function CartPage() {
   const { items, removeItem, updateQuantity, subtotal, itemCount } = useCart();
+  const [stockInfo, setStockInfo] = useState<StockInfo>({});
+
+  // Fetch live stock data for all cart items
+  useEffect(() => {
+    if (items.length === 0) return;
+
+    const productIds = [...new Set(items.map(i => i.id))];
+    if (productIds.length === 0) return;
+
+    fetch('/api/products')
+      .then(res => res.json())
+      .then((products: any[]) => {
+        const info: StockInfo = {};
+        products.forEach(p => {
+          if (productIds.includes(p.id)) {
+            info[p.id] = {
+              stock_quantity: p.stock_quantity,
+              in_stock: p.in_stock,
+              name: p.name,
+            };
+          }
+        });
+        setStockInfo(info);
+      })
+      .catch(() => {});
+  }, [items]);
+
+  // Check if any items have stock issues
+  const hasStockIssues = items.some(item => {
+    const stock = stockInfo[item.id];
+    return stock && stock.stock_quantity !== null && stock.stock_quantity >= 0 && stock.stock_quantity === 0;
+  });
 
   return (
     <div className="w-full bg-background min-h-screen selection:bg-primary selection:text-primary-foreground pt-32 pb-24">
@@ -40,58 +81,78 @@ export default function CartPage() {
               </div>
             )}
             <div className="space-y-8">
-              {items.map((item, index) => (
-                <motion.div 
-                  key={`${item.id}-${item.selectedSize}-${item.selectedColor}`}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1, duration: 0.8, ease: [0.32, 0.72, 0, 1] }}
-                  className="flex flex-col sm:flex-row gap-8 pb-8 border-b border-foreground/5 group"
-                >
-                  {/* Double Bezel Thumbnail */}
-                  <Link href={`/product/${item.id}`} className="block flex-shrink-0 w-32 md:w-40">
-                    <div className="p-1 rounded-2xl bg-foreground/5 ring-1 ring-foreground/10 transition-all duration-300 group-hover:ring-foreground/20">
-                      <div className="aspect-[3/4] rounded-[calc(1rem-0.25rem)] overflow-hidden relative shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]">
-                         <img src={item.image} alt={item.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+              {items.map((item, index) => {
+                const stock = stockInfo[item.id];
+                const isOutOfStock = stock && stock.stock_quantity !== null && stock.stock_quantity >= 0 && stock.stock_quantity === 0;
+                const isLowStock = stock && stock.stock_quantity !== null && stock.stock_quantity > 0 && stock.stock_quantity <= 5;
+
+                return (
+                  <motion.div 
+                    key={`${item.id}-${item.selectedSize}-${item.selectedColor}`}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1, duration: 0.8, ease: [0.32, 0.72, 0, 1] }}
+                    className="flex flex-col sm:flex-row gap-8 pb-8 border-b border-foreground/5 group"
+                  >
+                    {/* Double Bezel Thumbnail */}
+                    <Link href={`/product/${item.id}`} className="block flex-shrink-0 w-32 md:w-40">
+                      <div className="p-1 rounded-2xl bg-foreground/5 ring-1 ring-foreground/10 transition-all duration-300 group-hover:ring-foreground/20">
+                        <div className="aspect-[3/4] rounded-[calc(1rem-0.25rem)] overflow-hidden relative shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]">
+                           <img src={item.image} alt={item.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                        </div>
                       </div>
-                    </div>
-                  </Link>
-                  
-                  <div className="flex-1 flex flex-col justify-between py-2">
-                    <div>
-                      <div className="flex justify-between items-start mb-2">
-                        <Link href={`/product/${item.id}`} className="font-heading text-xl md:text-2xl hover:underline underline-offset-4 decoration-foreground/30 transition-all">
-                          {item.name}
-                        </Link>
-                        <p className="font-light text-lg tracking-widest">${(item.price * item.quantity).toFixed(2)}</p>
-                      </div>
-                      
-                      <div className="flex gap-4 mt-4">
-                        <span className="text-[10px] uppercase tracking-[0.2em] font-medium text-foreground/60 bg-foreground/5 px-3 py-1 rounded-full border border-foreground/10">
-                          {item.selectedSize}
-                        </span>
-                        <span className="text-[10px] uppercase tracking-[0.2em] font-medium text-foreground/60 bg-foreground/5 px-3 py-1 rounded-full border border-foreground/10">
-                          {item.selectedColor}
-                        </span>
-                      </div>
-                    </div>
+                    </Link>
                     
-                    <div className="flex justify-between items-end mt-8">
-                      {/* Fluid Quantity Selector */}
-                      <div className="flex items-center rounded-full border border-foreground/10 bg-foreground/5 overflow-hidden p-1">
-                        <button onClick={() => updateQuantity(item.id, item.selectedSize, item.selectedColor, -1)} className="w-8 h-8 rounded-full flex items-center justify-center text-foreground/60 hover:text-foreground hover:bg-background transition-all">-</button>
-                        <span className="w-8 text-center text-sm font-light">{item.quantity}</span>
-                        <button onClick={() => updateQuantity(item.id, item.selectedSize, item.selectedColor, 1)} className="w-8 h-8 rounded-full flex items-center justify-center text-foreground/60 hover:text-foreground hover:bg-background transition-all">+</button>
+                    <div className="flex-1 flex flex-col justify-between py-2">
+                      <div>
+                        <div className="flex justify-between items-start mb-2">
+                          <Link href={`/product/${item.id}`} className="font-heading text-xl md:text-2xl hover:underline underline-offset-4 decoration-foreground/30 transition-all">
+                            {item.name}
+                          </Link>
+                          <p className="font-light text-lg tracking-widest">${(item.price * item.quantity).toFixed(2)}</p>
+                        </div>
+                        
+                        <div className="flex gap-4 mt-4">
+                          <span className="text-[10px] uppercase tracking-[0.2em] font-medium text-foreground/60 bg-foreground/5 px-3 py-1 rounded-full border border-foreground/10">
+                            {item.selectedSize}
+                          </span>
+                          <span className="text-[10px] uppercase tracking-[0.2em] font-medium text-foreground/60 bg-foreground/5 px-3 py-1 rounded-full border border-foreground/10">
+                            {item.selectedColor}
+                          </span>
+                        </div>
+
+                        {/* Stock warning */}
+                        {isOutOfStock && (
+                          <div className="flex items-center gap-2 mt-3 text-red-500">
+                            <AlertTriangle className="w-3.5 h-3.5" />
+                            <span className="text-xs font-medium">Out of stock — please remove</span>
+                          </div>
+                        )}
+                        {isLowStock && !isOutOfStock && (
+                          <div className="flex items-center gap-2 mt-3 text-amber-600">
+                            <AlertTriangle className="w-3.5 h-3.5" />
+                            <span className="text-xs">Only {stock.stock_quantity} left</span>
+                          </div>
+                        )}
                       </div>
                       
-                      <button onClick={() => removeItem(item.id, item.selectedSize, item.selectedColor)} className="group/btn flex items-center text-[10px] uppercase tracking-[0.2em] font-medium text-foreground/40 hover:text-destructive transition-colors">
-                        <Trash2 className="w-3 h-3 mr-2 transition-transform group-hover/btn:scale-110" />
-                        Remove
-                      </button>
+                      <div className="flex justify-between items-end mt-8">
+                        {/* Fluid Quantity Selector */}
+                        <div className="flex items-center rounded-full border border-foreground/10 bg-foreground/5 overflow-hidden p-1">
+                          <button onClick={() => updateQuantity(item.id, item.selectedSize, item.selectedColor, -1)} className="w-8 h-8 rounded-full flex items-center justify-center text-foreground/60 hover:text-foreground hover:bg-background transition-all">-</button>
+                          <span className="w-8 text-center text-sm font-light">{item.quantity}</span>
+                          <button onClick={() => updateQuantity(item.id, item.selectedSize, item.selectedColor, 1)} className="w-8 h-8 rounded-full flex items-center justify-center text-foreground/60 hover:text-foreground hover:bg-background transition-all">+</button>
+                        </div>
+                        
+                        <button onClick={() => removeItem(item.id, item.selectedSize, item.selectedColor)} className="group/btn flex items-center text-[10px] uppercase tracking-[0.2em] font-medium text-foreground/40 hover:text-destructive transition-colors">
+                          <Trash2 className="w-3 h-3 mr-2 transition-transform group-hover/btn:scale-110" />
+                          Remove
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                </motion.div>
-              ))}
+                  </motion.div>
+                );
+              })}
             </div>
           </div>
 
@@ -128,15 +189,21 @@ export default function CartPage() {
                   </div>
                   
                   {items.length > 0 ? (
-                    <Link 
-                      href="/checkout" 
-                      className="group relative w-full inline-flex items-center justify-center gap-4 rounded-full bg-foreground pl-8 pr-2 py-2 text-sm font-medium tracking-wide text-background transition-all active:scale-[0.98] hover:bg-foreground/90"
-                    >
-                      <span className="uppercase tracking-widest text-xs py-3">Secure Checkout</span>
-                      <div className="absolute right-2 flex h-10 w-10 items-center justify-center rounded-full bg-background/20 transition-transform duration-300 ease-spring group-hover:scale-105">
-                        <ArrowRight className="h-4 w-4 stroke-[1.5]" />
+                    hasStockIssues ? (
+                      <div className="w-full inline-flex items-center justify-center gap-4 rounded-full bg-foreground/10 pl-8 pr-2 py-2 text-sm font-medium tracking-wide text-foreground/40 cursor-not-allowed">
+                        <span className="uppercase tracking-widest text-xs py-3">Remove out-of-stock items</span>
                       </div>
-                    </Link>
+                    ) : (
+                      <Link 
+                        href="/checkout" 
+                        className="group relative w-full inline-flex items-center justify-center gap-4 rounded-full bg-foreground pl-8 pr-2 py-2 text-sm font-medium tracking-wide text-background transition-all active:scale-[0.98] hover:bg-foreground/90"
+                      >
+                        <span className="uppercase tracking-widest text-xs py-3">Secure Checkout</span>
+                        <div className="absolute right-2 flex h-10 w-10 items-center justify-center rounded-full bg-background/20 transition-transform duration-300 ease-spring group-hover:scale-105">
+                          <ArrowRight className="h-4 w-4 stroke-[1.5]" />
+                        </div>
+                      </Link>
+                    )
                   ) : (
                     <div className="w-full inline-flex items-center justify-center gap-4 rounded-full bg-foreground/20 pl-8 pr-2 py-2 text-sm font-medium tracking-wide text-foreground/40 cursor-not-allowed">
                       <span className="uppercase tracking-widest text-xs py-3">Secure Checkout</span>

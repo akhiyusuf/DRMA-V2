@@ -12,4 +12,7 @@ export interface Product {
     materials: string[];
   };
   inStock: boolean;
+  stock_quantity?: number | null;
+  low_stock_threshold?: number;
+  sku?: string;
 }
