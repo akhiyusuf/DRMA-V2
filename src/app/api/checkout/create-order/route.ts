@@ -103,7 +103,7 @@ async function decrementStock(productId: string, quantity: number): Promise<bool
   const newStock = product.stock_quantity - quantity;
 
   // Use atomic update — the eq() ensures we're updating the right row
-  const { error } = await supabaseAdmin
+  const { count, error } = await supabaseAdmin
     .from("products")
     .update({
       stock_quantity: newStock,
@@ -112,8 +112,8 @@ async function decrementStock(productId: string, quantity: number): Promise<bool
     .eq("id", productId)
     .eq("stock_quantity", product.stock_quantity); // Optimistic lock
 
-  if (error) {
-    console.warn(`Stock decrement failed for ${productId}:`, error.message);
+  if (error || count === 0) {
+    console.warn(`Stock decrement failed for ${productId}: ${error?.message || 'optimistic lock conflict (0 rows updated)'}`);
     return false;
   }
 

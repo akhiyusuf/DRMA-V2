@@ -116,16 +116,16 @@ export default function DashboardPage() {
 
   const TagInput = ({ label, values, onChange, listId, placeholder }: { label: string, values: string[], onChange: (vals: string[]) => void, listId: string, placeholder: string }) => (
     <div>
-      <label className="text-xs uppercase font-medium text-foreground/60 mb-1 block">{label}</label>
-      <div className="flex flex-wrap gap-2 mb-2">
+      <p className="text-[10px] uppercase tracking-[0.2em] text-foreground/40 mb-2">{label}</p>
+      <div className="flex flex-wrap gap-1.5 mb-2">
         {(values || []).map((val: string, i: number) => (
-          <span key={i} className="bg-primary/20 text-primary px-2 py-1 rounded-full text-xs flex items-center gap-1">
+          <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-foreground text-background text-[11px]">
             {val}
-            <button onClick={() => onChange(values.filter((_, idx) => idx !== i))} className="hover:text-primary/80">×</button>
+            <button onClick={() => onChange(values.filter((_, idx) => idx !== i))} className="hover:bg-background/20 rounded-full w-3.5 h-3.5 flex items-center justify-center transition-colors text-[9px]">×</button>
           </span>
         ))}
       </div>
-      <input list={listId} className="w-full border border-foreground/10 bg-background/5 p-2 rounded-lg" onKeyDown={e => {
+      <input list={listId} className="w-full bg-transparent border-b border-foreground/10 pb-1 text-sm focus:border-foreground/30 focus:outline-none transition-colors placeholder:text-foreground/20" onKeyDown={e => {
         if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); const val = e.currentTarget.value.trim(); if (val && !values.includes(val)) { onChange([...values, val]); e.currentTarget.value = ''; } }
       }} placeholder={placeholder} />
     </div>
@@ -161,7 +161,7 @@ export default function DashboardPage() {
 
   // ======== Render Helpers ========
 
-  if (!homepageData || !productsData) return <div className="p-8 pt-32 text-center">Loading...</div>;
+  if (!homepageData || !productsData) return <div className="min-h-screen flex items-center justify-center bg-background"><div className="animate-pulse font-heading text-2xl text-foreground/20 tracking-[0.3em]">DRMA</div></div>;
 
   const filteredProducts = productsData?.filter(p => p.name.toLowerCase().includes(filter.toLowerCase()) || p.category.toLowerCase().includes(filter.toLowerCase())) || [];
   const uniqueCategories = Array.from(new Set(productsData?.map(p => p.category).filter(Boolean)));
@@ -365,18 +365,27 @@ export default function DashboardPage() {
   // ======== MAIN RENDER ========
 
   return (
-    <div className="p-4 md:p-8 pt-32 max-w-7xl mx-auto bg-background text-foreground min-h-screen">
-      <h1 className="pt-16 pb-8 text-center text-4xl font-heading font-light tracking-tight">CMS</h1>
+    <div className="w-full bg-background text-foreground min-h-screen selection:bg-primary selection:text-primary-foreground">
+      <div className="max-w-[1400px] mx-auto px-4 md:px-8 pt-32 pb-24">
 
-      {/* Tab Navigation */}
-      <div className="flex gap-1 mb-8 border-b border-foreground/10">
-        {tabs.map(tab => (
-          <button key={tab.key} onClick={() => setActiveTab(tab.key)}
-            className={`px-5 py-3 text-sm font-medium transition-colors border-b-2 -mb-px ${activeTab === tab.key ? 'border-primary text-foreground' : 'border-transparent text-foreground/40 hover:text-foreground/70'}`}>
-            {tab.label}
-          </button>
-        ))}
-      </div>
+        {/* Header */}
+        <div className="mb-16">
+          <div className="flex items-center gap-3 mb-4">
+            <span className="h-[1px] w-8 bg-foreground/20"></span>
+            <span className="text-[10px] uppercase tracking-[0.25em] text-foreground/50 font-medium">Dashboard</span>
+          </div>
+          <h1 className="text-5xl md:text-6xl font-heading font-light tracking-tight leading-[0.9]">Content <span className="italic text-foreground/50">Management</span></h1>
+        </div>
+
+        {/* Tab Navigation */}
+        <div className="flex gap-1 mb-12">
+          {tabs.map(tab => (
+            <button key={tab.key} onClick={() => setActiveTab(tab.key)}
+              className={`relative px-6 py-3 text-[11px] uppercase tracking-[0.15em] font-medium transition-all rounded-full ${activeTab === tab.key ? 'bg-foreground text-background' : 'text-foreground/40 hover:text-foreground/70 hover:bg-foreground/5'}`}>
+              {tab.label}
+            </button>
+          ))}
+        </div>
 
       {/* ====== ORDERS TAB ====== */}
       {activeTab === 'orders' && renderOrders()}
@@ -384,9 +393,9 @@ export default function DashboardPage() {
       {/* ====== STOCK TAB ====== */}
       {activeTab === 'stock' && renderStock()}
 
-      {/* ====== CONTENT TAB (original CMS) ====== */}
+      {/* ====== CONTENT TAB ====== */}
       {activeTab === 'content' && (
-      <div className="grid grid-cols-12 gap-8">
+      <div className="grid grid-cols-12 gap-8 lg:gap-12">
         {/* Datalists */}
         <datalist id="categories">{uniqueCategories.map((c, i) => <option key={`${c}-${i}`} value={c} />)}</datalist>
         <datalist id="tags">{uniqueTags.map((t, i) => <option key={`${t}-${i}`} value={t} />)}</datalist>
@@ -395,156 +404,250 @@ export default function DashboardPage() {
         <datalist id="materials">{uniqueMaterials.map((m, i) => <option key={`${m}-${i}`} value={m} />)}</datalist>
 
         {/* Media Library */}
-        <aside className="col-span-12 lg:col-span-5 xl:col-span-4 border border-foreground/10 p-6 rounded-3xl lg:sticky lg:top-28 bg-foreground/5 self-start">
-          <h2 className="text-xl font-heading mb-6 flex justify-between items-center">
-            Media Library
-            <label className={`cursor-pointer bg-primary text-primary-foreground p-2 rounded-full hover:bg-primary/90 transition-colors ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-              <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileUpload} disabled={uploading} accept="image/*" />
-            </label>
-          </h2>
-          {uploading && <p className="text-sm text-primary mb-4">Uploading...</p>}
-          <div className="columns-3 gap-2 overflow-y-auto max-h-[80vh] pr-2">
-            {images.length === 0 ? (
-              <p className="text-foreground/40 text-sm">No images uploaded yet</p>
-            ) : (
-              images.map((img, index) => (
-                <div key={`${img}-${index}`} className="relative group border border-foreground/10 p-1 rounded-xl mb-2 break-inside-avoid">
-                  <img draggable onDragStart={e => e.dataTransfer.setData('text/plain', img)} src={img} alt="Library" className="w-full h-auto object-contain rounded-lg cursor-grab" />
-                  <button className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100"
-                    onClick={async () => {
-                      const res = await fetch('/api/cms/images/delete', { method: 'POST', body: JSON.stringify({ imageUrl: img }) });
-                      if (res.ok) { setImages(images.filter(i => i !== img)); alert('Image deleted'); }
-                      else alert('Failed to delete image');
-                    }}>&times;</button>
+        <aside className="col-span-12 lg:col-span-5 xl:col-span-4 lg:sticky lg:top-28 self-start">
+          <div className="p-1.5 rounded-[2rem] bg-foreground/5 ring-1 ring-foreground/10">
+            <div className="rounded-[calc(2rem-0.375rem)] bg-background p-6 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.25em] text-foreground/40 mb-1">Library</p>
+                  <h2 className="text-lg font-heading font-light">Media</h2>
                 </div>
-              ))
-            )}
+                <label className={`cursor-pointer bg-foreground text-background w-9 h-9 rounded-full flex items-center justify-center hover:bg-foreground/90 transition-all active:scale-95 ${uploading ? 'opacity-40 cursor-not-allowed' : ''}`}>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" /></svg>
+                  <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileUpload} disabled={uploading} accept="image/*" />
+                </label>
+              </div>
+              {uploading && <p className="text-[10px] uppercase tracking-widest text-foreground/40 mb-4">Uploading...</p>}
+              <div className="columns-3 gap-2 overflow-y-auto max-h-[75vh] pr-1">
+                {images.length === 0 ? (
+                  <p className="text-foreground/30 text-xs uppercase tracking-widest col-span-3 py-12 text-center">No images yet</p>
+                ) : (
+                  images.map((img, index) => (
+                    <div key={`${img}-${index}`} className="relative group border border-foreground/10 p-1 rounded-xl mb-2 break-inside-avoid hover:ring-1 hover:ring-foreground/20 transition-all">
+                      <img draggable onDragStart={e => e.dataTransfer.setData('text/plain', img)} src={img} alt="Library" className="w-full h-auto object-contain rounded-lg cursor-grab" />
+                      <button className="absolute top-2 right-2 bg-foreground/80 text-background rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-[10px]"
+                        onClick={async () => {
+                          const res = await fetch('/api/cms/images/delete', { method: 'POST', body: JSON.stringify({ imageUrl: img }) });
+                          if (res.ok) { setImages(images.filter(i => i !== img)); }
+                        }}>&times;</button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
           </div>
         </aside>
 
-        <main className="col-span-12 lg:col-span-7 xl:col-span-8 space-y-12">
+        <main className="col-span-12 lg:col-span-7 xl:col-span-8 space-y-10">
           {/* Homepage Editor */}
-          <section className="border border-foreground/10 p-8 rounded-3xl space-y-8">
-            <h2 className="text-2xl font-heading">Homepage Editor</h2>
-            <div className="space-y-4">
-              <h3 className="text-lg font-bold">Hero Section</h3>
-              <input className="w-full border border-foreground/10 bg-background/5 p-4 rounded-xl" value={homepageData.hero.title} onChange={e => setHomepageData({...homepageData, hero: {...homepageData.hero, title: e.target.value}})} placeholder="Title" />
-              <textarea className="w-full border border-foreground/10 bg-background/5 p-4 rounded-xl" value={homepageData.hero.description || ''} onChange={e => setHomepageData({...homepageData, hero: {...homepageData.hero, description: e.target.value}})} placeholder="Description" />
-              <div className="border border-foreground/10 p-4 rounded-xl" onDragOver={e => e.preventDefault()} onDrop={e => { const img = e.dataTransfer.getData('text/plain'); setHomepageData({...homepageData, hero: {...homepageData.hero, image: img}}); }}>
-                <label className="block text-xs uppercase tracking-widest font-medium mb-3">Hero Image (Drag from Library)</label>
-                <div className="relative inline-block">
-                  {homepageData.hero.image ? (
-                    <div className="relative">
-                      <img src={homepageData.hero.image} alt="Hero" className="max-h-80 w-auto object-contain rounded-xl" />
-                      <button className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-80 hover:opacity-100" onClick={() => setHomepageData({...homepageData, hero: {...homepageData.hero, image: ''}})}>&times;</button>
+          <section>
+            <div className="flex items-center gap-3 mb-6">
+              <span className="h-[1px] w-6 bg-foreground/20"></span>
+              <p className="text-[10px] uppercase tracking-[0.25em] text-foreground/40">Section</p>
+            </div>
+            <div className="p-1.5 rounded-[2rem] bg-foreground/5 ring-1 ring-foreground/10">
+              <div className="rounded-[calc(2rem-0.375rem)] bg-background p-8 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)] space-y-8">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-2xl font-heading font-light">Homepage</h2>
+                  <button onClick={() => save('homepage', homepageData)} className="group relative bg-foreground text-background rounded-full pl-6 pr-1.5 py-1.5 text-[11px] uppercase tracking-widest font-medium hover:bg-foreground/90 transition-all active:scale-[0.98]">
+                    <span className="py-1.5">Save</span>
+                    <span className="inline-flex w-7 h-7 items-center justify-center rounded-full bg-background/20 ml-2">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                    </span>
+                  </button>
+                </div>
+
+                {/* Hero */}
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.25em] text-foreground/40 mb-4">Hero</p>
+                  <div className="space-y-4">
+                    <input className="w-full bg-transparent border-b border-foreground/10 pb-2 text-xl font-heading font-light focus:border-foreground/30 focus:outline-none transition-colors placeholder:text-foreground/20" value={homepageData.hero.title} onChange={e => setHomepageData({...homepageData, hero: {...homepageData.hero, title: e.target.value}})} placeholder="Title" />
+                    <textarea className="w-full bg-transparent border-b border-foreground/10 pb-2 text-sm text-foreground/70 font-light leading-relaxed focus:border-foreground/30 focus:outline-none transition-colors resize-none placeholder:text-foreground/20" rows={3} value={homepageData.hero.description || ''} onChange={e => setHomepageData({...homepageData, hero: {...homepageData.hero, description: e.target.value}})} placeholder="Description" />
+                    <div className="border border-dashed border-foreground/15 p-4 rounded-2xl" onDragOver={e => e.preventDefault()} onDrop={e => { const img = e.dataTransfer.getData('text/plain'); setHomepageData({...homepageData, hero: {...homepageData.hero, image: img}}); }}>
+                      <p className="text-[10px] uppercase tracking-widest text-foreground/30 mb-3">Hero Image <span className="normal-case tracking-normal">(drag from library)</span></p>
+                      {homepageData.hero.image ? (
+                        <div className="relative inline-block">
+                          <img src={homepageData.hero.image} alt="Hero" className="max-h-64 w-auto object-contain rounded-xl" />
+                          <button className="absolute -top-2 -right-2 bg-foreground/80 text-background rounded-full w-5 h-5 flex items-center justify-center text-[10px] hover:bg-foreground transition-colors" onClick={() => setHomepageData({...homepageData, hero: {...homepageData.hero, image: ''}})}>&times;</button>
+                        </div>
+                      ) : (
+                        <div className="h-32 w-full bg-foreground/[0.02] rounded-xl flex items-center justify-center">
+                          <span className="text-[10px] uppercase tracking-widest text-foreground/25">Drop image here</span>
+                        </div>
+                      )}
                     </div>
-                  ) : (<div className="h-40 w-full bg-background/10 rounded-xl flex items-center justify-center text-foreground/40 text-sm">No image set</div>)}
+                  </div>
+                </div>
+
+                <div className="w-full h-px bg-foreground/5"></div>
+
+                {/* Mission */}
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.25em] text-foreground/40 mb-4">Mission</p>
+                  <div className="space-y-4">
+                    <input className="w-full bg-transparent border-b border-foreground/10 pb-2 text-xl font-heading font-light focus:border-foreground/30 focus:outline-none transition-colors placeholder:text-foreground/20" value={homepageData.mission.title} onChange={e => setHomepageData({...homepageData, mission: {...homepageData.mission, title: e.target.value}})} placeholder="Title" />
+                    <textarea className="w-full bg-transparent border-b border-foreground/10 pb-2 text-sm text-foreground/70 font-light leading-relaxed focus:border-foreground/30 focus:outline-none transition-colors resize-none placeholder:text-foreground/20" rows={3} value={homepageData.mission.description || ''} onChange={e => setHomepageData({...homepageData, mission: {...homepageData.mission, description: e.target.value}})} placeholder="Description" />
+                    <div className="border border-dashed border-foreground/15 p-4 rounded-2xl" onDragOver={e => e.preventDefault()} onDrop={e => { const img = e.dataTransfer.getData('text/plain'); setHomepageData({...homepageData, mission: {...homepageData.mission, image: img}}); }}>
+                      <p className="text-[10px] uppercase tracking-widest text-foreground/30 mb-3">Mission Image <span className="normal-case tracking-normal">(drag from library)</span></p>
+                      {homepageData.mission.image ? (
+                        <div className="relative inline-block">
+                          <img src={homepageData.mission.image} alt="Mission" className="max-h-64 w-auto object-contain rounded-xl" />
+                          <button className="absolute -top-2 -right-2 bg-foreground/80 text-background rounded-full w-5 h-5 flex items-center justify-center text-[10px] hover:bg-foreground transition-colors" onClick={() => setHomepageData({...homepageData, mission: {...homepageData.mission, image: ''}})}>&times;</button>
+                        </div>
+                      ) : (
+                        <div className="h-32 w-full bg-foreground/[0.02] rounded-xl flex items-center justify-center">
+                          <span className="text-[10px] uppercase tracking-widest text-foreground/25">Drop image here</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="w-full h-px bg-foreground/5"></div>
+
+                {/* Differentiation Points */}
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.25em] text-foreground/40 mb-4">Differentiation</p>
+                  <div className="space-y-3">
+                    {(homepageData.differentiation?.points || []).map((point: any, index: number) => (
+                      <div key={index} className="p-4 bg-foreground/[0.02] rounded-2xl space-y-2">
+                        <input className="w-full bg-transparent border-b border-foreground/10 pb-1 text-sm font-medium focus:border-foreground/30 focus:outline-none transition-colors placeholder:text-foreground/20" value={point.title} onChange={e => { const newPoints = [...homepageData.differentiation.points]; newPoints[index].title = e.target.value; setHomepageData({...homepageData, differentiation: {...homepageData.differentiation, points: newPoints}}); }} placeholder="Point Title" />
+                        <textarea className="w-full bg-transparent border-b border-foreground/10 pb-1 text-sm text-foreground/60 font-light focus:border-foreground/30 focus:outline-none transition-colors resize-none placeholder:text-foreground/20" rows={2} value={point.description} onChange={e => { const newPoints = [...homepageData.differentiation.points]; newPoints[index].description = e.target.value; setHomepageData({...homepageData, differentiation: {...homepageData.differentiation, points: newPoints}}); }} placeholder="Point Description" />
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
-            <div className="space-y-4 border-t pt-4">
-              <h3 className="text-lg font-bold">Mission Section</h3>
-              <input className="w-full border border-foreground/10 bg-background/5 p-4 rounded-xl" value={homepageData.mission.title} onChange={e => setHomepageData({...homepageData, mission: {...homepageData.mission, title: e.target.value}})} placeholder="Title" />
-              <textarea className="w-full border border-foreground/10 bg-background/5 p-4 rounded-xl" value={homepageData.mission.description || ''} onChange={e => setHomepageData({...homepageData, mission: {...homepageData.mission, description: e.target.value}})} placeholder="Description" />
-              <div className="border border-foreground/10 p-4 rounded-xl" onDragOver={e => e.preventDefault()} onDrop={e => { const img = e.dataTransfer.getData('text/plain'); setHomepageData({...homepageData, mission: {...homepageData.mission, image: img}}); }}>
-                <label className="block text-xs uppercase tracking-widest font-medium mb-3">Mission Image (Drag from Library)</label>
-                <div className="relative inline-block">
-                  {homepageData.mission.image ? (
-                    <div className="relative">
-                      <img src={homepageData.mission.image} alt="Mission" className="max-h-80 w-auto object-contain rounded-xl" />
-                      <button className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-80 hover:opacity-100" onClick={() => setHomepageData({...homepageData, mission: {...homepageData.mission, image: ''}})}>&times;</button>
-                    </div>
-                  ) : (<div className="h-40 w-full bg-background/10 rounded-xl flex items-center justify-center text-foreground/40 text-sm">No image set</div>)}
-                </div>
-              </div>
-            </div>
-            <div className="space-y-4 border-t pt-4">
-              <h3 className="text-lg font-bold">Differentiation Points</h3>
-              {(homepageData.differentiation?.points || []).map((point: any, index: number) => (
-                <div key={index} className="space-y-2 border p-4 rounded-xl">
-                  <input className="w-full border border-foreground/10 bg-background/5 p-2 rounded-lg" value={point.title} onChange={e => { const newPoints = [...homepageData.differentiation.points]; newPoints[index].title = e.target.value; setHomepageData({...homepageData, differentiation: {...homepageData.differentiation, points: newPoints}}); }} placeholder="Point Title" />
-                  <textarea className="w-full border border-foreground/10 bg-background/5 p-2 rounded-lg" value={point.description} onChange={e => { const newPoints = [...homepageData.differentiation.points]; newPoints[index].description = e.target.value; setHomepageData({...homepageData, differentiation: {...homepageData.differentiation, points: newPoints}}); }} placeholder="Point Description" />
-                </div>
-              ))}
-            </div>
-            <button onClick={() => save('homepage', homepageData)} className="bg-primary text-primary-foreground px-6 py-3 rounded-full font-medium hover:bg-primary/90 transition-colors">Save Homepage</button>
           </section>
 
           {/* Featured Products Editor */}
-          <section className="border border-foreground/10 p-8 rounded-3xl space-y-8">
-            <h2 className="text-2xl font-heading">Featured Products Editor</h2>
-            <div className="flex flex-col gap-4">
-              <label className="text-xs uppercase tracking-widest font-medium">Currently Featured</label>
-              <div className="flex flex-wrap gap-2">
-                {(homepageData.featuredProductIds || []).map((id: string) => {
-                  const product = productsData.find(p => p.id === id);
-                  if (!product) return null;
-                  return (<span key={id} className="bg-primary/20 text-primary px-3 py-1 rounded-full text-sm flex items-center gap-2">{product.name}<button onClick={() => setHomepageData({...homepageData, featuredProductIds: homepageData.featuredProductIds.filter((fid: string) => fid !== id)})} className="hover:text-primary/80">&times;</button></span>);
-                })}
+          <section>
+            <div className="flex items-center gap-3 mb-6">
+              <span className="h-[1px] w-6 bg-foreground/20"></span>
+              <p className="text-[10px] uppercase tracking-[0.25em] text-foreground/40">Featured</p>
+            </div>
+            <div className="p-1.5 rounded-[2rem] bg-foreground/5 ring-1 ring-foreground/10">
+              <div className="rounded-[calc(2rem-0.375rem)] bg-background p-8 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)] space-y-6">
+                <h2 className="text-2xl font-heading font-light">Featured Products</h2>
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-foreground/40 mb-3">Currently Featured</p>
+                  <div className="flex flex-wrap gap-2">
+                    {(homepageData.featuredProductIds || []).length === 0 ? (
+                      <span className="text-xs text-foreground/30 italic">None selected</span>
+                    ) : (homepageData.featuredProductIds || []).map((id: string) => {
+                      const product = productsData.find(p => p.id === id);
+                      if (!product) return null;
+                      return (
+                        <span key={id} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-foreground text-background text-xs">
+                          {product.name}
+                          <button onClick={() => setHomepageData({...homepageData, featuredProductIds: homepageData.featuredProductIds.filter((fid: string) => fid !== id)})} className="hover:bg-background/20 rounded-full w-4 h-4 flex items-center justify-center transition-colors text-[10px]">&times;</button>
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div className="w-full h-px bg-foreground/5"></div>
+                <div className="flex items-end gap-4">
+                  <div className="flex-1">
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-foreground/40 mb-2">Add Product</p>
+                    <select className="w-full bg-foreground/[0.03] border border-foreground/10 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:border-foreground/30 transition-colors appearance-none" onChange={e => { if (e.target.value && !homepageData.featuredProductIds.includes(e.target.value)) { setHomepageData({...homepageData, featuredProductIds: [...homepageData.featuredProductIds, e.target.value]}); e.target.value = ''; } }}>
+                      <option value="">Select a product...</option>
+                      {productsData?.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                    </select>
+                  </div>
+                  <button onClick={() => save('homepage', homepageData)} className="group relative bg-foreground text-background rounded-full pl-6 pr-1.5 py-1.5 text-[11px] uppercase tracking-widest font-medium hover:bg-foreground/90 transition-all active:scale-[0.98]">
+                    <span className="py-1.5">Save</span>
+                    <span className="inline-flex w-7 h-7 items-center justify-center rounded-full bg-background/20 ml-2">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                    </span>
+                  </button>
+                </div>
               </div>
             </div>
-            <div className="space-y-4 border-t pt-4">
-              <label className="text-xs uppercase tracking-widest font-medium">Add Featured Product</label>
-              <select className="border border-foreground/10 bg-background/5 p-4 rounded-xl w-full" onChange={e => { if (e.target.value && !homepageData.featuredProductIds.includes(e.target.value)) { setHomepageData({...homepageData, featuredProductIds: [...homepageData.featuredProductIds, e.target.value]}); } }}>
-                <option value="">Select a product...</option>
-                {productsData?.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
-            </div>
-            <button onClick={() => save('homepage', homepageData)} className="bg-primary text-primary-foreground px-6 py-3 rounded-full font-medium hover:bg-primary/90 transition-colors">Save Homepage</button>
           </section>
 
           {/* Products Editor */}
-          <section className="border border-foreground/10 p-8 rounded-3xl">
-            <div className="flex justify-between items-center mb-8">
-              <h2 className="text-2xl font-heading">Products Editor</h2>
-              <div className="flex gap-3">
-                <input className="border border-foreground/10 bg-background/5 p-3 rounded-full" placeholder="Filter..." value={filter} onChange={e => setFilter(e.target.value)} />
-                <button onClick={() => setProductsData([...productsData, { id: Date.now().toString(), name: 'New Product', price: 0, images: [], tags: [], category: '', variations: { sizes: [], colors: [], materials: [] }, description: '' }])} className="bg-primary text-primary-foreground px-4 py-2 rounded-full text-sm">+ Add Product</button>
+          <section>
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <span className="h-[1px] w-6 bg-foreground/20"></span>
+                <p className="text-[10px] uppercase tracking-[0.25em] text-foreground/40">Products</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <input className="bg-foreground/[0.03] border border-foreground/10 rounded-full px-4 py-2 text-xs focus:outline-none focus:border-foreground/30 transition-colors w-40 placeholder:text-foreground/25" placeholder="Filter..." value={filter} onChange={e => setFilter(e.target.value)} />
+                <button onClick={() => setProductsData([...productsData, { id: Date.now().toString(), name: 'New Product', price: 0, images: [], tags: [], category: '', variations: { sizes: [], colors: [], materials: [] }, description: '' }])} className="bg-foreground text-background rounded-full px-4 py-2 text-[11px] uppercase tracking-widest font-medium hover:bg-foreground/90 transition-all active:scale-[0.98]">
+                  + Add
+                </button>
               </div>
             </div>
-            {filteredProducts.map((product, index) => (
-              <div key={product.id} className="mb-8 p-6 border border-foreground/10 rounded-2xl bg-foreground/5" onDragOver={e => e.preventDefault()} onDrop={e => { const img = e.dataTransfer.getData('text/plain'); const newProducts = [...productsData]; if (!newProducts[index].images.includes(img)) { newProducts[index].images.push(img); setProductsData(newProducts); } }}>
-                <div className="flex justify-between mb-4">
-                  <div className="w-full">
-                    <label className="text-xs uppercase font-medium text-foreground/60 mb-1 block">Product Name</label>
-                    <input className="font-heading text-xl bg-transparent border-b border-foreground/20 p-1 w-full" value={product.name || ''} onChange={e => { const newProducts = [...productsData]; newProducts[index].name = e.target.value; setProductsData(newProducts); }} />
-                  </div>
-                  <div className="flex gap-2 mt-6">
-                    <button onClick={() => save('products', product, product.id)} className="text-primary hover:text-primary/80 font-medium">Save</button>
-                    <button onClick={() => setProductsData(productsData.filter(p => p.id !== product.id))} className="text-red-400 hover:text-red-600 font-medium">Delete</button>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div><label className="text-xs uppercase font-medium text-foreground/60 mb-1 block">Price</label><input type="number" className="w-full border border-foreground/10 bg-background/5 p-2 rounded-lg" value={product.price ?? 0} onChange={e => { const newProducts = [...productsData]; newProducts[index].price = parseFloat(e.target.value); setProductsData(newProducts); }} placeholder="Price" /></div>
-                  <div><label className="text-xs uppercase font-medium text-foreground/60 mb-1 block">Category</label><input list="categories" className="w-full border border-foreground/10 bg-background/5 p-2 rounded-lg" value={product.category} onChange={e => { const newProducts = [...productsData]; newProducts[index].category = e.target.value; setProductsData(newProducts); }} placeholder="Category" /></div>
-                </div>
-                <div><label className="text-xs uppercase font-medium text-foreground/60 mb-1 block mt-4">Description</label><textarea className="w-full border border-foreground/10 bg-background/5 p-2 rounded-lg" value={product.description || ''} onChange={e => { const newProducts = [...productsData]; newProducts[index].description = e.target.value; setProductsData(newProducts); }} placeholder="Description" /></div>
-                <div className="grid grid-cols-2 gap-4 mt-4">
-                  <TagInput label="Tags" values={product.tags || []} onChange={vals => { const p = [...productsData]; p[index].tags = vals; setProductsData(p); }} listId="tags" placeholder="Type and press Enter" />
-                  <TagInput label="Sizes" values={product.variations?.sizes || []} onChange={vals => { const p = [...productsData]; p[index].variations = { ...p[index].variations, sizes: vals }; setProductsData(p); }} listId="sizes" placeholder="Type and press Enter" />
-                  <TagInput label="Colors" values={product.variations?.colors || []} onChange={vals => { const p = [...productsData]; p[index].variations = { ...p[index].variations, colors: vals }; setProductsData(p); }} listId="colors" placeholder="Type and press Enter" />
-                  <TagInput label="Materials" values={product.variations?.materials || []} onChange={vals => { const p = [...productsData]; p[index].variations = { ...p[index].variations, materials: vals }; setProductsData(p); }} listId="materials" placeholder="Type and press Enter" />
-                </div>
-                <label className="block text-xs uppercase tracking-widest font-medium mb-3 mt-6">Images (Drag from Library)</label>
-                <div className="flex gap-3 flex-wrap">
-                  {(product.images || []).map((img: string, i: number) => (
-                    <div key={i} className="relative group">
-                      {img && img.trim() !== '' ? (
-                        <div className="relative">
-                          <img src={img} className="max-h-32 w-auto object-contain border border-foreground/10 rounded-xl" alt="product" />
-                          <button className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100" onClick={() => { const newProducts = [...productsData]; newProducts[index].images.splice(i, 1); setProductsData(newProducts); }}>&times;</button>
-                        </div>
-                      ) : (<div className="h-20 w-20 border border-foreground/10 rounded-xl bg-background/10 flex items-center justify-center text-[10px] text-foreground/40">No img</div>)}
+            <div className="space-y-6">
+              {filteredProducts.map((product, index) => (
+                <div key={product.id} className="p-1.5 rounded-[2rem] bg-foreground/5 ring-1 ring-foreground/10 transition-all hover:ring-foreground/15" onDragOver={e => e.preventDefault()} onDrop={e => { const img = e.dataTransfer.getData('text/plain'); const newProducts = [...productsData]; if (!newProducts[index].images.includes(img)) { newProducts[index].images.push(img); setProductsData(newProducts); } }}>
+                  <div className="rounded-[calc(2rem-0.375rem)] bg-background p-6 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]">
+                    {/* Product Header */}
+                    <div className="flex items-start justify-between mb-6">
+                      <input className="font-heading text-xl font-light bg-transparent border-b border-foreground/10 pb-1 focus:border-foreground/30 focus:outline-none transition-colors w-full mr-4 placeholder:text-foreground/20" value={product.name || ''} onChange={e => { const newProducts = [...productsData]; newProducts[index].name = e.target.value; setProductsData(newProducts); }} />
+                      <div className="flex items-center gap-2 shrink-0 mt-1">
+                        <button onClick={() => save('products', product, product.id)} className="text-[10px] uppercase tracking-widest text-foreground/50 hover:text-foreground transition-colors px-3 py-1 rounded-full border border-foreground/10 hover:border-foreground/25">Save</button>
+                        <button onClick={() => setProductsData(productsData.filter(p => p.id !== product.id))} className="text-[10px] uppercase tracking-widest text-red-400/60 hover:text-red-500 transition-colors px-3 py-1 rounded-full border border-red-400/20 hover:border-red-400/40">Delete</button>
+                      </div>
                     </div>
-                  ))}
+
+                    {/* Price & Category */}
+                    <div className="grid grid-cols-2 gap-6 mb-6">
+                      <div>
+                        <p className="text-[10px] uppercase tracking-[0.2em] text-foreground/40 mb-2">Price</p>
+                        <div className="relative">
+                          <span className="absolute left-0 top-1/2 -translate-y-1/2 text-foreground/30 text-sm">$</span>
+                          <input type="number" className="w-full bg-transparent border-b border-foreground/10 pb-1 pl-4 text-sm focus:border-foreground/30 focus:outline-none transition-colors" value={product.price ?? 0} onChange={e => { const newProducts = [...productsData]; newProducts[index].price = parseFloat(e.target.value); setProductsData(newProducts); }} />
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-[0.2em] text-foreground/40 mb-2">Category</p>
+                        <input list="categories" className="w-full bg-transparent border-b border-foreground/10 pb-1 text-sm focus:border-foreground/30 focus:outline-none transition-colors placeholder:text-foreground/20" value={product.category} onChange={e => { const newProducts = [...productsData]; newProducts[index].category = e.target.value; setProductsData(newProducts); }} placeholder="Category" />
+                      </div>
+                    </div>
+
+                    {/* Description */}
+                    <div className="mb-6">
+                      <p className="text-[10px] uppercase tracking-[0.2em] text-foreground/40 mb-2">Description</p>
+                      <textarea className="w-full bg-transparent border-b border-foreground/10 pb-1 text-sm text-foreground/70 font-light leading-relaxed focus:border-foreground/30 focus:outline-none transition-colors resize-none placeholder:text-foreground/20" rows={2} value={product.description || ''} onChange={e => { const newProducts = [...productsData]; newProducts[index].description = e.target.value; setProductsData(newProducts); }} placeholder="Description" />
+                    </div>
+
+                    {/* Tags, Sizes, Colors, Materials */}
+                    <div className="grid grid-cols-2 gap-4 mb-6">
+                      <TagInput label="Tags" values={product.tags || []} onChange={vals => { const p = [...productsData]; p[index].tags = vals; setProductsData(p); }} listId="tags" placeholder="Type and press Enter" />
+                      <TagInput label="Sizes" values={product.variations?.sizes || []} onChange={vals => { const p = [...productsData]; p[index].variations = { ...p[index].variations, sizes: vals }; setProductsData(p); }} listId="sizes" placeholder="Type and press Enter" />
+                      <TagInput label="Colors" values={product.variations?.colors || []} onChange={vals => { const p = [...productsData]; p[index].variations = { ...p[index].variations, colors: vals }; setProductsData(p); }} listId="colors" placeholder="Type and press Enter" />
+                      <TagInput label="Materials" values={product.variations?.materials || []} onChange={vals => { const p = [...productsData]; p[index].variations = { ...p[index].variations, materials: vals }; setProductsData(p); }} listId="materials" placeholder="Type and press Enter" />
+                    </div>
+
+                    {/* Images */}
+                    <div>
+                      <p className="text-[10px] uppercase tracking-[0.2em] text-foreground/40 mb-3">Images <span className="normal-case tracking-normal text-foreground/25">(drag from library)</span></p>
+                      <div className="flex gap-3 flex-wrap">
+                        {(product.images || []).map((img: string, i: number) => (
+                          <div key={i} className="relative group">
+                            {img && img.trim() !== '' ? (
+                              <div className="p-1 rounded-xl border border-foreground/10 hover:ring-1 hover:ring-foreground/20 transition-all">
+                                <img src={img} className="max-h-28 w-auto object-contain rounded-lg" alt="product" />
+                                <button className="absolute -top-1.5 -right-1.5 bg-foreground/80 text-background rounded-full w-4 h-4 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-[9px]" onClick={() => { const newProducts = [...productsData]; newProducts[index].images.splice(i, 1); setProductsData(newProducts); }}>&times;</button>
+                              </div>
+                            ) : null}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </section>
         </main>
       </div>
       )}
+      </div>
     </div>
   );
 }
