@@ -1,37 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { ArrowRight, Trash2, ArrowUpRight, ShieldCheck, Truck } from "lucide-react";
-import type { Product } from "@/types/product";
+import { useCart } from "@/context/CartContext";
 
 export default function CartPage() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [cartItems, setCartItems] = useState<any[]>([]);
-
-  useEffect(() => {
-    fetch('/api/products')
-      .then(res => res.json())
-      .then(data => {
-        if (!data.error) {
-          setProducts(data);
-        }
-      })
-      .catch(err => console.error('Error fetching products:', err));
-  }, []);
-
-  const updateQuantity = (id: string, delta: number) => {
-    setCartItems(prev => prev.map(item => 
-      item.id === id ? { ...item, quantity: Math.max(1, item.quantity + delta) } : item
-    ));
-  };
-
-  const removeItem = (id: string) => {
-    setCartItems(prev => prev.filter(item => item.id !== id));
-  };
-
-  const subtotal = cartItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+  const { items, removeItem, updateQuantity, subtotal, itemCount } = useCart();
 
   return (
     <div className="w-full bg-background min-h-screen selection:bg-primary selection:text-primary-foreground pt-32 pb-24">
@@ -49,7 +24,7 @@ export default function CartPage() {
               The Vault
             </span>
             <span className="text-xs font-medium tracking-widest text-foreground/40 uppercase">
-              {cartItems.length} Pieces
+              {itemCount} {itemCount === 1 ? 'Piece' : 'Pieces'}
             </span>
           </div>
           <h1 className="text-5xl md:text-6xl font-heading font-light tracking-tight">Your <span className="italic text-foreground/60">Cart.</span></h1>
@@ -58,16 +33,16 @@ export default function CartPage() {
         <div className="flex flex-col lg:flex-row gap-16 lg:gap-24">
           {/* Cart Items */}
           <div className="w-full lg:w-2/3">
-            {cartItems.length === 0 && (
+            {items.length === 0 && (
               <div className="py-32 text-center">
                 <p className="text-foreground/50 text-lg mb-4">Your cart is empty</p>
                 <Link href="/shop" className="text-primary underline">Browse the collection</Link>
               </div>
             )}
             <div className="space-y-8">
-              {cartItems.map((item, index) => (
+              {items.map((item, index) => (
                 <motion.div 
-                  key={`${item.id}-${index}`}
+                  key={`${item.id}-${item.selectedSize}-${item.selectedColor}`}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1, duration: 0.8, ease: [0.32, 0.72, 0, 1] }}
@@ -77,7 +52,7 @@ export default function CartPage() {
                   <Link href={`/product/${item.id}`} className="block flex-shrink-0 w-32 md:w-40">
                     <div className="p-1 rounded-2xl bg-foreground/5 ring-1 ring-foreground/10 transition-all duration-300 group-hover:ring-foreground/20">
                       <div className="aspect-[3/4] rounded-[calc(1rem-0.25rem)] overflow-hidden relative shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]">
-                         <img src={item.images[0]} alt={item.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                         <img src={item.image} alt={item.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
                       </div>
                     </div>
                   </Link>
@@ -88,7 +63,7 @@ export default function CartPage() {
                         <Link href={`/product/${item.id}`} className="font-heading text-xl md:text-2xl hover:underline underline-offset-4 decoration-foreground/30 transition-all">
                           {item.name}
                         </Link>
-                        <p className="font-light text-lg tracking-widest">${item.price.toFixed(2)}</p>
+                        <p className="font-light text-lg tracking-widest">${(item.price * item.quantity).toFixed(2)}</p>
                       </div>
                       
                       <div className="flex gap-4 mt-4">
@@ -104,12 +79,12 @@ export default function CartPage() {
                     <div className="flex justify-between items-end mt-8">
                       {/* Fluid Quantity Selector */}
                       <div className="flex items-center rounded-full border border-foreground/10 bg-foreground/5 overflow-hidden p-1">
-                        <button onClick={() => updateQuantity(item.id, -1)} className="w-8 h-8 rounded-full flex items-center justify-center text-foreground/60 hover:text-foreground hover:bg-background transition-all">-</button>
+                        <button onClick={() => updateQuantity(item.id, item.selectedSize, item.selectedColor, -1)} className="w-8 h-8 rounded-full flex items-center justify-center text-foreground/60 hover:text-foreground hover:bg-background transition-all">-</button>
                         <span className="w-8 text-center text-sm font-light">{item.quantity}</span>
-                        <button onClick={() => updateQuantity(item.id, 1)} className="w-8 h-8 rounded-full flex items-center justify-center text-foreground/60 hover:text-foreground hover:bg-background transition-all">+</button>
+                        <button onClick={() => updateQuantity(item.id, item.selectedSize, item.selectedColor, 1)} className="w-8 h-8 rounded-full flex items-center justify-center text-foreground/60 hover:text-foreground hover:bg-background transition-all">+</button>
                       </div>
                       
-                      <button onClick={() => removeItem(item.id)} className="group/btn flex items-center text-[10px] uppercase tracking-[0.2em] font-medium text-foreground/40 hover:text-destructive transition-colors">
+                      <button onClick={() => removeItem(item.id, item.selectedSize, item.selectedColor)} className="group/btn flex items-center text-[10px] uppercase tracking-[0.2em] font-medium text-foreground/40 hover:text-destructive transition-colors">
                         <Trash2 className="w-3 h-3 mr-2 transition-transform group-hover/btn:scale-110" />
                         Remove
                       </button>
@@ -152,16 +127,21 @@ export default function CartPage() {
                     <span>${subtotal.toFixed(2)}</span>
                   </div>
                   
-                  {/* Fluid Button */}
-                  <Link 
-                    href="/checkout" 
-                    className="group relative w-full inline-flex items-center justify-center gap-4 rounded-full bg-foreground pl-8 pr-2 py-2 text-sm font-medium tracking-wide text-background transition-all active:scale-[0.98] hover:bg-foreground/90"
-                  >
-                    <span className="uppercase tracking-widest text-xs py-3">Secure Checkout</span>
-                    <div className="absolute right-2 flex h-10 w-10 items-center justify-center rounded-full bg-background/20 transition-transform duration-300 ease-spring group-hover:scale-105">
-                      <ArrowUpRight className="h-4 w-4 stroke-[1.5]" />
+                  {items.length > 0 ? (
+                    <Link 
+                      href="/checkout" 
+                      className="group relative w-full inline-flex items-center justify-center gap-4 rounded-full bg-foreground pl-8 pr-2 py-2 text-sm font-medium tracking-wide text-background transition-all active:scale-[0.98] hover:bg-foreground/90"
+                    >
+                      <span className="uppercase tracking-widest text-xs py-3">Secure Checkout</span>
+                      <div className="absolute right-2 flex h-10 w-10 items-center justify-center rounded-full bg-background/20 transition-transform duration-300 ease-spring group-hover:scale-105">
+                        <ArrowRight className="h-4 w-4 stroke-[1.5]" />
+                      </div>
+                    </Link>
+                  ) : (
+                    <div className="w-full inline-flex items-center justify-center gap-4 rounded-full bg-foreground/20 pl-8 pr-2 py-2 text-sm font-medium tracking-wide text-foreground/40 cursor-not-allowed">
+                      <span className="uppercase tracking-widest text-xs py-3">Secure Checkout</span>
                     </div>
-                  </Link>
+                  )}
                   
                   <div className="mt-6 flex flex-col items-center gap-3">
                     <p className="text-[10px] uppercase tracking-[0.2em] text-foreground/40 flex items-center">
@@ -169,7 +149,6 @@ export default function CartPage() {
                       Encrypted Payment
                     </p>
                     <div className="flex gap-2 opacity-50 grayscale">
-                      {/* Icons would go here */}
                       <span className="text-xs font-bold border rounded px-2 py-0.5">VISA</span>
                       <span className="text-xs font-bold border rounded px-2 py-0.5">MC</span>
                       <span className="text-xs font-bold border rounded px-2 py-0.5">AMEX</span>

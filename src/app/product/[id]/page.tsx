@@ -3,9 +3,10 @@
 import { notFound } from "next/navigation";
 import { use, useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, ArrowUpRight, Info } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, Info, Check } from "lucide-react";
 import Link from "next/link";
 import type { Product } from "@/types/product";
+import { useCart } from "@/context/CartContext";
 
 export default function ProductPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -14,6 +15,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ type: 'error' | 'success', message: string } | null>(null);
+  const { addItem } = useCart();
 
   useEffect(() => {
     fetch('/api/products')
@@ -55,7 +57,17 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
       setTimeout(() => setFeedback(null), 3000);
       return;
     }
-    setFeedback({ type: 'success', message: `Added ${product.name} (${selectedSize}, ${selectedColor}) to cart!` });
+
+    addItem({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      image: product.images[0] || "",
+      selectedSize,
+      selectedColor,
+    });
+
+    setFeedback({ type: 'success', message: `${product.name} (${selectedSize}, ${selectedColor}) added to cart!` });
     setTimeout(() => setFeedback(null), 3000);
   };
 
@@ -159,12 +171,13 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                 <motion.div
                   initial={{ opacity: 0, y: -8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className={`text-sm px-5 py-3 rounded-xl mb-6 ${
+                  className={`text-sm px-5 py-3 rounded-xl mb-6 flex items-center gap-2 ${
                     feedback.type === 'success'
                       ? 'bg-green-50 text-green-800 border border-green-200'
                       : 'bg-amber-50 text-amber-800 border border-amber-200'
                   }`}
                 >
+                  {feedback.type === 'success' && <Check className="w-4 h-4 shrink-0" />}
                   {feedback.message}
                 </motion.div>
               )}
@@ -179,8 +192,8 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
               
               <div className="flex items-center justify-center text-[10px] uppercase tracking-[0.1em] text-foreground/40 gap-4">
                 <span className="flex items-center"><Info className="w-3 h-3 mr-1.5" /> Free Global Shipping over $150</span>
-                <span>•</span>
-                <span>Ethical Returns</span>
+                <span className="hidden sm:inline">•</span>
+                <span className="hidden sm:inline">Ethical Returns</span>
               </div>
             </motion.div>
           </div>

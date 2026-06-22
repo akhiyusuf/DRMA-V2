@@ -1,17 +1,38 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Truck, ShieldCheck, ArrowLeft, ArrowUpRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import type { Product } from "@/types/product";
+import { useCart } from "@/context/CartContext";
 import Link from "next/link";
 
+const US_STATES = [
+  { value: "AL", label: "Alabama" }, { value: "AK", label: "Alaska" }, { value: "AZ", label: "Arizona" },
+  { value: "AR", label: "Arkansas" }, { value: "CA", label: "California" }, { value: "CO", label: "Colorado" },
+  { value: "CT", label: "Connecticut" }, { value: "DE", label: "Delaware" }, { value: "FL", label: "Florida" },
+  { value: "GA", label: "Georgia" }, { value: "HI", label: "Hawaii" }, { value: "ID", label: "Idaho" },
+  { value: "IL", label: "Illinois" }, { value: "IN", label: "Indiana" }, { value: "IA", label: "Iowa" },
+  { value: "KS", label: "Kansas" }, { value: "KY", label: "Kentucky" }, { value: "LA", label: "Louisiana" },
+  { value: "ME", label: "Maine" }, { value: "MD", label: "Maryland" }, { value: "MA", label: "Massachusetts" },
+  { value: "MI", label: "Michigan" }, { value: "MN", label: "Minnesota" }, { value: "MS", label: "Mississippi" },
+  { value: "MO", label: "Missouri" }, { value: "MT", label: "Montana" }, { value: "NE", label: "Nebraska" },
+  { value: "NV", label: "Nevada" }, { value: "NH", label: "New Hampshire" }, { value: "NJ", label: "New Jersey" },
+  { value: "NM", label: "New Mexico" }, { value: "NY", label: "New York" }, { value: "NC", label: "North Carolina" },
+  { value: "ND", label: "North Dakota" }, { value: "OH", label: "Ohio" }, { value: "OK", label: "Oklahoma" },
+  { value: "OR", label: "Oregon" }, { value: "PA", label: "Pennsylvania" }, { value: "RI", label: "Rhode Island" },
+  { value: "SC", label: "South Carolina" }, { value: "SD", label: "South Dakota" }, { value: "TN", label: "Tennessee" },
+  { value: "TX", label: "Texas" }, { value: "UT", label: "Utah" }, { value: "VT", label: "Vermont" },
+  { value: "VA", label: "Virginia" }, { value: "WA", label: "Washington" }, { value: "WV", label: "West Virginia" },
+  { value: "WI", label: "Wisconsin" }, { value: "WY", label: "Wyoming" }, { value: "DC", label: "District of Columbia" },
+];
+
 export default function CheckoutPage() {
-  const [products, setProducts] = useState<Product[]>([]);
+  const { items, subtotal, clearCart, itemCount } = useCart();
+
   const [email, setEmail] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -20,34 +41,92 @@ export default function CheckoutPage() {
   const [zip, setZip] = useState("");
   const [state, setState] = useState("TX");
   const [shippingMethod, setShippingMethod] = useState("ups_ground");
-  const [error, setError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    fetch('/api/products')
-      .then(res => res.json())
-      .then(data => {
-        if (!data.error) setProducts(data);
-      })
-      .catch(err => console.error('Error fetching products:', err));
-  }, []);
-
-  // Mock calculation
-  const subtotal = 180.00;
   const isTexas = state === "TX";
   const taxRate = isTexas ? 0.0825 : 0;
   const taxAmount = subtotal * taxRate;
   const shippingCost = shippingMethod === "ups_ground" ? 9.95 : 24.95;
   const total = subtotal + taxAmount + shippingCost;
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || !firstName || !lastName || !address || !city || !zip) {
-      setError("Please fill in all required fields.");
-      return;
-    }
-    setError(null);
-    alert("Order submitted successfully (mock)!");
+  const validate = () => {
+    const newErrors: Record<string, string> = {};
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) newErrors.email = "Valid email required";
+    if (!firstName.trim()) newErrors.firstName = "Required";
+    if (!lastName.trim()) newErrors.lastName = "Required";
+    if (!address.trim()) newErrors.address = "Required";
+    if (!city.trim()) newErrors.city = "Required";
+    if (!/^\d{5}(-\d{4})?$/.test(zip)) newErrors.zip = "Valid ZIP required (e.g. 12345)";
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validate()) return;
+    if (items.length === 0) return;
+
+    setSubmitting(true);
+
+    // Build the order payload
+    const orderPayload = {
+      email,
+      firstName,
+      lastName,
+      address,
+      city,
+      state,
+      zip,
+      shippingMethod,
+      items: items.map(item => ({
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        selectedSize: item.selectedSize,
+        selectedColor: item.selectedColor,
+      })),
+      subtotal,
+      taxAmount,
+      shippingCost,
+      total,
+    };
+
+    try {
+      // Create PayPal order via our API
+      const res = await fetch('/api/checkout/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orderPayload),
+      });
+
+      const data = await res.json();
+
+      if (data.approvalUrl) {
+        // Store cart data in sessionStorage so we can confirm after PayPal redirect
+        sessionStorage.setItem('drma_pending_order', JSON.stringify(orderPayload));
+        // Redirect to PayPal
+        window.location.href = data.approvalUrl;
+      } else if (data.mockMode) {
+        // PayPal not configured — simulate a successful order
+        sessionStorage.setItem('drma_pending_order', JSON.stringify(orderPayload));
+        window.location.href = `/order-confirmation?success=true&mock=true`;
+      } else if (data.error) {
+        setErrors({ form: data.error });
+        setSubmitting(false);
+      }
+    } catch (err) {
+      console.error('Checkout error:', err);
+      setErrors({ form: 'Something went wrong. Please try again.' });
+      setSubmitting(false);
+    }
+  };
+
+  // Redirect to cart if empty
+  if (items.length === 0 && typeof window !== 'undefined') {
+    // We render the page but show a message
+  }
 
   return (
     <div className="w-full bg-background min-h-screen selection:bg-primary selection:text-primary-foreground pt-32 pb-24">
@@ -69,6 +148,12 @@ export default function CheckoutPage() {
           <h1 className="text-4xl md:text-5xl font-heading font-light tracking-tight">Secure <span className="italic text-foreground/60">Checkout.</span></h1>
         </motion.div>
 
+        {items.length === 0 ? (
+          <div className="py-32 text-center">
+            <p className="text-foreground/50 text-lg mb-4">Your cart is empty</p>
+            <Link href="/shop" className="text-primary underline">Browse the collection</Link>
+          </div>
+        ) : (
         <form onSubmit={handleSubmit} className="flex flex-col lg:flex-row gap-16 lg:gap-24 items-start">
           {/* Left Column - Forms */}
           <div className="w-full lg:w-3/5 space-y-16">
@@ -82,7 +167,8 @@ export default function CheckoutPage() {
               <div className="space-y-6">
                 <div className="grid w-full items-center gap-3">
                   <Label htmlFor="email" className="text-xs uppercase tracking-widest text-foreground/50 ml-1">Email Address</Label>
-                  <Input type="email" id="email" placeholder="client@drma.com" value={email} onChange={(e) => setEmail(e.target.value)} className="h-12 bg-foreground/5 border-transparent focus-visible:ring-1 focus-visible:ring-foreground focus-visible:border-transparent rounded-xl px-4 font-light placeholder:text-foreground/30 transition-all" />
+                  <Input type="email" id="email" placeholder="client@drma.com" value={email} onChange={(e) => setEmail(e.target.value)} className={`h-12 bg-foreground/5 border-transparent focus-visible:ring-1 focus-visible:ring-foreground focus-visible:border-transparent rounded-xl px-4 font-light placeholder:text-foreground/30 transition-all ${errors.email ? 'ring-1 ring-destructive' : ''}`} />
+                  {errors.email && <p className="text-destructive text-xs ml-1">{errors.email}</p>}
                 </div>
               </div>
             </motion.div>
@@ -97,21 +183,25 @@ export default function CheckoutPage() {
                 <div className="grid grid-cols-2 gap-6">
                   <div className="grid w-full items-center gap-3">
                     <Label htmlFor="firstName" className="text-xs uppercase tracking-widest text-foreground/50 ml-1">First Name</Label>
-                    <Input type="text" id="firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} className="h-12 bg-foreground/5 border-transparent focus-visible:ring-1 focus-visible:ring-foreground rounded-xl px-4 font-light transition-all" />
+                    <Input type="text" id="firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} className={`h-12 bg-foreground/5 border-transparent focus-visible:ring-1 focus-visible:ring-foreground rounded-xl px-4 font-light transition-all ${errors.firstName ? 'ring-1 ring-destructive' : ''}`} />
+                    {errors.firstName && <p className="text-destructive text-xs ml-1">{errors.firstName}</p>}
                   </div>
                   <div className="grid w-full items-center gap-3">
                     <Label htmlFor="lastName" className="text-xs uppercase tracking-widest text-foreground/50 ml-1">Last Name</Label>
-                    <Input type="text" id="lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} className="h-12 bg-foreground/5 border-transparent focus-visible:ring-1 focus-visible:ring-foreground rounded-xl px-4 font-light transition-all" />
+                    <Input type="text" id="lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} className={`h-12 bg-foreground/5 border-transparent focus-visible:ring-1 focus-visible:ring-foreground rounded-xl px-4 font-light transition-all ${errors.lastName ? 'ring-1 ring-destructive' : ''}`} />
+                    {errors.lastName && <p className="text-destructive text-xs ml-1">{errors.lastName}</p>}
                   </div>
                 </div>
                 <div className="grid w-full items-center gap-3">
                   <Label htmlFor="address" className="text-xs uppercase tracking-widest text-foreground/50 ml-1">Address</Label>
-                  <Input type="text" id="address" value={address} onChange={(e) => setAddress(e.target.value)} className="h-12 bg-foreground/5 border-transparent focus-visible:ring-1 focus-visible:ring-foreground rounded-xl px-4 font-light transition-all" />
+                  <Input type="text" id="address" value={address} onChange={(e) => setAddress(e.target.value)} className={`h-12 bg-foreground/5 border-transparent focus-visible:ring-1 focus-visible:ring-foreground rounded-xl px-4 font-light transition-all ${errors.address ? 'ring-1 ring-destructive' : ''}`} />
+                  {errors.address && <p className="text-destructive text-xs ml-1">{errors.address}</p>}
                 </div>
                 <div className="grid grid-cols-6 gap-6">
                   <div className="col-span-3 grid w-full items-center gap-3">
                     <Label htmlFor="city" className="text-xs uppercase tracking-widest text-foreground/50 ml-1">City</Label>
-                    <Input type="text" id="city" value={city} onChange={(e) => setCity(e.target.value)} className="h-12 bg-foreground/5 border-transparent focus-visible:ring-1 focus-visible:ring-foreground rounded-xl px-4 font-light transition-all" />
+                    <Input type="text" id="city" value={city} onChange={(e) => setCity(e.target.value)} className={`h-12 bg-foreground/5 border-transparent focus-visible:ring-1 focus-visible:ring-foreground rounded-xl px-4 font-light transition-all ${errors.city ? 'ring-1 ring-destructive' : ''}`} />
+                    {errors.city && <p className="text-destructive text-xs ml-1">{errors.city}</p>}
                   </div>
                   <div className="col-span-2 grid w-full items-center gap-3">
                     <Label htmlFor="state" className="text-xs uppercase tracking-widest text-foreground/50 ml-1">State</Label>
@@ -119,16 +209,17 @@ export default function CheckoutPage() {
                       <SelectTrigger className="h-12 bg-foreground/5 border-transparent focus:ring-1 focus:ring-foreground rounded-xl px-4 font-light transition-all">
                         <SelectValue placeholder="State" />
                       </SelectTrigger>
-                      <SelectContent className="bg-background border-foreground/10 rounded-xl">
-                        <SelectItem value="TX">Texas</SelectItem>
-                        <SelectItem value="CA">California</SelectItem>
-                        <SelectItem value="NY">New York</SelectItem>
+                      <SelectContent className="bg-background border-foreground/10 rounded-xl max-h-64">
+                        {US_STATES.map(s => (
+                          <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="col-span-1 grid w-full items-center gap-3">
                     <Label htmlFor="zip" className="text-xs uppercase tracking-widest text-foreground/50 ml-1">ZIP</Label>
-                    <Input type="text" id="zip" value={zip} onChange={(e) => setZip(e.target.value)} className="h-12 bg-foreground/5 border-transparent focus-visible:ring-1 focus-visible:ring-foreground rounded-xl px-4 font-light transition-all" />
+                    <Input type="text" id="zip" value={zip} onChange={(e) => setZip(e.target.value)} className={`h-12 bg-foreground/5 border-transparent focus-visible:ring-1 focus-visible:ring-foreground rounded-xl px-4 font-light transition-all ${errors.zip ? 'ring-1 ring-destructive' : ''}`} />
+                    {errors.zip && <p className="text-destructive text-xs ml-1">{errors.zip}</p>}
                   </div>
                 </div>
               </div>
@@ -181,7 +272,7 @@ export default function CheckoutPage() {
                       You will be securely redirected to PayPal to complete your purchase. You can use your PayPal account or a credit card.
                     </p>
                   </div>
-                  {error && <p className="text-red-500 text-sm mt-4 text-center">{error}</p>}
+                  {errors.form && <p className="text-red-500 text-sm mt-4 text-center">{errors.form}</p>}
                 </div>
               </div>
             </motion.div>
@@ -201,37 +292,22 @@ export default function CheckoutPage() {
                   <h2 className="text-sm font-medium uppercase tracking-[0.2em] mb-8 text-foreground/50 border-b border-foreground/10 pb-4">Order Summary</h2>
                   
                   <div className="space-y-6 mb-8">
-                    {/* Item 1 */}
-                    <div className="flex items-center gap-6">
-                      <div className="w-20 h-24 rounded-lg bg-foreground/5 overflow-hidden flex-shrink-0 relative ring-1 ring-foreground/10">
-                        <img src={products[0]?.images?.[0] || ""} alt="Oasis Linen Abaya" className="w-full h-full object-cover" />
-                        <span className="absolute -top-1 -right-1 bg-foreground text-background text-[9px] w-5 h-5 rounded-full flex items-center justify-center border border-background">1</span>
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-heading text-lg mb-1">{products[0]?.name || "Oasis Linen Abaya"}</p>
-                        <div className="flex gap-2">
-                           <span className="text-[9px] uppercase tracking-widest text-foreground/50 border border-foreground/10 px-2 py-0.5 rounded-full">Sand</span>
-                           <span className="text-[9px] uppercase tracking-widest text-foreground/50 border border-foreground/10 px-2 py-0.5 rounded-full">M</span>
+                    {items.map((item, index) => (
+                      <div key={`${item.id}-${item.selectedSize}-${item.selectedColor}`} className="flex items-center gap-6">
+                        <div className="w-20 h-24 rounded-lg bg-foreground/5 overflow-hidden flex-shrink-0 relative ring-1 ring-foreground/10">
+                          <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                          <span className="absolute -top-1 -right-1 bg-foreground text-background text-[9px] w-5 h-5 rounded-full flex items-center justify-center border border-background">{item.quantity}</span>
                         </div>
-                      </div>
-                      <p className="text-sm font-light tracking-widest">$85.00</p>
-                    </div>
-
-                    {/* Item 2 */}
-                    <div className="flex items-center gap-6">
-                      <div className="w-20 h-24 rounded-lg bg-foreground/5 overflow-hidden flex-shrink-0 relative ring-1 ring-foreground/10">
-                        <img src={products[4]?.images?.[0] || ""} alt="Atlas Kimono Cardigan" className="w-full h-full object-cover" />
-                        <span className="absolute -top-1 -right-1 bg-foreground text-background text-[9px] w-5 h-5 rounded-full flex items-center justify-center border border-background">1</span>
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-heading text-lg mb-1">{products[4]?.name || "Atlas Kimono Cardigan"}</p>
-                        <div className="flex gap-2">
-                           <span className="text-[9px] uppercase tracking-widest text-foreground/50 border border-foreground/10 px-2 py-0.5 rounded-full">Beige</span>
-                           <span className="text-[9px] uppercase tracking-widest text-foreground/50 border border-foreground/10 px-2 py-0.5 rounded-full">One Size</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-heading text-lg mb-1 truncate">{item.name}</p>
+                          <div className="flex gap-2">
+                             <span className="text-[9px] uppercase tracking-widest text-foreground/50 border border-foreground/10 px-2 py-0.5 rounded-full">{item.selectedColor}</span>
+                             <span className="text-[9px] uppercase tracking-widest text-foreground/50 border border-foreground/10 px-2 py-0.5 rounded-full">{item.selectedSize}</span>
+                          </div>
                         </div>
+                        <p className="text-sm font-light tracking-widest">${(item.price * item.quantity).toFixed(2)}</p>
                       </div>
-                      <p className="text-sm font-light tracking-widest">$95.00</p>
-                    </div>
+                    ))}
                   </div>
                   
                   <div className="space-y-4 text-sm font-light border-t border-foreground/10 pt-8 mb-8">
@@ -257,11 +333,17 @@ export default function CheckoutPage() {
                   </div>
                   
                   {/* PayPal Yellow but elevated */}
-                  <button type="submit" className="group relative w-full inline-flex items-center justify-center gap-4 rounded-full bg-[#FFC439] pl-8 pr-2 py-2 text-sm font-bold tracking-wide text-[#003087] transition-all active:scale-[0.98] hover:bg-[#F4BB33] hover:shadow-[0_0_20px_rgba(255,196,57,0.3)]">
-                    <span className="py-3">Pay with PayPal</span>
-                    <div className="absolute right-2 flex h-10 w-10 items-center justify-center rounded-full bg-white/30 transition-transform duration-300 ease-spring group-hover:scale-105">
-                      <ArrowUpRight className="h-4 w-4 stroke-[2]" />
-                    </div>
+                  <button 
+                    type="submit" 
+                    disabled={submitting}
+                    className="group relative w-full inline-flex items-center justify-center gap-4 rounded-full bg-[#FFC439] pl-8 pr-2 py-2 text-sm font-bold tracking-wide text-[#003087] transition-all active:scale-[0.98] hover:bg-[#F4BB33] hover:shadow-[0_0_20px_rgba(255,196,57,0.3)] disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <span className="py-3">{submitting ? 'Processing...' : 'Pay with PayPal'}</span>
+                    {!submitting && (
+                      <div className="absolute right-2 flex h-10 w-10 items-center justify-center rounded-full bg-white/30 transition-transform duration-300 ease-spring group-hover:scale-105">
+                        <ArrowUpRight className="h-4 w-4 stroke-[2]" />
+                      </div>
+                    )}
                   </button>
                 </div>
               </div>
@@ -269,6 +351,7 @@ export default function CheckoutPage() {
           </div>
 
         </form>
+        )}
       </div>
     </div>
   );
