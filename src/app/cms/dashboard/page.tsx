@@ -297,12 +297,13 @@ export default function DashboardPage() {
         <div className="space-y-3">
           {/* Header row */}
           <div className="grid grid-cols-12 gap-3 px-4 py-2 text-[10px] uppercase tracking-widest text-foreground/40 font-medium border-b border-foreground/10">
-            <div className="col-span-3">Product</div>
+            <div className="col-span-2">Product</div>
             <div className="col-span-1">SKU</div>
-            <div className="col-span-2">Stock Qty</div>
-            <div className="col-span-2">Low Alert</div>
+            <div className="col-span-1">Stock</div>
+            <div className="col-span-1">Low Alert</div>
+            <div className="col-span-1">Max/Order</div>
             <div className="col-span-2">Status</div>
-            <div className="col-span-2 text-right">Actions</div>
+            <div className="col-span-4 text-right">Actions</div>
           </div>
 
           {stockData.map((product: any) => {
@@ -313,7 +314,7 @@ export default function DashboardPage() {
 
             return (
               <div key={product.id} className={`grid grid-cols-12 gap-3 items-center px-4 py-3 rounded-xl border ${editingStock === product.id ? 'border-primary bg-primary/5' : 'border-foreground/10 hover:bg-foreground/[0.02]'} transition-colors`}>
-                <div className="col-span-3 min-w-0">
+                <div className="col-span-2 min-w-0">
                   <p className="font-medium text-sm truncate">{product.name}</p>
                   <p className="text-[10px] text-foreground/40">${parseFloat(product.price).toFixed(2)}</p>
                 </div>
@@ -321,14 +322,16 @@ export default function DashboardPage() {
                 {editingStock === product.id ? (
                   <>
                     <div className="col-span-1"><input className="w-full border border-foreground/20 bg-background p-1.5 rounded-lg text-sm" defaultValue={product.sku || ''} placeholder="SKU" onBlur={e => updateStock(product.id, 'sku', e.target.value || null)} /></div>
-                    <div className="col-span-2"><input type="number" className="w-full border border-foreground/20 bg-background p-1.5 rounded-lg text-sm" defaultValue={stock === -1 ? '' : stock} placeholder="-1 = untracked" onBlur={e => { const v = e.target.value; updateStock(product.id, 'stockQuantity', v === '' ? -1 : parseInt(v)); }} /></div>
-                    <div className="col-span-2"><input type="number" className="w-full border border-foreground/20 bg-background p-1.5 rounded-lg text-sm" defaultValue={lowThreshold} min={0} onBlur={e => updateStock(product.id, 'lowStockThreshold', parseInt(e.target.value) || 5)} /></div>
+                    <div className="col-span-1"><input type="number" className="w-full border border-foreground/20 bg-background p-1.5 rounded-lg text-sm" defaultValue={stock === -1 ? '' : stock} placeholder="-1" onBlur={e => { const v = e.target.value; updateStock(product.id, 'stockQuantity', v === '' ? -1 : parseInt(v)); }} /></div>
+                    <div className="col-span-1"><input type="number" className="w-full border border-foreground/20 bg-background p-1.5 rounded-lg text-sm" defaultValue={lowThreshold} min={0} onBlur={e => updateStock(product.id, 'lowStockThreshold', parseInt(e.target.value) || 3)} /></div>
+                    <div className="col-span-1"><input type="number" className="w-full border border-foreground/20 bg-background p-1.5 rounded-lg text-sm" defaultValue={product.max_per_order ?? 3} min={1} onBlur={e => updateStock(product.id, 'maxPerOrder', parseInt(e.target.value) || 3)} /></div>
                   </>
                 ) : (
                   <>
                     <div className="col-span-1 text-xs font-mono text-foreground/60">{product.sku || '—'}</div>
-                    <div className="col-span-2 font-mono text-sm">{stock === -1 ? <span className="text-foreground/40 italic">Untracked</span> : stock}</div>
-                    <div className="col-span-2 text-sm text-foreground/50">{stock >= 0 ? lowThreshold : '—'}</div>
+                    <div className="col-span-1 font-mono text-sm">{stock === -1 ? <span className="text-foreground/40 italic">—</span> : stock}</div>
+                    <div className="col-span-1 text-sm text-foreground/50">{stock >= 0 ? lowThreshold : '—'}</div>
+                    <div className="col-span-1 text-sm text-foreground/50">{product.max_per_order ?? 3}</div>
                   </>
                 )}
 
@@ -344,7 +347,7 @@ export default function DashboardPage() {
                   )}
                 </div>
 
-                <div className="col-span-2 text-right">
+                <div className="col-span-4 text-right">
                   {editingStock === product.id ? (
                     <button onClick={() => { setEditingStock(null); fetchStock(); }} className="px-3 py-1 bg-primary text-primary-foreground rounded-full text-xs">Done</button>
                   ) : (

@@ -6,7 +6,7 @@ export async function GET() {
   try {
     const { data: products, error } = await supabaseAdmin
       .from("products")
-      .select("id, name, price, in_stock, stock_quantity, low_stock_threshold, sku, variations")
+      .select("id, name, price, in_stock, stock_quantity, low_stock_threshold, max_per_order, sku, variations")
       .order("name", { ascending: true });
 
     if (error) {
@@ -26,7 +26,7 @@ export async function GET() {
 // PATCH: Update stock for a single product
 export async function PATCH(request: NextRequest) {
   try {
-    const { productId, stockQuantity, lowStockThreshold, sku, inStock } = await request.json();
+    const { productId, stockQuantity, lowStockThreshold, maxPerOrder, sku, inStock } = await request.json();
 
     if (!productId) {
       return NextResponse.json({ error: "Product ID required" }, { status: 400 });
@@ -35,6 +35,7 @@ export async function PATCH(request: NextRequest) {
     const updates: any = {};
     if (stockQuantity !== undefined) updates.stock_quantity = stockQuantity;
     if (lowStockThreshold !== undefined) updates.low_stock_threshold = lowStockThreshold;
+    if (maxPerOrder !== undefined) updates.max_per_order = maxPerOrder;
     if (sku !== undefined) updates.sku = sku;
     if (inStock !== undefined) updates.in_stock = inStock;
 

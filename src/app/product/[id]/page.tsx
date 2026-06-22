@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { ArrowLeft, ArrowUpRight, Info, Check } from "lucide-react";
 import Link from "next/link";
 import type { Product } from "@/types/product";
+import { DEFAULT_MAX_PER_ORDER } from "@/types/product";
 import { useCart } from "@/context/CartContext";
 
 export default function ProductPage({ params }: { params: Promise<{ id: string }> }) {
@@ -51,9 +52,11 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
     notFound();
   }
 
+  const maxPerOrder = product.max_per_order ?? DEFAULT_MAX_PER_ORDER;
   const isOutOfStock = product.stock_quantity === 0;
-  const isLowStock = product.stock_quantity != null && product.stock_quantity > 0 && product.stock_quantity !== -1 && product.stock_quantity <= (product.low_stock_threshold ?? 5);
+  const isLowStock = product.stock_quantity != null && product.stock_quantity > 0 && product.stock_quantity !== -1 && product.stock_quantity <= (product.low_stock_threshold ?? 3);
   const stockIsTracked = product.stock_quantity !== null && product.stock_quantity !== undefined && product.stock_quantity >= 0;
+  const effectiveMax = stockIsTracked ? Math.min(maxPerOrder, product.stock_quantity!) : maxPerOrder;
 
   const addToCart = () => {
     if (!selectedSize || !selectedColor) {
@@ -75,6 +78,8 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
       image: product.images[0] || "",
       selectedSize,
       selectedColor,
+      maxPerOrder,
+      stockQuantity: product.stock_quantity,
     });
 
     setFeedback({ type: 'success', message: `${product.name} (${selectedSize}, ${selectedColor}) added to cart!` });
@@ -194,7 +199,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
 
               {/* Stock Status */}
               {stockIsTracked && (
-                <div className="mb-6">
+                <div className="mb-6 space-y-1">
                   {isOutOfStock ? (
                     <p className="text-xs uppercase tracking-widest text-red-500 font-medium">Out of Stock</p>
                   ) : isLowStock ? (
@@ -202,6 +207,12 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                   ) : (
                     <p className="text-xs uppercase tracking-widest text-foreground/40">In Stock ({product.stock_quantity} available)</p>
                   )}
+                  <p className="text-[10px] uppercase tracking-widest text-foreground/30">Limit {effectiveMax} per order</p>
+                </div>
+              )}
+              {!stockIsTracked && (
+                <div className="mb-6">
+                  <p className="text-[10px] uppercase tracking-widest text-foreground/30">Limit {maxPerOrder} per order</p>
                 </div>
               )}
 

@@ -36,7 +36,7 @@ async function validateStock(items: OrderPayload["items"]): Promise<string | nul
 
   const { data: products, error } = await supabaseAdmin
     .from("products")
-    .select("id, name, stock_quantity, in_stock")
+    .select("id, name, stock_quantity, in_stock, max_per_order")
     .in("id", productIds);
 
   if (error) {
@@ -66,6 +66,14 @@ async function validateStock(items: OrderPayload["items"]): Promise<string | nul
       if (totalRequested > product.stock_quantity) {
         return `Only ${product.stock_quantity} unit(s) of "${product.name}" available, but ${totalRequested} requested.`;
       }
+    }
+    // Enforce max_per_order limit
+    const maxPerOrder = product.max_per_order ?? 3;
+    const totalForProduct = items
+      .filter(i => i.id === item.id)
+      .reduce((sum, i) => sum + i.quantity, 0);
+    if (totalForProduct > maxPerOrder) {
+      return `Maximum ${maxPerOrder} per order for "${product.name}". You have ${totalForProduct} in your cart.`;
     }
   }
 

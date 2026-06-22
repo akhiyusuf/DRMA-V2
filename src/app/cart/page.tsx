@@ -9,14 +9,18 @@ import { useEffect, useState } from "react";
 interface StockInfo {
   [productId: string]: {
     stock_quantity: number | null;
+    max_per_order: number | null;
     in_stock: boolean;
     name: string;
   };
 }
 
+import { DEFAULT_MAX_PER_ORDER } from "@/types/product";
+
 export default function CartPage() {
   const { items, removeItem, updateQuantity, subtotal, itemCount } = useCart();
   const [stockInfo, setStockInfo] = useState<StockInfo>({});
+  const [quantityErrors, setQuantityErrors] = useState<Record<string, string>>({});
 
   // Fetch live stock data for all cart items
   useEffect(() => {
@@ -33,6 +37,7 @@ export default function CartPage() {
           if (productIds.includes(p.id)) {
             info[p.id] = {
               stock_quantity: p.stock_quantity,
+              max_per_order: p.max_per_order,
               in_stock: p.in_stock,
               name: p.name,
             };
@@ -85,6 +90,12 @@ export default function CartPage() {
                 const stock = stockInfo[item.id];
                 const isOutOfStock = stock && stock.stock_quantity !== null && stock.stock_quantity >= 0 && stock.stock_quantity === 0;
                 const isLowStock = stock && stock.stock_quantity !== null && stock.stock_quantity > 0 && stock.stock_quantity <= 5;
+                const maxPer = stock?.max_per_order ?? DEFAULT_MAX_PER_ORDER;
+                const effectiveMax = (stock?.stock_quantity != null && stock.stock_quantity >= 0)
+                  ? Math.min(maxPer, stock.stock_quantity)
+                  : maxPer;
+                const atMax = item.quantity >= effectiveMax;
+                const itemKey = `${item.id}-${item.selectedSize}-${item.selectedColor}`;
 
                 return (
                   <motion.div 
@@ -138,10 +149,29 @@ export default function CartPage() {
                       
                       <div className="flex justify-between items-end mt-8">
                         {/* Fluid Quantity Selector */}
-                        <div className="flex items-center rounded-full border border-foreground/10 bg-foreground/5 overflow-hidden p-1">
-                          <button onClick={() => updateQuantity(item.id, item.selectedSize, item.selectedColor, -1)} className="w-8 h-8 rounded-full flex items-center justify-center text-foreground/60 hover:text-foreground hover:bg-background transition-all">-</button>
-                          <span className="w-8 text-center text-sm font-light">{item.quantity}</span>
-                          <button onClick={() => updateQuantity(item.id, item.selectedSize, item.selectedColor, 1)} className="w-8 h-8 rounded-full flex items-center justify-center text-foreground/60 hover:text-foreground hover:bg-background transition-all">+</button>
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center rounded-full border border-foreground/10 bg-foreground/5 overflow-hidden p-1">
+                            <button onClick={() => updateQuantity(item.id, item.selectedSize, item.selectedColor, -1)} className="w-8 h-8 rounded-full flex items-center justify-center text-foreground/60 hover:text-foreground hover:bg-background transition-all">-</button>
+                            <span className="w-8 text-center text-sm font-light">{item.quantity}</span>
+                            <button 
+                              onClick={() => {
+                                const result = updateQuantity(item.id, item.selectedSize, item.selectedColor, 1);
+                                if (!result.success && result.reason) {
+                                  setQuantityErrors(prev => ({ ...prev, [itemKey]: result.reason! }));
+                                  setTimeout(() => setQuantityErrors(prev => {
+                                    const next = { ...prev };
+                                    delete next[itemKey];
+                                    return next;
+                                  }), 2500);
+                                }
+                              }}
+                              disabled={atMax}
+                              className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${atMax ? 'text-foreground/20 cursor-not-allowed' : 'text-foreground/60 hover:text-foreground hover:bg-background'}`}
+                            >+</button>
+                          </div>
+                          {quantityErrors[itemKey] && (
+                            <span className="text-[10px] text-amber-600 uppercase tracking-wider">{quantityErrors[itemKey]}</span>
+                          )}
                         </div>
                         
                         <button onClick={() => removeItem(item.id, item.selectedSize, item.selectedColor)} className="group/btn flex items-center text-[10px] uppercase tracking-[0.2em] font-medium text-foreground/40 hover:text-destructive transition-colors">

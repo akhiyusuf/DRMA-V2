@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { DEFAULT_MAX_PER_ORDER } from "@/types/product";
 
 export interface CartItem {
   id: string;
@@ -10,13 +11,15 @@ export interface CartItem {
   selectedSize: string;
   selectedColor: string;
   quantity: number;
+  maxPerOrder?: number;
+  stockQuantity?: number | null;
 }
 
 interface CartContextType {
   items: CartItem[];
-  addItem: (item: Omit<CartItem, "quantity">) => void;
+  addItem: (item: Omit<CartItem, "quantity"> & { maxPerOrder?: number; stockQuantity?: number | null }) => void;
   removeItem: (id: string, size: string, color: string) => void;
-  updateQuantity: (id: string, size: string, color: string, delta: number) => void;
+  updateQuantity: (id: string, size: string, color: string, delta: number) => { success: boolean; reason?: string };
   clearCart: () => void;
   subtotal: number;
   itemCount: number;
@@ -49,25 +52,36 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
   }, [items, hydrated]);
 
-  const addItem = useCallback((newItem: Omit<CartItem, "quantity">) => {
+  // Compute the effective max for an item: min(maxPerOrder, stockQuantity)
+  const getEffectiveMax = useCallback((item: CartItem): number => {
+    const maxPerOrder = item.maxPerOrder ?? DEFAULT_MAX_PER_ORDER;
+    const stock = item.stockQuantity;
+    // If stock is tracked and finite, cap at stock level
+    if (stock !== null && stock !== undefined && stock >= 0) {
+      return Math.min(maxPerOrder, stock);
+    }
+    return maxPerOrder;
+  }, []);
+
+  const addItem = useCallback((newItem: Omit<CartItem, "quantity"> & { maxPerOrder?: number; stockQuantity?: number | null }) => {
     setItems(prev => {
       // Check for existing item with same id + size + color
       const existingIndex = prev.findIndex(
         i => i.id === newItem.id && i.selectedSize === newItem.selectedSize && i.selectedColor === newItem.selectedColor
       );
       if (existingIndex >= 0) {
-        // Increment quantity
+        const existing = prev[existingIndex];
+        const tempItem = { ...existing, maxPerOrder: newItem.maxPerOrder, stockQuantity: newItem.stockQuantity };
+        const maxQty = getEffectiveMax(tempItem);
+        const newQty = Math.min(existing.quantity + 1, maxQty);
         const updated = [...prev];
-        updated[existingIndex] = {
-          ...updated[existingIndex],
-          quantity: updated[existingIndex].quantity + 1,
-        };
+        updated[existingIndex] = { ...updated[existingIndex], quantity: newQty, maxPerOrder: newItem.maxPerOrder, stockQuantity: newItem.stockQuantity };
         return updated;
       }
       // Add as new item
       return [...prev, { ...newItem, quantity: 1 }];
     });
-  }, []);
+  }, [getEffectiveMax]);
 
   const removeItem = useCallback((id: string, size: string, color: string) => {
     setItems(prev => prev.filter(
@@ -75,17 +89,39 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     ));
   }, []);
 
-  const updateQuantity = useCallback((id: string, size: string, color: string, delta: number) => {
+  const updateQuantity = useCallback((id: string, size: string, color: string, delta: number): { success: boolean; reason?: string } => {
+    let result: { success: boolean; reason?: string } = { success: true };
+
     setItems(prev =>
       prev.map(item => {
         if (item.id === id && item.selectedSize === size && item.selectedColor === color) {
-          const newQty = Math.max(1, item.quantity + delta);
+          const maxQty = getEffectiveMax(item);
+          const newQty = item.quantity + delta;
+
+          // Prevent going below 1
+          if (newQty < 1) {
+            return item;
+          }
+
+          // Enforce max per order / stock limit
+          if (newQty > maxQty) {
+            result = {
+              success: false,
+              reason: maxQty < (item.stockQuantity ?? Infinity)
+                ? `Maximum ${maxQty} per order`
+                : `Only ${item.stockQuantity} in stock`,
+            };
+            return item; // Don't update
+          }
+
           return { ...item, quantity: newQty };
         }
         return item;
       })
     );
-  }, []);
+
+    return result;
+  }, [getEffectiveMax]);
 
   const clearCart = useCallback(() => {
     setItems([]);
