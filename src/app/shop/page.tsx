@@ -172,20 +172,6 @@ export default function ShopPage() {
       <section className="pt-24 md:pt-32 pb-6 md:pb-10 px-4 md:px-8 border-b border-foreground/5">
         <div className="container mx-auto flex items-end justify-between gap-4">
           <div>
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, ease: [0.32, 0.72, 0, 1] }}
-              className="flex items-center gap-3 mb-3 md:mb-4"
-            >
-              <span className="rounded-full px-3 py-1 text-[10px] uppercase tracking-[0.2em] font-medium bg-foreground/5 text-foreground/70 border border-foreground/10">
-                The Archive
-              </span>
-              <span className="text-xs font-medium tracking-widest text-foreground/40 uppercase">
-                {filteredProducts.length} Pieces
-              </span>
-            </motion.div>
-            
             <motion.h1 
               initial={{ opacity: 0, y: 30, filter: "blur(8px)" }}
               animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}

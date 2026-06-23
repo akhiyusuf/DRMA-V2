@@ -51,17 +51,7 @@ export default function Home() {
             
             {/* Left Column: Typography (7 cols) */}
             <div className="lg:col-span-7 flex flex-col items-center lg:items-start text-center lg:text-left relative z-30 mb-8 lg:mb-0">
-              <motion.div
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, ease: [0.32, 0.72, 0, 1] }}
-                className="flex items-center gap-2 mb-3 md:mb-6"
-              >
-                <span className="h-[1px] w-6 md:w-12 bg-[#CA8A04]/60"></span>
-                <span className="rounded-full px-3 md:px-4 py-1 md:py-1.5 text-[9px] md:text-[11px] uppercase tracking-[0.25em] font-medium bg-[#1C1917]/5 text-[#1C1917]/80 border border-[#1C1917]/10 backdrop-blur-sm">
-                  {homepageData.hero?.collectionLabel || 'Collection'}
-                </span>
-              </motion.div>
+              {/* Collection label removed */}
               
               <motion.h1 
                 initial={{ opacity: 0, y: 40, filter: "blur(8px)" }}
@@ -99,12 +89,12 @@ export default function Home() {
             </div>
 
             {/* Right Column: Main Visual */}
-            <div className="lg:col-span-5 relative w-full z-20 flex items-end justify-center lg:justify-end">
+            <div className="lg:col-span-5 relative w-full z-20 flex items-start justify-center lg:items-end lg:justify-end">
               <motion.div 
                 initial={{ opacity: 0, y: 40, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ duration: 1.6, delay: 0.2, ease: [0.32, 0.72, 0, 1] }}
-                className="w-full max-w-[400px] sm:max-w-[500px] lg:max-w-none z-20 flex items-end"
+                className="w-full max-w-[400px] sm:max-w-[500px] lg:max-w-none z-20"
               >
                 {homepageData.hero?.image && (
                   <img 
@@ -188,7 +178,6 @@ export default function Home() {
                 transition={{ duration: 1, ease: [0.32, 0.72, 0, 1] }}
                 className="mb-6 md:mb-8"
               >
-                <span className="rounded-full px-3 py-1 text-[10px] uppercase tracking-[0.2em] font-medium bg-primary/10 text-primary border border-primary/20">{homepageData.mission?.label || "Mission"}</span>
                 <h2 className="text-3xl md:text-5xl lg:text-6xl font-heading font-light mt-6 md:mt-8 leading-tight text-foreground">
                   {(homepageData.mission?.title || " ").split(" <br/> ")[0]} <br/> <span className="italic text-foreground/60">{(homepageData.mission?.title || " ").split(" <br/> ")[1]}</span>
                 </h2>
@@ -231,9 +220,6 @@ export default function Home() {
             transition={{ duration: 1, ease: [0.32, 0.72, 0, 1] }}
             className="flex flex-col items-start mb-10 md:mb-16 lg:mb-24"
           >
-            <span className="rounded-full px-3 py-1 text-[10px] uppercase tracking-[0.2em] font-medium bg-foreground/5 text-foreground/70 border border-foreground/10 mb-6">
-              Curated Selection
-            </span>
             <h2 className="text-3xl md:text-5xl lg:text-6xl font-heading font-light leading-tight text-foreground">
               The Best <span className="italic text-foreground/60">Products.</span>
             </h2>
@@ -313,12 +299,12 @@ export default function Home() {
             transition={{ duration: 1, ease: [0.32, 0.72, 0, 1] }}
             className="flex flex-col items-center text-center max-w-3xl mx-auto mb-14 md:mb-20 lg:mb-24"
           >
-            <div className="flex items-center gap-2 md:gap-3 mb-6 md:mb-8">
-              <span className="h-px w-6 md:w-8 bg-[#CA8A04]/50" />
-              <span className="text-[10px] md:text-[11px] uppercase tracking-[0.25em] font-medium text-[#CA8A04]">
+            <div className="flex items-center gap-3 md:gap-5 mb-8 md:mb-12">
+              <span className="h-px w-8 md:w-14 bg-[#CA8A04]/50" />
+              <span className="text-sm md:text-xl lg:text-2xl uppercase tracking-[0.2em] md:tracking-[0.25em] font-heading font-light text-[#CA8A04]">
                 {homepageData.differentiation?.label || "Why Us"}
               </span>
-              <span className="h-px w-6 md:w-8 bg-[#CA8A04]/50" />
+              <span className="h-px w-8 md:w-14 bg-[#CA8A04]/50" />
             </div>
             <h2 className="text-3xl md:text-5xl lg:text-7xl font-heading font-light leading-[1.05] text-white">
               {(homepageData.differentiation?.title || " ").split(" <br/> ")[0]} <br/> <span className="italic text-[#CA8A04]">{(homepageData.differentiation?.title || " ").split(" <br/> ")[1]}</span>
