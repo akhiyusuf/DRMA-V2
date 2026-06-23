@@ -71,73 +71,49 @@ END;
 $$ LANGUAGE plpgsql;
 `;
 
-// Try Supabase pooler hosts across regions (session mode port 5432)
-const POOLER_REGIONS = [
-  'eu-central-1',
-  'eu-west-1', 
-  'eu-west-2',
-  'eu-west-3',
-  'us-east-1',
-  'us-west-1',
-  'ap-southeast-1',
-  'us-east-2',
-  'ap-northeast-1',
+// Connection configs to try
+const CONNECTIONS = [
+  // 1. API gateway host (Cloudflare, IPv4) — might proxy PG traffic
+  { host: 'qeyfzpbbukhnuiabrkef.supabase.co', port: 5432, user: 'postgres', db: 'postgres' },
+  // 2. API gateway with project user
+  { host: 'qeyfzpbbukhnuiabrkef.supabase.co', port: 5432, user: 'postgres.qeyfzpbbukhnuiabrkef', db: 'postgres' },
 ];
 
-async function tryPooler(region: string): Promise<pg.Client | null> {
-  const client = new pg.Client({
-    host: `aws-0-${region}.pooler.supabase.com`,
-    port: 5432,
-    database: 'postgres',
-    user: 'postgres.qeyfzpbbukhnuiabrkef',
-    password: process.env.DB_PASSWORD || '[Allahuallam$99]',
-    ssl: { rejectUnauthorized: false },
-    connectionTimeoutMillis: 5000,
-  });
-  try {
-    await client.connect();
-    // Verify we're connected to the right project
-    const res = await client.query("SELECT current_database()");
-    if (res.rows[0]?.current_database === 'postgres') {
-      return client;
-    }
-    await client.end();
-    return null;
-  } catch {
-    try { await client.end(); } catch {}
-    return null;
-  }
-}
-
 export async function POST() {
+  const password = process.env.DB_PASSWORD || '[Allahuallam$99]';
   const errors: string[] = [];
 
-  // Try each pooler region
-  for (const region of POOLER_REGIONS) {
-    const client = await tryPooler(region);
-    if (client) {
-      try {
-        await client.query(SQL);
-        const res = await client.query(`
-          SELECT routine_name FROM information_schema.routines
-          WHERE routine_schema = 'public'
-          AND routine_name IN ('decrement_stock', 'increment_stock', 'check_stock_availability')
-        `);
-        await client.end();
-        return NextResponse.json({
-          success: true,
-          message: 'RPC functions created',
-          region,
-          functions: res.rows.map((r: any) => r.routine_name),
-        });
-      } catch (error: any) {
-        errors.push(`${region}: ${error.message}`);
-        try { await client.end(); } catch {}
-      }
-    } else {
-      errors.push(`${region}: connection failed`);
+  for (const cfg of CONNECTIONS) {
+    const client = new pg.Client({
+      host: cfg.host,
+      port: cfg.port,
+      database: cfg.db,
+      user: cfg.user,
+      password,
+      ssl: { rejectUnauthorized: false },
+      connectionTimeoutMillis: 8000,
+    });
+    try {
+      await client.connect();
+      await client.query(SQL);
+      const res = await client.query(`
+        SELECT routine_name FROM information_schema.routines
+        WHERE routine_schema = 'public'
+        AND routine_name IN ('decrement_stock', 'increment_stock', 'check_stock_availability')
+      `);
+      await client.end();
+      return NextResponse.json({
+        success: true,
+        message: 'RPC functions created',
+        host: cfg.host,
+        user: cfg.user,
+        functions: res.rows.map((r: any) => r.routine_name),
+      });
+    } catch (error: any) {
+      errors.push(`${cfg.user}@${cfg.host}:${cfg.port} — ${error.message}`);
+      try { await client.end(); } catch {}
     }
   }
 
-  return NextResponse.json({ success: false, error: 'All pooler regions failed', details: errors }, { status: 500 });
+  return NextResponse.json({ success: false, error: 'All connection attempts failed', details: errors }, { status: 500 });
 }
