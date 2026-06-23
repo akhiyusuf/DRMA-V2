@@ -87,7 +87,7 @@ export async function POST() {
     port: 6543,
     database: 'postgres',
     user: 'postgres.qeyfzpbbukhnuiabrkef',
-    password: String.raw`[Allahuallam$99]`,
+    password: 'Allahuallam$99',
     ssl: { rejectUnauthorized: false },
     connectionTimeoutMillis: 10000,
   });
