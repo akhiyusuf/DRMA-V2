@@ -2,8 +2,8 @@
 
 import { notFound } from "next/navigation";
 import { use, useState, useEffect, useRef, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ArrowUpRight, Info, Check, Minus, Plus, ShoppingBag } from "lucide-react";
+import { motion } from "framer-motion";
+import { ArrowLeft, ArrowUpRight, Info, Check, Minus, Plus } from "lucide-react";
 import Link from "next/link";
 import type { Product } from "@/types/product";
 import { DEFAULT_MAX_PER_ORDER } from "@/types/product";
@@ -17,14 +17,11 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [feedback, setFeedback] = useState<{ type: 'error' | 'success', message: string } | null>(null);
+  const [pulseKey, setPulseKey] = useState(0);
   const { addItem } = useCart();
-
-  // Flying animation state
-  const [flyingItems, setFlyingItems] = useState<{ id: number; x: number; y: number }[]>([]);
-  const [showCartFlash, setShowCartFlash] = useState(false);
-  const imageRef = useRef<HTMLDivElement>(null);
-  const flyingIdRef = useRef(0);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const soundRef = useRef<HTMLAudioElement | null>(null);
+  const feedbackTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // Initialize sound on first user interaction
   const initSound = useCallback(() => {
@@ -47,6 +44,9 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
         setLoading(false);
       });
   }, [resolvedParams.id]);
+
+  // Cleanup feedback timer on unmount
+  useEffect(() => () => { if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current); }, []);
 
   if (loading) return (
     <div className="min-h-screen pt-32 container mx-auto px-6">
@@ -74,40 +74,32 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
   const stockIsTracked = product.stock_quantity !== null && product.stock_quantity !== undefined && product.stock_quantity >= 0;
   const effectiveMax = stockIsTracked ? Math.min(maxPerOrder, product.stock_quantity!) : maxPerOrder;
 
-  const triggerFlyAnimation = () => {
-    if (!imageRef.current) return;
-    const rect = imageRef.current.getBoundingClientRect();
-    const startX = rect.left + rect.width / 2;
-    const startY = rect.top + rect.height / 2;
-    const id = flyingIdRef.current++;
-    setFlyingItems(prev => [...prev, { id, x: startX, y: startY }]);
-    setTimeout(() => {
-      setFlyingItems(prev => prev.filter(item => item.id !== id));
-    }, 900);
-  };
-
-  const playCartSound = () => {
+  const playCartSound = useCallback(() => {
     initSound();
     if (soundRef.current) {
       soundRef.current.currentTime = 0;
       soundRef.current.play().catch(() => {});
     }
+  }, [initSound]);
+
+  const showFeedback = (type: 'error' | 'success', message: string) => {
+    if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
+    setFeedback({ type, message });
+    feedbackTimerRef.current = setTimeout(() => setFeedback(null), 3000);
   };
 
   const addToCart = () => {
     if (!selectedSize || !selectedColor) {
-      setFeedback({ type: 'error', message: 'Please select both a size and a color.' });
-      setTimeout(() => setFeedback(null), 3000);
+      showFeedback('error', 'Please select both a size and a color.');
       return;
     }
 
     if (isOutOfStock) {
-      setFeedback({ type: 'error', message: 'This item is currently out of stock.' });
-      setTimeout(() => setFeedback(null), 3000);
+      showFeedback('error', 'This item is currently out of stock.');
       return;
     }
 
-    addItem({
+    const success = addItem({
       id: product.id,
       name: product.name,
       price: product.price,
@@ -119,12 +111,13 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
       quantity,
     });
 
-    // Trigger animations
-    triggerFlyAnimation();
-    playCartSound();
-
-    setFeedback({ type: 'success', message: `${quantity}x ${product.name} (${selectedSize}, ${selectedColor}) added to cart!` });
-    setTimeout(() => setFeedback(null), 3000);
+    if (success) {
+      playCartSound();
+      setPulseKey(k => k + 1);
+      showFeedback('success', `${quantity}x ${product.name} (${selectedSize}, ${selectedColor}) added to cart!`);
+    } else {
+      showFeedback('error', `Maximum ${effectiveMax} per order reached for this item.`);
+    }
   };
 
   const incrementQty = () => setQuantity(prev => Math.min(prev + 1, effectiveMax));
@@ -132,67 +125,6 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
 
   return (
     <div className="w-full bg-background min-h-screen selection:bg-primary selection:text-primary-foreground pt-32 pb-24">
-      {/* Flying cart animation overlay */}
-      <div className="fixed inset-0 pointer-events-none z-[100]">
-        <AnimatePresence>
-          {flyingItems.map((item) => {
-            // Target: top-right corner where cart icon lives
-            const targetX = typeof window !== 'undefined' ? window.innerWidth - 40 : 800;
-            const targetY = 40;
-            return (
-              <motion.div
-                key={item.id}
-                initial={{ 
-                  x: item.x - 20, 
-                  y: item.y - 20,
-                  scale: 1,
-                  opacity: 1,
-                }}
-                animate={{ 
-                  x: targetX, 
-                  y: targetY,
-                  scale: 0.2,
-                  opacity: 0.6,
-                }}
-                exit={{ opacity: 0 }}
-                transition={{ 
-                  duration: 0.7, 
-                  ease: [0.22, 1, 0.36, 1],
-                }}
-                className="absolute w-10 h-10"
-              >
-                <div className="w-10 h-10 rounded-xl overflow-hidden shadow-lg border border-foreground/20">
-                  {product?.images[0] ? (
-                    <img src={product.images[0]} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full bg-foreground/10 flex items-center justify-center">
-                      <ShoppingBag className="w-4 h-4" />
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-            );
-          })}
-        </AnimatePresence>
-      </div>
-
-      {/* Cart icon flash in navbar */}
-      <AnimatePresence>
-        {showCartFlash && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.5 }}
-            animate={{ opacity: [0, 1, 0], scale: [0.5, 1.5, 2] }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-            className="fixed top-5 right-5 md:right-[8%] z-[101] pointer-events-none"
-          >
-            <div className="w-8 h-8 rounded-full bg-primary/30 flex items-center justify-center">
-              <ShoppingBag className="w-4 h-4 text-primary" />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       <div className="container mx-auto px-4 md:px-8 max-w-7xl">
         
         {/* Breadcrumb / Back */}
@@ -220,7 +152,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
               transition={{ duration: 1, ease: [0.32, 0.72, 0, 1] }}
               className="p-2 rounded-[2.5rem] bg-foreground/5 ring-1 ring-foreground/10"
             >
-              <div ref={imageRef} className="aspect-[3/4] relative rounded-[calc(2.5rem-0.5rem)] overflow-hidden shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]">
+              <div className="aspect-[3/4] relative rounded-[calc(2.5rem-0.5rem)] overflow-hidden shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]">
                 {product.images[0] ? (
                   <img 
                     src={product.images[0]} 
@@ -342,25 +274,39 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                 </div>
               )}
 
-              {/* Add to Cart Button */}
-              <button 
-                onClick={addToCart} 
-                disabled={isOutOfStock}
-                className={`group relative w-full inline-flex items-center justify-center gap-4 rounded-full pl-8 pr-2 py-2 text-sm font-medium tracking-wide transition-all active:scale-[0.98] mb-6 ${
-                  isOutOfStock
-                    ? 'bg-foreground/10 text-foreground/30 cursor-not-allowed'
-                    : 'bg-foreground text-background hover:bg-foreground/90'
-                }`}
-              >
-                <span className="uppercase tracking-widest text-xs py-3">
-                  {isOutOfStock ? 'Sold Out' : 'Add to Cart'}
-                </span>
-                {!isOutOfStock && (
-                  <div className="absolute right-2 flex h-10 w-10 items-center justify-center rounded-full bg-background/20 transition-transform duration-300 ease-spring group-hover:scale-105">
-                    <ArrowUpRight className="h-4 w-4 stroke-[1.5]" />
-                  </div>
-                )}
-              </button>
+              {/* Add to Cart Button + Pulse Effect */}
+              <div className="relative mb-6">
+                {/* Subtle pulse rings emanating from below the button */}
+                <div className="absolute inset-x-0 -bottom-4 h-8 flex items-start justify-center pointer-events-none overflow-visible">
+                  <motion.div
+                    key={pulseKey}
+                    initial={{ opacity: 0.4, scale: 0.8 }}
+                    animate={{ opacity: 0, scale: 1.4 }}
+                    transition={{ duration: 1.2, ease: "easeOut" as const }}
+                    className="w-24 h-3 rounded-full bg-primary/15 blur-sm"
+                  />
+                </div>
+
+                <button 
+                  ref={buttonRef}
+                  onClick={addToCart} 
+                  disabled={isOutOfStock}
+                  className={`group relative w-full inline-flex items-center justify-center gap-4 rounded-full pl-8 pr-2 py-2 text-sm font-medium tracking-wide transition-all active:scale-[0.98] ${
+                    isOutOfStock
+                      ? 'bg-foreground/10 text-foreground/30 cursor-not-allowed'
+                      : 'bg-foreground text-background hover:bg-foreground/90'
+                  }`}
+                >
+                  <span className="uppercase tracking-widest text-xs py-3">
+                    {isOutOfStock ? 'Sold Out' : 'Add to Cart'}
+                  </span>
+                  {!isOutOfStock && (
+                    <div className="absolute right-2 flex h-10 w-10 items-center justify-center rounded-full bg-background/20 transition-transform duration-300 ease-spring group-hover:scale-105">
+                      <ArrowUpRight className="h-4 w-4 stroke-[1.5]" />
+                    </div>
+                  )}
+                </button>
+              </div>
               
               <div className="flex items-center justify-center text-[10px] uppercase tracking-[0.1em] text-foreground/40 gap-4">
                 <span className="flex items-center"><Info className="w-3 h-3 mr-1.5" /> Free Global Shipping over $150</span>

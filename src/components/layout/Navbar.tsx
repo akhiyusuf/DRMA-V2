@@ -15,7 +15,7 @@ const badgeBounce = {
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { itemCount, cartBounceKey } = useCart();
+  const { itemCount, cartBounceKey, lastAddedInfo } = useCart();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -78,27 +78,50 @@ export function Navbar() {
             <button className="p-2 hover:text-primary transition-colors relative" onClick={() => alert("Account functionality coming soon")} aria-label="User Account">
               <User className="w-5 h-5 stroke-[1.5]" />
             </button>
-            <Link href="/cart" className="p-2 hover:text-primary transition-colors relative" aria-label="Shopping Cart">
-              <motion.div
-                key={cartBounceKey}
-                initial={badgeBounce.initial}
-                animate={badgeBounce.animate}
-                transition={badgeBounce.transition}
-              >
-                <ShoppingBag className="w-5 h-5 stroke-[1.5]" />
-              </motion.div>
-              {itemCount > 0 && (
-                <motion.span
-                  key={`badge-${cartBounceKey}`}
+            <div className="relative">
+              <Link href="/cart" className="p-2 hover:text-primary transition-colors relative block" aria-label="Shopping Cart">
+                <motion.div
+                  key={cartBounceKey}
                   initial={badgeBounce.initial}
                   animate={badgeBounce.animate}
-                  transition={{ ...badgeBounce.transition, delay: 0.1 }}
-                  className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-primary text-primary-foreground text-[10px] font-semibold rounded-full flex items-center justify-center px-1 leading-none"
+                  transition={badgeBounce.transition}
                 >
-                  {itemCount}
-                </motion.span>
-              )}
-            </Link>
+                  <ShoppingBag className="w-5 h-5 stroke-[1.5]" />
+                </motion.div>
+                {itemCount > 0 && (
+                  <motion.span
+                    key={`badge-${cartBounceKey}`}
+                    initial={badgeBounce.initial}
+                    animate={badgeBounce.animate}
+                    transition={{ ...badgeBounce.transition, delay: 0.1 }}
+                    className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-primary text-primary-foreground text-[10px] font-semibold rounded-full flex items-center justify-center px-1 leading-none"
+                  >
+                    {itemCount}
+                  </motion.span>
+                )}
+              </Link>
+
+              {/* "Added" notification that drops below the cart icon */}
+              <AnimatePresence>
+                {lastAddedInfo && (
+                  <motion.div
+                    key={lastAddedInfo.timestamp}
+                    initial={{ opacity: 0, y: -4, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -4, scale: 0.95 }}
+                    transition={{ duration: 0.25, ease: "easeOut" as const }}
+                    className="absolute top-full left-1/2 -translate-x-1/2 mt-2 whitespace-nowrap pointer-events-none z-[70]"
+                  >
+                    <div className="bg-foreground text-background text-[10px] uppercase tracking-widest font-medium px-3 py-1.5 rounded-full shadow-lg">
+                      {lastAddedInfo.quantity > 1
+                        ? `${lastAddedInfo.quantity}x Added`
+                        : "Added"}
+                    </div>
+                    <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-foreground rotate-45 rounded-sm" />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         </div>
 

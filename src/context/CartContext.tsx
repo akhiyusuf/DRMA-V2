@@ -15,15 +15,22 @@ export interface CartItem {
   stockQuantity?: number | null;
 }
 
+export interface LastAddedInfo {
+  name: string;
+  quantity: number;
+  timestamp: number;
+}
+
 interface CartContextType {
   items: CartItem[];
-  addItem: (item: Omit<CartItem, "quantity"> & { maxPerOrder?: number; stockQuantity?: number | null; quantity?: number }) => void;
+  addItem: (item: Omit<CartItem, "quantity"> & { maxPerOrder?: number; stockQuantity?: number | null; quantity?: number }) => boolean;
   removeItem: (id: string, size: string, color: string) => void;
   updateQuantity: (id: string, size: string, color: string, delta: number) => { success: boolean; reason?: string };
   clearCart: () => void;
   subtotal: number;
   itemCount: number;
   cartBounceKey: number;
+  lastAddedInfo: LastAddedInfo | null;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -34,6 +41,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [hydrated, setHydrated] = useState(false);
   const [cartBounceKey, setCartBounceKey] = useState(0);
+  const [lastAddedInfo, setLastAddedInfo] = useState<LastAddedInfo | null>(null);
 
   // Hydrate from localStorage on mount
   useEffect(() => {
@@ -65,8 +73,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     return maxPerOrder;
   }, []);
 
-  const addItem = useCallback((newItem: Omit<CartItem, "quantity"> & { maxPerOrder?: number; stockQuantity?: number | null; quantity?: number }) => {
+  const addItem = useCallback((newItem: Omit<CartItem, "quantity"> & { maxPerOrder?: number; stockQuantity?: number | null; quantity?: number }): boolean => {
     const requestedQty = newItem.quantity || 1;
+    let actuallyChanged = false;
+
     setItems(prev => {
       // Check for existing item with same id + size + color
       const existingIndex = prev.findIndex(
@@ -77,17 +87,30 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         const tempItem = { ...existing, maxPerOrder: newItem.maxPerOrder, stockQuantity: newItem.stockQuantity };
         const maxQty = getEffectiveMax(tempItem);
         const newQty = Math.min(existing.quantity + requestedQty, maxQty);
+
+        // If nothing would change, return same reference (no re-render)
+        if (newQty === existing.quantity) {
+          return prev;
+        }
+
+        actuallyChanged = true;
         const updated = [...prev];
         updated[existingIndex] = { ...updated[existingIndex], quantity: newQty, maxPerOrder: newItem.maxPerOrder, stockQuantity: newItem.stockQuantity };
         return updated;
       }
       // Add as new item with requested quantity
+      actuallyChanged = true;
       const tempItem = { ...newItem, quantity: requestedQty };
       const maxQty = getEffectiveMax(tempItem as CartItem);
       return [...prev, { ...newItem, quantity: Math.min(requestedQty, maxQty) }];
     });
-    // Trigger bounce animation
-    setCartBounceKey(k => k + 1);
+
+    if (actuallyChanged) {
+      setCartBounceKey(k => k + 1);
+      setLastAddedInfo({ name: newItem.name, quantity: requestedQty, timestamp: Date.now() });
+    }
+
+    return actuallyChanged;
   }, [getEffectiveMax]);
 
   const removeItem = useCallback((id: string, size: string, color: string) => {
@@ -138,7 +161,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const itemCount = items.reduce((acc, item) => acc + item.quantity, 0);
 
   return (
-    <CartContext.Provider value={{ items, addItem, removeItem, updateQuantity, clearCart, subtotal, itemCount, cartBounceKey }}>
+    <CartContext.Provider value={{ items, addItem, removeItem, updateQuantity, clearCart, subtotal, itemCount, cartBounceKey, lastAddedInfo }}>
       {children}
     </CartContext.Provider>
   );

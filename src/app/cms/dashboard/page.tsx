@@ -40,6 +40,7 @@ export default function DashboardPage() {
 
   // --- Auto-Refresh State ---
   const [lastFingerprint, setLastFingerprint] = useState('');
+  const [lastFingerprints, setLastFingerprints] = useState<{ products: string; homepage: string; orders: string }>({ products: '', homepage: '', orders: '' });
   const [refreshNotification, setRefreshNotification] = useState<string | null>(null);
   const isSavingRef = useRef(false);
   const cmsSoundRef = useRef<HTMLAudioElement | null>(null);
@@ -89,6 +90,8 @@ export default function DashboardPage() {
   };
 
   useEffect(() => { fetchContentData(); }, []);
+  // Fetch orders on first load so the tab always shows the count
+  useEffect(() => { fetchOrders(); }, []);
   useEffect(() => { if (activeTab === 'orders') fetchOrders(); }, [activeTab, ordersPage, ordersFilter]);
   useEffect(() => { if (activeTab === 'stock') fetchStock(); }, [activeTab]);
 
@@ -110,18 +113,35 @@ export default function DashboardPage() {
       try {
         const res = await fetch('/api/cms/fingerprint');
         if (!res.ok) return;
-        const { fingerprint } = await res.json();
+        const data = await res.json();
+        const { fingerprint, products, homepage, orders } = data;
 
         if (lastFingerprint && fingerprint !== lastFingerprint && !isSavingRef.current) {
-          // External change detected — refresh data
+          // Determine what changed for context-aware notification
+          const prev = lastFingerprints;
+          let message = 'Data updated';
+          if (orders !== prev.orders) {
+            message = 'New order received';
+          } else if (products !== prev.products) {
+            message = 'Product data updated';
+          } else if (homepage !== prev.homepage) {
+            message = 'Homepage content updated';
+          }
+
+          // Refresh relevant data
           fetchContentData();
           if (activeTab === 'orders') fetchOrders();
           if (activeTab === 'stock') fetchStock();
+          // Always update orders count for the tab badge
+          const countRes = await fetch('/api/cms/orders?limit=1');
+          if (countRes.ok) { const countData = await countRes.json(); setOrdersTotal(countData.total || 0); }
+
           playCmsSound();
-          setRefreshNotification('Content updated — auto-refreshed');
+          setRefreshNotification(message);
           setTimeout(() => setRefreshNotification(null), 3000);
         }
         setLastFingerprint(fingerprint);
+        setLastFingerprints({ products: products || '', homepage: homepage || '', orders: orders || '' });
       } catch {
         // Silently fail — don't disrupt the CMS experience
       }
@@ -130,8 +150,11 @@ export default function DashboardPage() {
     // Initial fingerprint fetch after data loads
     const initTimeout = setTimeout(() => {
       fetch('/api/cms/fingerprint')
-        .then(res => res.ok ? res.json() : { fingerprint: '' })
-        .then(({ fingerprint }) => setLastFingerprint(fingerprint))
+        .then(res => res.ok ? res.json() : { fingerprint: '', products: '', homepage: '', orders: '' })
+        .then((data) => {
+          setLastFingerprint(data.fingerprint);
+          setLastFingerprints({ products: data.products || '', homepage: data.homepage || '', orders: data.orders || '' });
+        })
         .catch(() => {});
     }, 2000);
 
@@ -140,7 +163,7 @@ export default function DashboardPage() {
       clearInterval(interval);
       clearTimeout(initTimeout);
     };
-  }, [lastFingerprint, activeTab, playCmsSound]);
+  }, [lastFingerprint, lastFingerprints, activeTab, playCmsSound]);
 
   // ======== Content Tab Helpers ========
 
@@ -157,8 +180,9 @@ export default function DashboardPage() {
         // Update fingerprint after own save to prevent false positive
         const fpRes = await fetch('/api/cms/fingerprint');
         if (fpRes.ok) {
-          const { fingerprint } = await fpRes.json();
-          setLastFingerprint(fingerprint);
+          const fpData = await fpRes.json();
+          setLastFingerprint(fpData.fingerprint);
+          setLastFingerprints({ products: fpData.products || '', homepage: fpData.homepage || '', orders: fpData.orders || '' });
         }
         alert('Saved successfully!');
       }
@@ -216,8 +240,9 @@ export default function DashboardPage() {
         // Update fingerprint after own save
         const fpRes = await fetch('/api/cms/fingerprint');
         if (fpRes.ok) {
-          const { fingerprint } = await fpRes.json();
-          setLastFingerprint(fingerprint);
+          const fpData = await fpRes.json();
+          setLastFingerprint(fpData.fingerprint);
+          setLastFingerprints({ products: fpData.products || '', homepage: fpData.homepage || '', orders: fpData.orders || '' });
         }
       }
       else alert('Failed to update order');
@@ -240,8 +265,9 @@ export default function DashboardPage() {
         // Update fingerprint after own save
         const fpRes = await fetch('/api/cms/fingerprint');
         if (fpRes.ok) {
-          const { fingerprint } = await fpRes.json();
-          setLastFingerprint(fingerprint);
+          const fpData = await fpRes.json();
+          setLastFingerprint(fpData.fingerprint);
+          setLastFingerprints({ products: fpData.products || '', homepage: fpData.homepage || '', orders: fpData.orders || '' });
         }
       }
       else alert('Failed to update stock');
