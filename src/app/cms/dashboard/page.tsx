@@ -37,6 +37,8 @@ export default function DashboardPage() {
   // --- Stock Tab State ---
   const [stockData, setStockData] = useState<any[]>([]);
   const [editingStock, setEditingStock] = useState<string | null>(null);
+  const [expandedStockProduct, setExpandedStockProduct] = useState<string | null>(null);
+  const [variantData, setVariantData] = useState<Record<string, any[]>>({});
 
   // --- Auto-Refresh State ---
   const [lastFingerprint, setLastFingerprint] = useState('');
@@ -262,7 +264,6 @@ export default function DashboardPage() {
       });
       if (res.ok) {
         fetchStock();
-        // Update fingerprint after own save
         const fpRes = await fetch('/api/cms/fingerprint');
         if (fpRes.ok) {
           const fpData = await fpRes.json();
@@ -273,6 +274,46 @@ export default function DashboardPage() {
       else alert('Failed to update stock');
     } catch { alert('Error updating stock'); }
     finally { isSavingRef.current = false; }
+  };
+
+  const updateVariantStock = async (productId: string, size: string, color: string, field: string, value: any) => {
+    try {
+      const res = await fetch('/api/cms/stock/variant', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId, size, color, [field]: value }),
+      });
+      if (res.ok) {
+        fetchVariants(productId);
+        fetchStock();
+      }
+      else alert('Failed to update variant stock');
+    } catch { alert('Error updating variant stock'); }
+  };
+
+  const fetchVariants = async (productId: string) => {
+    try {
+      const res = await fetch('/api/cms/stock/variant', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setVariantData(prev => ({ ...prev, [productId]: data.variants || [] }));
+      }
+    } catch {}
+  };
+
+  const toggleExpandStock = async (productId: string) => {
+    if (expandedStockProduct === productId) {
+      setExpandedStockProduct(null);
+    } else {
+      setExpandedStockProduct(productId);
+      if (!variantData[productId]) {
+        await fetchVariants(productId);
+      }
+    }
   };
 
   // ======== Render Helpers ========
@@ -400,9 +441,15 @@ export default function DashboardPage() {
 
   // ======== STOCK TAB ========
 
+  const getVariantStockDisplay = (productId: string, size: string, color: string): number => {
+    const variants = variantData[productId] || [];
+    const v = variants.find((vr: any) => vr.size === size && vr.color === color);
+    return v ? v.stock_quantity : -2; // -2 = no row set (falls back to product stock)
+  };
+
   const renderStock = () => (
     <div className="space-y-4">
-      <p className="text-sm text-foreground/50">Manage inventory levels. Stock of <span className="font-mono text-foreground/70">-1</span> means untracked (always in stock). Set a number to enable tracking.</p>
+      <p className="text-sm text-foreground/50">Manage inventory. Click a product to edit per-variant (size x color) stock. <span className="font-mono text-foreground/70">-1</span> = untracked (in stock). <span className="font-mono text-foreground/70">--</span> = no override (uses product default).</p>
 
       {stockData.length === 0 ? (
         <div className="text-center py-20 text-foreground/40">
@@ -410,66 +457,155 @@ export default function DashboardPage() {
           <p className="text-sm">Products will appear here once they exist in the database.</p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {/* Header row */}
-          <div className="grid grid-cols-12 gap-3 px-4 py-2 text-[10px] uppercase tracking-widest text-foreground/40 font-medium border-b border-foreground/10">
-            <div className="col-span-2">Product</div>
-            <div className="col-span-1">SKU</div>
-            <div className="col-span-1">Stock</div>
-            <div className="col-span-1">Low Alert</div>
-            <div className="col-span-1">Max/Order</div>
-            <div className="col-span-2">Status</div>
-            <div className="col-span-4 text-right">Actions</div>
-          </div>
-
+        <div className="space-y-2">
           {stockData.map((product: any) => {
             const stock = product.stock_quantity ?? -1;
             const lowThreshold = product.low_stock_threshold ?? 5;
             const isLow = stock >= 0 && stock <= lowThreshold && stock > 0;
             const isOut = stock === 0;
+            const isExpanded = expandedStockProduct === product.id;
+            const sizes: string[] = product.variations?.sizes || [];
+            const colors: string[] = product.variations?.colors || [];
+            const hasVariants = sizes.length > 0 && colors.length > 0;
 
             return (
-              <div key={product.id} className={`grid grid-cols-12 gap-3 items-center px-4 py-3 rounded-xl border ${editingStock === product.id ? 'border-primary bg-primary/5' : 'border-foreground/10 hover:bg-foreground/[0.02]'} transition-colors`}>
-                <div className="col-span-2 min-w-0">
-                  <p className="font-medium text-sm truncate">{product.name}</p>
-                  <p className="text-[10px] text-foreground/40">${parseFloat(product.price).toFixed(2)}</p>
-                </div>
+              <div key={product.id} className="border border-foreground/10 rounded-2xl overflow-hidden transition-colors hover:border-foreground/20">
+                {/* Product row */}
+                <button
+                  onClick={() => hasVariants && toggleExpandStock(product.id)}
+                  className={`w-full px-5 py-4 flex items-center gap-4 text-left transition-colors ${isExpanded ? 'bg-foreground/[0.03]' : 'hover:bg-foreground/[0.015]'} ${hasVariants ? 'cursor-pointer' : ''}`}
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-3">
+                      <p className="font-medium text-sm truncate">{product.name}</p>
+                      {hasVariants && (
+                        <span className="text-[9px] uppercase tracking-widest text-foreground/30">{sizes.length} sizes x {colors.length} colors</span>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-foreground/40">${parseFloat(product.price).toFixed(2)}{product.sku ? ` · ${product.sku}` : ''}</p>
+                  </div>
 
-                {editingStock === product.id ? (
-                  <>
-                    <div className="col-span-1"><input className="w-full border border-foreground/20 bg-background p-1.5 rounded-lg text-sm" defaultValue={product.sku || ''} placeholder="SKU" onBlur={e => updateStock(product.id, 'sku', e.target.value || null)} /></div>
-                    <div className="col-span-1"><input type="number" className="w-full border border-foreground/20 bg-background p-1.5 rounded-lg text-sm" defaultValue={stock === -1 ? '' : stock} placeholder="-1" onBlur={e => { const v = e.target.value; updateStock(product.id, 'stockQuantity', v === '' ? -1 : parseInt(v)); }} /></div>
-                    <div className="col-span-1"><input type="number" className="w-full border border-foreground/20 bg-background p-1.5 rounded-lg text-sm" defaultValue={lowThreshold} min={0} onBlur={e => updateStock(product.id, 'lowStockThreshold', parseInt(e.target.value) || 3)} /></div>
-                    <div className="col-span-1"><input type="number" className="w-full border border-foreground/20 bg-background p-1.5 rounded-lg text-sm" defaultValue={product.max_per_order ?? 3} min={1} onBlur={e => updateStock(product.id, 'maxPerOrder', parseInt(e.target.value) || 3)} /></div>
-                  </>
-                ) : (
-                  <>
-                    <div className="col-span-1 text-xs font-mono text-foreground/60">{product.sku || '—'}</div>
-                    <div className="col-span-1 font-mono text-sm">{stock === -1 ? <span className="text-foreground/40 italic">—</span> : stock}</div>
-                    <div className="col-span-1 text-sm text-foreground/50">{stock >= 0 ? lowThreshold : '—'}</div>
-                    <div className="col-span-1 text-sm text-foreground/50">{product.max_per_order ?? 3}</div>
-                  </>
+                  <div className="flex items-center gap-4 shrink-0">
+                    {/* Default stock (product level) */}
+                    <div className="hidden md:flex items-center gap-3">
+                      <div className="text-right">
+                        <p className="text-[10px] uppercase tracking-widest text-foreground/30">Default Stock</p>
+                        <p className="font-mono text-sm">{stock === -1 ? <span className="text-foreground/40 italic">untracked</span> : stock}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[10px] uppercase tracking-widest text-foreground/30">Max/Order</p>
+                        <p className="text-sm">{product.max_per_order ?? 3}</p>
+                      </div>
+                    </div>
+
+                    {/* Status badge */}
+                    <div>
+                      {stock === -1 ? (
+                        <span className="px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wider bg-foreground/5 text-foreground/50 border border-foreground/10">Untracked</span>
+                      ) : isOut ? (
+                        <span className="px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wider bg-red-100 text-red-700 border border-red-200">Out of Stock</span>
+                      ) : isLow ? (
+                        <span className="px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wider bg-amber-100 text-amber-700 border border-amber-200">Low Stock</span>
+                      ) : (
+                        <span className="px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wider bg-green-100 text-green-700 border border-green-200">In Stock</span>
+                      )}
+                    </div>
+
+                    {/* Expand chevron */}
+                    {hasVariants && (
+                      <span className={`text-foreground/30 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}>&#9654;</span>
+                    )}
+                  </div>
+                </button>
+
+                {/* Edit product-level stock inline */}
+                {editingStock === product.id && !isExpanded && (
+                  <div className="px-5 py-4 border-t border-foreground/10 bg-foreground/[0.02] grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div><label className="text-[10px] uppercase tracking-widest text-foreground/30 block mb-1">SKU</label><input className="w-full border border-foreground/20 bg-background p-2 rounded-lg text-sm" defaultValue={product.sku || ''} placeholder="SKU" onBlur={e => updateStock(product.id, 'sku', e.target.value || null)} /></div>
+                    <div><label className="text-[10px] uppercase tracking-widest text-foreground/30 block mb-1">Stock (-1=untracked)</label><input type="number" className="w-full border border-foreground/20 bg-background p-2 rounded-lg text-sm" defaultValue={stock === -1 ? '' : stock} placeholder="-1" onBlur={e => { const v = e.target.value; updateStock(product.id, 'stockQuantity', v === '' ? -1 : parseInt(v)); }} /></div>
+                    <div><label className="text-[10px] uppercase tracking-widest text-foreground/30 block mb-1">Low Alert</label><input type="number" className="w-full border border-foreground/20 bg-background p-2 rounded-lg text-sm" defaultValue={lowThreshold} min={0} onBlur={e => updateStock(product.id, 'lowStockThreshold', parseInt(e.target.value) || 3)} /></div>
+                    <div><label className="text-[10px] uppercase tracking-widest text-foreground/30 block mb-1">Max/Order</label><input type="number" className="w-full border border-foreground/20 bg-background p-2 rounded-lg text-sm" defaultValue={product.max_per_order ?? 3} min={1} onBlur={e => updateStock(product.id, 'maxPerOrder', parseInt(e.target.value) || 3)} /></div>
+                    <div className="col-span-2 md:col-span-4 flex justify-end"><button onClick={() => { setEditingStock(null); fetchStock(); }} className="px-4 py-1.5 bg-foreground text-background rounded-full text-xs">Done</button></div>
+                  </div>
                 )}
 
-                <div className="col-span-2">
-                  {stock === -1 ? (
-                    <span className="px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider bg-foreground/5 text-foreground/50 border border-foreground/10">Untracked</span>
-                  ) : isOut ? (
-                    <span className="px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider bg-red-100 text-red-700 border border-red-200">Out of Stock</span>
-                  ) : isLow ? (
-                    <span className="px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider bg-amber-100 text-amber-700 border border-amber-200">Low Stock</span>
-                  ) : (
-                    <span className="px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider bg-green-100 text-green-700 border border-green-200">In Stock</span>
-                  )}
-                </div>
+                {/* Variant stock grid (expanded) */}
+                {isExpanded && hasVariants && (
+                  <div className="border-t border-foreground/10 px-5 py-4 bg-foreground/[0.015]">
+                    <div className="flex items-center justify-between mb-4">
+                      <p className="text-[10px] uppercase tracking-widest text-foreground/40">Per-Variant Stock (Size x Color)</p>
+                      <button onClick={() => setEditingStock(editingStock === product.id ? null : product.id)} className="px-3 py-1 border border-foreground/20 rounded-full text-[10px] uppercase tracking-wider hover:bg-foreground/5 transition-colors">
+                        {editingStock === product.id ? 'Close Editing' : 'Edit Defaults'}
+                      </button>
+                    </div>
 
-                <div className="col-span-4 text-right">
-                  {editingStock === product.id ? (
-                    <button onClick={() => { setEditingStock(null); fetchStock(); }} className="px-3 py-1 bg-primary text-primary-foreground rounded-full text-xs">Done</button>
-                  ) : (
-                    <button onClick={() => setEditingStock(product.id)} className="px-3 py-1 border border-foreground/20 rounded-full text-xs hover:bg-foreground/5 transition-colors">Edit Stock</button>
-                  )}
-                </div>
+                    {/* Product-level defaults when editing */}
+                    {editingStock === product.id && (
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4 p-3 rounded-xl bg-foreground/[0.03] border border-foreground/10">
+                        <div><label className="text-[10px] uppercase tracking-widest text-foreground/30 block mb-1">SKU</label><input className="w-full border border-foreground/20 bg-background p-1.5 rounded-lg text-xs" defaultValue={product.sku || ''} placeholder="SKU" onBlur={e => updateStock(product.id, 'sku', e.target.value || null)} /></div>
+                        <div><label className="text-[10px] uppercase tracking-widest text-foreground/30 block mb-1">Default Stock</label><input type="number" className="w-full border border-foreground/20 bg-background p-1.5 rounded-lg text-xs" defaultValue={stock === -1 ? '' : stock} placeholder="-1" onBlur={e => { const v = e.target.value; updateStock(product.id, 'stockQuantity', v === '' ? -1 : parseInt(v)); }} /></div>
+                        <div><label className="text-[10px] uppercase tracking-widest text-foreground/30 block mb-1">Low Alert</label><input type="number" className="w-full border border-foreground/20 bg-background p-1.5 rounded-lg text-xs" defaultValue={lowThreshold} min={0} onBlur={e => updateStock(product.id, 'lowStockThreshold', parseInt(e.target.value) || 3)} /></div>
+                        <div><label className="text-[10px] uppercase tracking-widest text-foreground/30 block mb-1">Max/Order</label><input type="number" className="w-full border border-foreground/20 bg-background p-1.5 rounded-lg text-xs" defaultValue={product.max_per_order ?? 3} min={1} onBlur={e => updateStock(product.id, 'maxPerOrder', parseInt(e.target.value) || 3)} /></div>
+                      </div>
+                    )}
+
+                    {/* Variant grid: rows = sizes, cols = colors */}
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-foreground/10">
+                            <th className="text-left text-[10px] uppercase tracking-widest text-foreground/30 py-2 pr-3 font-medium">Size \ Color</th>
+                            {colors.map(c => (
+                              <th key={c} className="text-center text-[10px] uppercase tracking-widest text-foreground/30 py-2 px-2 font-medium min-w-[80px]">{c}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {sizes.map(size => (
+                            <tr key={size} className="border-b border-foreground/5 hover:bg-foreground/[0.02]">
+                              <td className="py-2 pr-3 text-foreground/70 font-medium text-xs whitespace-nowrap">{size}</td>
+                              {colors.map(color => {
+                                const vStock = getVariantStockDisplay(product.id, size, color);
+                                const displayStock = vStock === -2 ? '—' : (vStock === -1 ? 'untracked' : vStock);
+                                const vIsOut = vStock === 0;
+                                const vIsLow = vStock > 0 && vStock <= (product.low_stock_threshold ?? 3);
+
+                                return (
+                                  <td key={`${size}-${color}`} className="py-2 px-2 text-center">
+                                    <div className={`inline-flex items-center justify-center min-w-[48px] h-8 rounded-lg text-xs font-mono ${vIsOut ? 'bg-red-50 text-red-600' : vIsLow ? 'bg-amber-50 text-amber-600' : 'bg-foreground/[0.03] text-foreground/70'} transition-colors`}>
+                                      <input
+                                        type="number"
+                                        className="w-full text-center bg-transparent border-0 focus:outline-none focus:ring-1 focus:ring-foreground/30 rounded-lg p-1 text-xs font-mono"
+                                        defaultValue={vStock === -2 ? '' : (vStock === -1 ? '-1' : vStock)}
+                                        placeholder="--"
+                                        onBlur={e => {
+                                          const v = e.target.value;
+                                          updateVariantStock(product.id, size, color, 'stockQuantity', v === '' ? null : (v === '-1' ? -1 : parseInt(v)));
+                                        }}
+                                      />
+                                    </div>
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <p className="text-[10px] text-foreground/25 mt-3">Blank = use default stock. -1 = untracked (always in stock). 0 = out of stock.</p>
+                  </div>
+                )}
+
+                {/* Actions footer when not expanded and no variants */}
+                {!isExpanded && !hasVariants && (
+                  <div className="px-5 py-3 border-t border-foreground/10 flex justify-end">
+                    {editingStock === product.id ? (
+                      <button onClick={() => { setEditingStock(null); fetchStock(); }} className="px-3 py-1 bg-primary text-primary-foreground rounded-full text-xs">Done</button>
+                    ) : (
+                      <button onClick={() => setEditingStock(product.id)} className="px-3 py-1 border border-foreground/20 rounded-full text-xs hover:bg-foreground/5 transition-colors">Edit Stock</button>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}

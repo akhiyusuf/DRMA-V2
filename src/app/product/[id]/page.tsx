@@ -18,18 +18,27 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
   const [quantity, setQuantity] = useState(1);
   const [feedback, setFeedback] = useState<{ type: 'error' | 'success', message: string } | null>(null);
   const [pulseKey, setPulseKey] = useState(0);
+  const [variantStock, setVariantStock] = useState<number | null>(null);
   const { addItem } = useCart();
   const buttonRef = useRef<HTMLButtonElement>(null);
   const soundRef = useRef<HTMLAudioElement | null>(null);
   const feedbackTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
-  // Initialize sound on first user interaction
+  // ALL hooks must be declared before any early returns (Rules of Hooks)
   const initSound = useCallback(() => {
     if (!soundRef.current) {
       soundRef.current = new Audio('/sounds/add-to-cart.wav');
       soundRef.current.volume = 0.3;
     }
   }, []);
+
+  const playCartSound = useCallback(() => {
+    initSound();
+    if (soundRef.current) {
+      soundRef.current.currentTime = 0;
+      soundRef.current.play().catch(() => {});
+    }
+  }, [initSound]);
 
   useEffect(() => {
     fetch('/api/products')
@@ -45,9 +54,22 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
       });
   }, [resolvedParams.id]);
 
+  // Fetch variant stock when product + selections are available
+  useEffect(() => {
+    if (!product || !selectedSize || !selectedColor) {
+      setVariantStock(null);
+      return;
+    }
+    fetch(`/api/cms/stock/variant?productId=${product.id}&size=${encodeURIComponent(selectedSize)}&color=${encodeURIComponent(selectedColor)}`)
+      .then(res => res.ok ? res.json() : { stock: null })
+      .then(data => setVariantStock(data.stock ?? null))
+      .catch(() => setVariantStock(null));
+  }, [product, selectedSize, selectedColor]);
+
   // Cleanup feedback timer on unmount
   useEffect(() => () => { if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current); }, []);
 
+  // --- Loading skeleton (early return #1) ---
   if (loading) return (
     <div className="min-h-screen pt-32 container mx-auto px-6">
       <div className="animate-pulse space-y-8">
@@ -64,23 +86,26 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
     </div>
   );
 
+  // --- 404 (early return #2) ---
   if (!product) {
     notFound();
   }
 
+  // --- Derived values (after early returns, no hooks below) ---
   const maxPerOrder = product.max_per_order ?? DEFAULT_MAX_PER_ORDER;
-  const isOutOfStock = product.stock_quantity === 0;
-  const isLowStock = product.stock_quantity != null && product.stock_quantity > 0 && product.stock_quantity !== -1 && product.stock_quantity <= (product.low_stock_threshold ?? 3);
-  const stockIsTracked = product.stock_quantity !== null && product.stock_quantity !== undefined && product.stock_quantity >= 0;
-  const effectiveMax = stockIsTracked ? Math.min(maxPerOrder, product.stock_quantity!) : maxPerOrder;
+  const productStockTracked = product.stock_quantity !== null && product.stock_quantity !== undefined && product.stock_quantity >= 0;
 
-  const playCartSound = useCallback(() => {
-    initSound();
-    if (soundRef.current) {
-      soundRef.current.currentTime = 0;
-      soundRef.current.play().catch(() => {});
-    }
-  }, [initSound]);
+  // Use variant stock if available, fall back to product-level stock
+  const effectiveStock = variantStock !== null ? variantStock : (productStockTracked ? product.stock_quantity! : -1);
+  const stockTracked = effectiveStock >= 0;
+  const isOutOfStock = effectiveStock === 0;
+  const isLowStock = stockTracked && effectiveStock > 0 && effectiveStock <= (product.low_stock_threshold ?? 3);
+  const effectiveMax = stockTracked ? Math.min(maxPerOrder, effectiveStock) : maxPerOrder;
+
+  // Reset quantity if it exceeds the new effective max
+  useEffect(() => {
+    if (quantity > effectiveMax) setQuantity(effectiveMax);
+  }, [effectiveMax, quantity]);
 
   const showFeedback = (type: 'error' | 'success', message: string) => {
     if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
@@ -95,7 +120,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
     }
 
     if (isOutOfStock) {
-      showFeedback('error', 'This item is currently out of stock.');
+      showFeedback('error', 'This combination is currently out of stock.');
       return;
     }
 
@@ -107,7 +132,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
       selectedSize,
       selectedColor,
       maxPerOrder,
-      stockQuantity: product.stock_quantity,
+      stockQuantity: effectiveStock === -1 ? null : effectiveStock,
       quantity,
     });
 
@@ -240,7 +265,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                     <Plus className="w-4 h-4" />
                   </button>
                 </div>
-                {effectiveMax < Infinity && (
+                {stockTracked && (
                   <p className="text-[10px] uppercase tracking-widest text-foreground/30 mt-2">Max {effectiveMax} per order</p>
                 )}
               </div>
@@ -262,21 +287,21 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
               )}
 
               {/* Stock Status — exact quantities hidden from customers */}
-              {stockIsTracked && (
+              {selectedSize && selectedColor && (
                 <div className="mb-6 space-y-1">
                   {isOutOfStock ? (
                     <p className="text-xs uppercase tracking-widest text-red-500 font-medium">Out of Stock</p>
                   ) : isLowStock ? (
                     <p className="text-xs uppercase tracking-widest text-amber-600 font-medium">Low Stock — order soon</p>
-                  ) : (
+                  ) : stockTracked ? (
                     <p className="text-xs uppercase tracking-widest text-foreground/40">In Stock</p>
-                  )}
+                  ) : null}
                 </div>
               )}
 
               {/* Add to Cart Button + Pulse Effect */}
               <div className="relative mb-6">
-                {/* Subtle pulse rings emanating from below the button */}
+                {/* Subtle pulse glow under the button */}
                 <div className="absolute inset-x-0 -bottom-4 h-8 flex items-start justify-center pointer-events-none overflow-visible">
                   <motion.div
                     key={pulseKey}
@@ -298,9 +323,9 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                   }`}
                 >
                   <span className="uppercase tracking-widest text-xs py-3">
-                    {isOutOfStock ? 'Sold Out' : 'Add to Cart'}
+                    {!selectedSize || !selectedColor ? 'Select Options' : isOutOfStock ? 'Sold Out' : 'Add to Cart'}
                   </span>
-                  {!isOutOfStock && (
+                  {!isOutOfStock && (selectedSize && selectedColor) && (
                     <div className="absolute right-2 flex h-10 w-10 items-center justify-center rounded-full bg-background/20 transition-transform duration-300 ease-spring group-hover:scale-105">
                       <ArrowUpRight className="h-4 w-4 stroke-[1.5]" />
                     </div>
