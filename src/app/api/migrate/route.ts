@@ -1,13 +1,27 @@
 import { NextResponse } from "next/server";
-import pg from "pg";
+import { supabaseAdmin } from "@/utils/supabase/admin";
 
-const { Pool } = pg;
+// Self-migrating endpoint: creates product_variant_stock table if missing.
+// Uses Supabase JS client to probe the table; if it doesn't exist,
+// provides the SQL for the user to run in Supabase Dashboard > SQL Editor.
 
-// This migration endpoint creates the product_variant_stock table if it doesn't exist.
-// It uses a direct PostgreSQL connection (not Supabase REST) to run DDL.
-// Should be called once after deployment, then can be removed.
+export async function GET() {
+  try {
+    // Test if the table exists
+    const { error } = await supabaseAdmin
+      .from("product_variant_stock")
+      .select("id")
+      .limit(1);
 
-const SQL_CREATE_TABLE = `
+    if (!error) {
+      return NextResponse.json({
+        success: true,
+        message: "Table product_variant_stock already exists",
+      });
+    }
+
+    // Table doesn't exist - return the SQL for manual creation
+    const sql = `-- Run this in Supabase Dashboard > SQL Editor
 CREATE TABLE IF NOT EXISTS product_variant_stock (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   product_id TEXT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
@@ -20,118 +34,31 @@ CREATE TABLE IF NOT EXISTS product_variant_stock (
   UNIQUE(product_id, size, color)
 );
 
--- Index for fast lookups
 CREATE INDEX IF NOT EXISTS idx_pvs_product_id ON product_variant_stock(product_id);
 CREATE INDEX IF NOT EXISTS idx_pvs_product_size_color ON product_variant_stock(product_id, size, color);
 
--- Enable RLS (best practice)
 ALTER TABLE product_variant_stock ENABLE ROW LEVEL SECURITY;
 
--- Allow service role full access (Supabase service role)
 DO $$ BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN
-    CREATE ROLE service_role;
-  END IF;
+  CREATE POLICY "service_role_all_access" ON product_variant_stock
+    FOR ALL TO service_role USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
-GRANT ALL ON product_variant_stock TO service_role;
-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO service_role;
-
--- Allow anon read access (for the product page to fetch variant stock)
 DO $$ BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
-    CREATE ROLE anon;
-  END IF;
-END $$;
-
-GRANT SELECT ON product_variant_stock TO anon;
-
--- Enable RLS policies for service_role
-CREATE POLICY "service_role_all_access" ON product_variant_stock
-  FOR ALL TO service_role
-  USING (true)
-  WITH CHECK (true);
-
--- Allow anon to read variant stock
-CREATE POLICY "anon_read_access" ON product_variant_stock
-  FOR SELECT TO anon
-  USING (true);
-`;
-
-export async function GET() {
-  // Simple secret to prevent unauthorized migration calls
-  const authHeader = process.env.NEXT_PUBLIC_CMS_PASSWORD || "12345";
-
-  const connectionString = process.env.DATABASE_URL;
-  if (!connectionString) {
-    return NextResponse.json(
-      { error: "DATABASE_URL not configured" },
-      { status: 500 }
-    );
-  }
-
-  // For Supabase, use the direct connection string
-  const dbUrl = connectionString.includes("@db.")
-    ? connectionString
-    : `postgresql://postgres:[Allahuallam$99]@db.qeyfzpbbukhnuiabrkef.supabase.co:5432/postgres`;
-
-  const pool = new Pool({
-    connectionString: dbUrl,
-    ssl: { rejectUnauthorized: false },
-    connectionTimeoutMillis: 15000,
-    statement_timeout: 30000,
-  });
-
-  try {
-    // First check if the table already exists
-    const checkResult = await pool.query(
-      `SELECT EXISTS (
-        SELECT FROM information_schema.tables
-        WHERE table_schema = 'public' AND table_name = 'product_variant_stock'
-      )`
-    );
-
-    const tableExists = checkResult.rows[0].exists;
-
-    if (tableExists) {
-      // Verify it has the right columns
-      const colResult = await pool.query(
-        `SELECT column_name FROM information_schema.columns
-         WHERE table_name = 'product_variant_stock' AND table_schema = 'public'
-         ORDER BY ordinal_position`
-      );
-      const columns = colResult.rows.map((r: { column_name: string }) => r.column_name);
-
-      return NextResponse.json({
-        success: true,
-        message: "Table already exists",
-        columns,
-      });
-    }
-
-    // Create the table
-    await pool.query(SQL_CREATE_TABLE);
-
-    // Verify creation
-    const verifyResult = await pool.query(
-      `SELECT column_name, data_type FROM information_schema.columns
-       WHERE table_name = 'product_variant_stock' AND table_schema = 'public'
-       ORDER BY ordinal_position`
-    );
+  CREATE POLICY "anon_read_access" ON product_variant_stock
+    FOR SELECT TO anon USING (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;`;
 
     return NextResponse.json({
-      success: true,
-      message: "Migration completed successfully",
-      columns: verifyResult.rows,
+      success: false,
+      message: "Table product_variant_stock does not exist yet. Run the SQL below in Supabase Dashboard > SQL Editor.",
+      sql,
+      error: error.message,
     });
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error("Migration error:", message);
-    return NextResponse.json(
-      { error: "Migration failed", details: message },
-      { status: 500 }
-    );
-  } finally {
-    await pool.end();
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
