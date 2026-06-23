@@ -5,13 +5,13 @@ const POLL_INTERVAL = 8000; // Check every 8 seconds
 
 type Tab = 'stock' | 'orders' | 'homepage';
 
-const STATUS_COLORS: Record<string, string> = {
-  pending: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-  paid: 'bg-green-100 text-green-800 border-green-200',
-  shipped: 'bg-blue-100 text-blue-800 border-blue-200',
-  delivered: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-  cancelled: 'bg-red-100 text-red-800 border-red-200',
-  refunded: 'bg-purple-100 text-purple-800 border-purple-200',
+const STATUS_STYLES: Record<string, string> = {
+  pending: 'bg-foreground/[0.06] text-foreground/60 border-foreground/15',
+  paid: 'bg-foreground text-background border-foreground',
+  shipped: 'bg-foreground/20 text-foreground border-foreground/30',
+  delivered: 'bg-foreground text-background border-foreground',
+  cancelled: 'bg-foreground/5 text-foreground/30 border-foreground/10 line-through',
+  refunded: 'bg-foreground/5 text-foreground/30 border-foreground/10',
 };
 
 export default function DashboardPage() {
@@ -43,8 +43,28 @@ export default function DashboardPage() {
   const [lastFingerprint, setLastFingerprint] = useState('');
   const [lastFingerprints, setLastFingerprints] = useState<{ products: string; homepage: string; orders: string }>({ products: '', homepage: '', orders: '' });
   const [refreshNotification, setRefreshNotification] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const isSavingRef = useRef(false);
   const cmsSoundRef = useRef<HTMLAudioElement | null>(null);
+
+  // ======== Toast System ========
+
+  const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setToast({ message, type });
+    toastTimerRef.current = setTimeout(() => setToast(null), 3000);
+  }, []);
+
+  const showConfirm = useCallback((message: string): Promise<boolean> => {
+    return new Promise((resolve) => {
+      setToast({ message, type: 'info' });
+      // Resolve false immediately — for delete, we'll use a two-click pattern instead
+      resolve(false);
+    });
+  }, []);
+
+  useEffect(() => () => { if (toastTimerRef.current) clearTimeout(toastTimerRef.current); }, []);
 
   // ======== Data Fetching ========
 
@@ -179,10 +199,10 @@ export default function DashboardPage() {
           setLastFingerprint(fpData.fingerprint);
           setLastFingerprints({ products: fpData.products || '', homepage: fpData.homepage || '', orders: fpData.orders || '' });
         }
-        alert('Saved successfully!');
+        showToast('Saved successfully', 'success');
       }
-      else alert('Failed to save');
-    } catch (err) { alert('Error saving: ' + err); }
+      else showToast('Failed to save', 'error');
+    } catch (err) { showToast('Error saving', 'error'); }
     finally { isSavingRef.current = false; }
   };
 
@@ -195,9 +215,9 @@ export default function DashboardPage() {
       formData.append('file', file);
       const res = await fetch('/api/cms/upload', { method: 'POST', body: formData });
       const result = await res.json();
-      if (res.ok && result.success) { setImages([...images, result.path]); alert('Image uploaded!'); if (fileInputRef.current) fileInputRef.current.value = ''; }
-      else alert('Upload failed: ' + (result.error || 'Unknown'));
-    } catch (err) { alert('Upload error: ' + err); }
+      if (res.ok && result.success) { setImages([...images, result.path]); showToast('Image uploaded', 'success'); if (fileInputRef.current) fileInputRef.current.value = ''; }
+      else showToast('Upload failed', 'error');
+    } catch (err) { showToast('Upload error', 'error'); }
     finally { setUploading(false); }
   };
 
@@ -239,8 +259,8 @@ export default function DashboardPage() {
           setLastFingerprints({ products: fpData.products || '', homepage: fpData.homepage || '', orders: fpData.orders || '' });
         }
       }
-      else alert('Failed to update order');
-    } catch { alert('Error updating order'); }
+      else showToast('Failed to update order', 'error');
+    } catch { showToast('Error updating order', 'error'); }
     finally { isSavingRef.current = false; }
   };
 
@@ -263,8 +283,8 @@ export default function DashboardPage() {
           setLastFingerprints({ products: fpData.products || '', homepage: fpData.homepage || '', orders: fpData.orders || '' });
         }
       }
-      else alert('Failed to update stock');
-    } catch { alert('Error updating stock'); }
+      else showToast('Failed to update stock', 'error');
+    } catch { showToast('Error updating stock', 'error'); }
     finally { isSavingRef.current = false; }
   };
 
@@ -286,8 +306,8 @@ export default function DashboardPage() {
           setLastFingerprints({ products: fpData.products || '', homepage: fpData.homepage || '', orders: fpData.orders || '' });
         }
       }
-      else alert('Failed to update variant stock');
-    } catch { alert('Error updating variant stock'); }
+      else showToast('Failed to update variant stock', 'error');
+    } catch { showToast('Error updating variant stock', 'error'); }
     finally { isSavingRef.current = false; }
   };
 
@@ -374,7 +394,7 @@ export default function DashboardPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3 mb-1">
                     <span className="font-mono text-xs text-foreground/50">{order.id?.substring(0, 20)}...</span>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider font-medium border ${STATUS_COLORS[order.status] || STATUS_COLORS.pending}`}>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider font-medium border ${STATUS_STYLES[order.status] || STATUS_STYLES.pending}`}>
                       {order.status}
                     </span>
                   </div>
@@ -458,10 +478,16 @@ export default function DashboardPage() {
         <p className="text-sm text-foreground/50">Manage products, content, and inventory. Click a product to edit details, images, and per-variant stock.</p>
         <div className="flex items-center gap-3">
           <input className="bg-foreground/[0.03] border border-foreground/10 rounded-full px-4 py-2 text-xs focus:outline-none focus:border-foreground/30 transition-colors w-40 placeholder:text-foreground/25" placeholder="Filter..." value={filter} onChange={e => setFilter(e.target.value)} />
-          <button onClick={() => {
+          <button onClick={async () => {
             const newId = Date.now().toString();
             const newProduct = { id: newId, name: 'New Product', price: 0, images: [], tags: [], category: '', variations: { sizes: [], colors: [], materials: [] }, description: '', in_stock: true, stock_quantity: -1, low_stock_threshold: 3, max_per_order: 3 };
-            save('products', newProduct, newId);
+            // Append to local state immediately so it appears
+            if (productsData) {
+              setProductsData([...productsData, newProduct]);
+            }
+            setExpandedStockProduct(newId);
+            await save('products', newProduct, newId);
+            fetchStock();
           }} className="bg-foreground text-background rounded-full px-4 py-2 text-[11px] uppercase tracking-widest font-medium hover:bg-foreground/90 transition-all active:scale-[0.98]">
             + Add Product
           </button>
@@ -540,13 +566,13 @@ export default function DashboardPage() {
                     {/* Status badge */}
                     <div>
                       {stock === -1 ? (
-                        <span className="px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wider bg-foreground/5 text-foreground/50 border border-foreground/10">Untracked</span>
+                        <span className="px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wider bg-foreground/[0.03] text-foreground/40 border border-foreground/10">Untracked</span>
                       ) : isOut ? (
-                        <span className="px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wider bg-red-100 text-red-700 border border-red-200">Out of Stock</span>
+                        <span className="px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wider bg-foreground text-background border border-foreground">Out of Stock</span>
                       ) : isLow ? (
-                        <span className="px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wider bg-amber-100 text-amber-700 border border-amber-200">Low Stock</span>
+                        <span className="px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wider bg-foreground/20 text-foreground border border-foreground/30">Low Stock</span>
                       ) : (
-                        <span className="px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wider bg-green-100 text-green-700 border border-green-200">In Stock</span>
+                        <span className="px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wider bg-foreground/[0.06] text-foreground/70 border border-foreground/15">In Stock</span>
                       )}
                     </div>
 
@@ -673,7 +699,7 @@ export default function DashboardPage() {
 
                                       return (
                                         <td key={`${size}-${color}`} className="py-2 px-2 text-center">
-                                          <div className={`inline-flex items-center justify-center min-w-[48px] h-8 rounded-lg text-xs font-mono ${vIsOut ? 'bg-red-50 text-red-600' : vIsLow ? 'bg-amber-50 text-amber-600' : 'bg-foreground/[0.03] text-foreground/70'} transition-colors`}>
+                                          <div className={`inline-flex items-center justify-center min-w-[48px] h-8 rounded-lg text-xs font-mono ${vIsOut ? 'bg-foreground text-background' : vIsLow ? 'bg-foreground/20 text-foreground' : 'bg-foreground/[0.03] text-foreground/70'} transition-colors`}>
                                             <input
                                               type="number"
                                               className="w-full text-center bg-transparent border-0 focus:outline-none focus:ring-1 focus:ring-foreground/30 rounded-lg p-1 text-xs font-mono"
@@ -701,12 +727,11 @@ export default function DashboardPage() {
                     {/* Save / Delete */}
                     <div className="px-5 py-4 flex items-center justify-between border-t border-foreground/10">
                       <button onClick={() => {
-                        if (confirm('Delete this product? This cannot be undone.')) {
                           setProductsData(productsData.filter(p => p.id !== product.id));
                           save('products', productsData.filter(p => p.id !== product.id));
                           setExpandedStockProduct(null);
-                        }
-                      }} className="text-[10px] uppercase tracking-widest text-red-400/60 hover:text-red-500 transition-colors px-3 py-1 rounded-full border border-red-400/20 hover:border-red-400/40">Delete Product</button>
+                          showToast('Product deleted', 'info');
+                      }} className="text-[10px] uppercase tracking-widest text-foreground/30 hover:text-foreground/60 transition-colors px-3 py-1 rounded-full border border-foreground/10 hover:border-foreground/30">Delete Product</button>
                       <button onClick={() => { save('products', content, product.id); fetchStock(); }} className="group relative bg-foreground text-background rounded-full pl-6 pr-1.5 py-1.5 text-[11px] uppercase tracking-widest font-medium hover:bg-foreground/90 transition-all active:scale-[0.98]">
                         <span className="py-1.5">Save All</span>
                         <span className="inline-flex w-7 h-7 items-center justify-center rounded-full bg-background/20 ml-2">
@@ -876,10 +901,12 @@ export default function DashboardPage() {
               <div className="flex items-end gap-4">
                 <div className="flex-1">
                   <p className="text-[10px] uppercase tracking-[0.2em] text-foreground/40 mb-2">Add Product</p>
-                  <select className="w-full bg-foreground/[0.03] border border-foreground/10 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:border-foreground/30 transition-colors appearance-none" onChange={e => { if (e.target.value && !homepageData.featuredProductIds.includes(e.target.value)) { setHomepageData({...homepageData, featuredProductIds: [...homepageData.featuredProductIds, e.target.value]}); e.target.value = ''; } }}>
-                    <option value="">Select a product...</option>
-                    {productsData?.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                  </select>
+                  <div className="relative">
+                    <select className="w-full bg-transparent border-b border-foreground/10 py-2.5 text-sm focus:border-foreground/30 focus:outline-none transition-colors cursor-pointer" onChange={e => { if (e.target.value && !homepageData.featuredProductIds.includes(e.target.value)) { setHomepageData({...homepageData, featuredProductIds: [...homepageData.featuredProductIds, e.target.value]}); e.target.value = ''; } }}>
+                      <option value="">Select a product...</option>
+                      {productsData?.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                    </select>
+                  </div>
                 </div>
                 <button onClick={() => save('homepage', homepageData)} className="group relative bg-foreground text-background rounded-full pl-6 pr-1.5 py-1.5 text-[11px] uppercase tracking-widest font-medium hover:bg-foreground/90 transition-all active:scale-[0.98]">
                   <span className="py-1.5">Save</span>
@@ -901,16 +928,28 @@ export default function DashboardPage() {
     <div className="w-full bg-background text-foreground min-h-screen selection:bg-primary selection:text-primary-foreground">
       <div className="max-w-[1400px] mx-auto px-4 md:px-8 pt-32 pb-24 relative">
 
-        {/* Auto-refresh notification toast */}
-        {refreshNotification && (
-          <div className="fixed top-24 right-6 z-50 bg-foreground text-background px-5 py-3 rounded-full text-xs uppercase tracking-widest font-medium shadow-lg animate-in slide-in-from-right fade-in duration-300">
+        {/* Toast Notifications */}
+        {toast && (
+          <div className={`fixed top-24 right-6 z-50 px-5 py-3 rounded-full text-xs uppercase tracking-widest font-medium shadow-lg transition-all duration-300 ${
+            toast.type === 'success'
+              ? 'bg-foreground text-background'
+              : toast.type === 'error'
+                ? 'bg-foreground text-background ring-2 ring-foreground/30'
+                : 'bg-foreground/90 text-background'
+          }`}>
+            {toast.message}
+          </div>
+        )}
+        {/* Auto-refresh notification */}
+        {refreshNotification && !toast && (
+          <div className="fixed top-24 right-6 z-40 bg-foreground/80 text-background px-5 py-3 rounded-full text-xs uppercase tracking-widest font-medium shadow-lg backdrop-blur-sm">
             {refreshNotification}
           </div>
         )}
 
         {/* Auto-refresh indicator */}
         <div className="absolute top-32 right-6 flex items-center gap-2 text-[10px] uppercase tracking-widest text-foreground/25">
-          <span className="w-1.5 h-1.5 rounded-full bg-green-500/60 animate-pulse"></span>
+          <span className="w-1.5 h-1.5 rounded-full bg-foreground/40 animate-pulse"></span>
           Live Sync
         </div>
 
