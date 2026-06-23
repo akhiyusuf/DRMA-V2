@@ -9,7 +9,7 @@ export default function EthicsPage() {
     <div className="w-full bg-background overflow-hidden selection:bg-primary selection:text-primary-foreground">
       
       {/* Hero Section */}
-      <section className="relative min-h-[70dvh] w-full flex flex-col items-center justify-center pt-32 pb-24 text-center">
+      <section className="relative min-h-[70dvh] w-full flex flex-col items-center justify-center pt-24 md:pt-32 pb-16 md:pb-24 text-center">
         <div className="container mx-auto px-4 md:px-8 max-w-4xl relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 10 }}

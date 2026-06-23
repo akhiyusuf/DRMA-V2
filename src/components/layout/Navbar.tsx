@@ -75,7 +75,7 @@ export function Navbar() {
             <Link href="/about" className="hidden md:block text-[11px] font-medium tracking-[0.25em] hover:text-primary transition-colors uppercase">
               About
             </Link>
-            <button className="p-2 hover:text-primary transition-colors relative" onClick={() => alert("Account functionality coming soon")} aria-label="User Account">
+            <button className="p-2 hover:text-primary transition-colors relative" aria-label="User Account">
               <User className="w-5 h-5 stroke-[1.5]" />
             </button>
             <div className="relative">

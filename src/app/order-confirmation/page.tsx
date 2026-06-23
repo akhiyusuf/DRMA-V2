@@ -95,7 +95,7 @@ function OrderConfirmationContent() {
 
   if (isCancelled) {
     return (
-      <div className="w-full bg-background min-h-screen pt-32 pb-24">
+      <div className="w-full bg-background min-h-screen pt-24 md:pt-32 pb-16 md:pb-24">
         <div className="container mx-auto px-4 md:px-8 max-w-2xl text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -125,7 +125,7 @@ function OrderConfirmationContent() {
 
   if (!order) {
     return (
-      <div className="w-full bg-background min-h-screen pt-32 pb-24">
+      <div className="w-full bg-background min-h-screen pt-24 md:pt-32 pb-16 md:pb-24">
         <div className="container mx-auto px-4 md:px-8 max-w-2xl text-center">
           <h1 className="text-4xl font-heading font-light tracking-tight mb-6">No order found.</h1>
           <Link href="/shop" className="text-primary underline">Continue shopping</Link>
@@ -135,7 +135,7 @@ function OrderConfirmationContent() {
   }
 
   return (
-    <div className="w-full bg-background min-h-screen selection:bg-primary selection:text-primary-foreground pt-32 pb-24">
+    <div className="w-full bg-background min-h-screen selection:bg-primary selection:text-primary-foreground pt-24 md:pt-32 pb-16 md:pb-24">
       <div className="container mx-auto px-4 md:px-8 max-w-3xl">
         
         <motion.div 
@@ -253,7 +253,7 @@ function OrderConfirmationContent() {
 export default function OrderConfirmationPage() {
   return (
     <Suspense fallback={
-      <div className="w-full bg-background min-h-screen pt-32 pb-24 flex items-center justify-center">
+      <div className="w-full bg-background min-h-screen pt-24 md:pt-32 pb-16 md:pb-24 flex items-center justify-center">
         <div className="animate-pulse font-heading text-2xl text-foreground/30 tracking-[0.3em]">Processing...</div>
       </div>
     }>

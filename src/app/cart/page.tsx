@@ -55,7 +55,7 @@ export default function CartPage() {
   });
 
   return (
-    <div className="w-full bg-background min-h-screen selection:bg-primary selection:text-primary-foreground pt-32 pb-24">
+    <div className="w-full bg-background min-h-screen selection:bg-primary selection:text-primary-foreground pt-24 md:pt-32 pb-16 md:pb-24">
       <div className="container mx-auto px-4 md:px-8 max-w-7xl">
         
         {/* Header */}

@@ -45,13 +45,13 @@ export default function ShopPage() {
     <div className="w-full bg-background min-h-screen selection:bg-primary selection:text-primary-foreground">
       
       {/* Editorial Header */}
-      <section className="pt-32 pb-16 px-4 md:px-8 border-b border-foreground/5">
+      <section className="pt-24 md:pt-32 pb-10 md:pb-16 px-4 md:px-8 border-b border-foreground/5">
         <div className="container mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: [0.32, 0.72, 0, 1] }}
-            className="flex items-center gap-4 mb-6"
+            className="flex items-center gap-3 mb-4 md:mb-6"
           >
             <span className="rounded-full px-3 py-1 text-[10px] uppercase tracking-[0.2em] font-medium bg-foreground/5 text-foreground/70 border border-foreground/10">
               The Archive
@@ -65,31 +65,31 @@ export default function ShopPage() {
             initial={{ opacity: 0, y: 30, filter: "blur(8px)" }}
             animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
             transition={{ duration: 1.2, delay: 0.1, ease: [0.32, 0.72, 0, 1] }}
-            className="text-5xl md:text-7xl lg:text-8xl font-heading font-light tracking-tight text-foreground leading-[0.9] max-w-4xl"
+            className="text-4xl md:text-6xl lg:text-8xl font-heading font-light tracking-tight text-foreground leading-[0.9] max-w-4xl"
           >
             Curated <br/> <span className="italic font-light text-foreground/70">Essentials.</span>
           </motion.h1>
         </div>
       </section>
 
-      <div className="container mx-auto px-4 md:px-8 py-16">
-        <div className="flex flex-col lg:flex-row gap-16 lg:gap-24">
+      <div className="container mx-auto px-4 md:px-8 py-8 md:py-12 lg:py-16">
+        <div className="flex flex-col lg:flex-row gap-8 md:gap-12 lg:gap-24">
           
           {/* Filters Sidebar: Soft Structuralism */}
           <aside className="w-full lg:w-64 flex-shrink-0">
-            <div className="sticky top-32">
-              <h2 className="text-[10px] font-medium mb-8 uppercase tracking-[0.2em] text-foreground/50 border-b border-foreground/10 pb-4">Filter By Category</h2>
+            <div className="lg:sticky lg:top-32">
+              <h2 className="text-[10px] font-medium mb-6 md:mb-8 uppercase tracking-[0.2em] text-foreground/50 border-b border-foreground/10 pb-3 md:pb-4">Filter By Category</h2>
               
-              <div className="flex flex-wrap gap-2 mb-6">
+              <div className="flex flex-wrap gap-2 mb-4 md:mb-6">
                 <button onClick={() => setSelectedCategory(null)} className={`text-xs uppercase tracking-wider px-3 py-1.5 rounded-full border transition-colors ${!selectedCategory ? 'bg-foreground text-background border-foreground' : 'border-foreground/10 text-foreground/60 hover:border-foreground/30'}`}>All</button>
                 {categories.map(cat => (
                   <button key={cat} onClick={() => setSelectedCategory(cat)} className={`text-xs uppercase tracking-wider px-3 py-1.5 rounded-full border transition-colors ${selectedCategory === cat ? 'bg-foreground text-background border-foreground' : 'border-foreground/10 text-foreground/60 hover:border-foreground/30'}`}>{cat}</button>
                 ))}
               </div>
 
-              <h2 className="text-[10px] font-medium mb-8 uppercase tracking-[0.2em] text-foreground/50 border-b border-foreground/10 pb-4">Refine By Ethics</h2>
+              <h2 className="text-[10px] font-medium mb-6 md:mb-8 uppercase tracking-[0.2em] text-foreground/50 border-b border-foreground/10 pb-3 md:pb-4">Refine By Ethics</h2>
               
-              <div className="space-y-4">
+              <div className="space-y-3 md:space-y-4">
                 {["Ethically Sourced", "Artisan Made", "Organic", "Hand-stitched"].map(tag => (
                   <motion.div 
                     key={tag} 
@@ -117,7 +117,7 @@ export default function ShopPage() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   onClick={() => setSelectedTags([])}
-                  className="mt-12 flex items-center gap-2 text-xs uppercase tracking-widest text-foreground/50 hover:text-foreground transition-colors"
+                  className="mt-8 md:mt-12 flex items-center gap-2 text-xs uppercase tracking-widest text-foreground/50 hover:text-foreground transition-colors"
                 >
                   <X className="w-3 h-3" />
                   Clear Filters
@@ -129,13 +129,13 @@ export default function ShopPage() {
           {/* Product Grid: Double Bezel Masonry */}
           <div className="flex-1">
             {fetching && products.length === 0 ? (
-              <div className="columns-1 sm:columns-2 xl:columns-3 gap-8 space-y-8">
+              <div className="columns-1 sm:columns-2 xl:columns-3 gap-4 md:gap-6 lg:gap-8 space-y-4 md:space-y-6 lg:space-y-8">
                 {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="break-inside-avoid mb-8 animate-pulse">
+                  <div key={i} className="break-inside-avoid mb-4 md:mb-6 lg:mb-8 animate-pulse">
                     <div className="p-1.5 rounded-[1.5rem] bg-foreground/5 ring-1 ring-foreground/5">
                       <div className="rounded-[calc(1.5rem-0.375rem)] bg-foreground/5 aspect-[3/4]" />
                     </div>
-                    <div className="px-2 mt-6 space-y-2">
+                    <div className="px-2 mt-4 md:mt-6 space-y-2">
                       <div className="h-5 w-32 bg-foreground/10 rounded" />
                       <div className="h-4 w-16 bg-foreground/10 rounded" />
                     </div>
@@ -145,7 +145,7 @@ export default function ShopPage() {
             ) : (
             <motion.div 
               layout
-              className="columns-1 sm:columns-2 xl:columns-3 gap-8 space-y-8"
+              className="columns-1 sm:columns-2 xl:columns-3 gap-4 md:gap-6 lg:gap-8 space-y-4 md:space-y-6 lg:space-y-8"
             >
               <AnimatePresence mode="popLayout">
                 {filteredProducts.map((product, index) => (
@@ -156,9 +156,9 @@ export default function ShopPage() {
                     exit={{ opacity: 0, scale: 0.95 }}
                     transition={{ duration: 0.5, delay: index * 0.05, ease: [0.32, 0.72, 0, 1] }}
                     key={product.id}
-                    className="group flex flex-col break-inside-avoid mb-8"
+                    className="group flex flex-col break-inside-avoid mb-4 md:mb-6 lg:mb-8"
                   >
-                    <Link href={`/product/${product.id}`} className="block relative w-full mb-6">
+                    <Link href={`/product/${product.id}`} className="block relative w-full mb-4 md:mb-6">
                       {/* Double Bezel Card */}
                       <div className="p-1.5 rounded-[1.5rem] bg-foreground/5 ring-1 ring-foreground/5 group-hover:ring-foreground/15 transition-all duration-500">
                         <div className="relative rounded-[calc(1.5rem-0.375rem)] overflow-hidden bg-foreground/5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]">
@@ -190,8 +190,8 @@ export default function ShopPage() {
                     {/* Typography */}
                     <div className="flex justify-between items-start px-2">
                       <div>
-                        <h3 className="font-heading font-normal text-xl text-foreground mb-1 group-hover:underline underline-offset-4 decoration-foreground/30 transition-all">{product.name}</h3>
-                        <p className="text-foreground/50 text-sm font-light uppercase tracking-widest">${product.price.toFixed(2)}</p>
+                        <h3 className="font-heading font-normal text-lg md:text-xl text-foreground mb-0.5 md:mb-1 group-hover:underline underline-offset-4 decoration-foreground/30 transition-all">{product.name}</h3>
+                        <p className="text-foreground/50 text-xs md:text-sm font-light uppercase tracking-widest">${product.price.toFixed(2)}</p>
                       </div>
                       <div className="w-8 h-8 rounded-full border border-foreground/10 flex items-center justify-center text-foreground/50 group-hover:bg-foreground group-hover:text-background transition-all duration-300">
                         <ArrowUpRight className="w-3 h-3" />

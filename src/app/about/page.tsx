@@ -9,7 +9,7 @@ export default function AboutPage() {
     <div className="w-full bg-background selection:bg-primary selection:text-primary-foreground overflow-hidden">
       
       {/* Hero Section: The Editorial Split */}
-      <section className="relative min-h-[70dvh] w-full flex items-center pt-32 pb-12">
+      <section className="relative min-h-[70dvh] w-full flex items-center pt-24 md:pt-32 pb-8 md:pb-12">
         <div className="container mx-auto px-4 md:px-8">
           <div className="flex flex-col md:flex-row w-full justify-between items-start gap-12 md:gap-8">
             
