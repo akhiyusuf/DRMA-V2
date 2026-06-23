@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 
 const POLL_INTERVAL = 8000; // Check every 8 seconds
 
-type Tab = 'content' | 'orders' | 'stock';
+type Tab = 'stock' | 'orders' | 'homepage';
 
 const STATUS_COLORS: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-800 border-yellow-200',
@@ -15,15 +15,15 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function DashboardPage() {
-  const [activeTab, setActiveTab] = useState<Tab>('content');
+  const [activeTab, setActiveTab] = useState<Tab>('stock');
 
-  // --- Content Tab State ---
+  // --- Shared State ---
   const [homepageData, setHomepageData] = useState<any>(null);
   const [productsData, setProductsData] = useState<any[] | null>(null);
-  const [filter, setFilter] = useState('');
   const [images, setImages] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [filter, setFilter] = useState('');
 
   // --- Orders Tab State ---
   const [orders, setOrders] = useState<any[]>([]);
@@ -39,6 +39,7 @@ export default function DashboardPage() {
   const [editingStock, setEditingStock] = useState<string | null>(null);
   const [expandedStockProduct, setExpandedStockProduct] = useState<string | null>(null);
   const [variantData, setVariantData] = useState<Record<string, any[]>>({});
+  const [editingProductContent, setEditingProductContent] = useState<string | null>(null);
 
   // --- Auto-Refresh State ---
   const [lastFingerprint, setLastFingerprint] = useState('');
@@ -92,10 +93,9 @@ export default function DashboardPage() {
   };
 
   useEffect(() => { fetchContentData(); }, []);
-  // Fetch orders on first load so the tab always shows the count
   useEffect(() => { fetchOrders(); }, []);
   useEffect(() => { if (activeTab === 'orders') fetchOrders(); }, [activeTab, ordersPage, ordersFilter]);
-  useEffect(() => { if (activeTab === 'stock') fetchStock(); }, [activeTab]);
+  useEffect(() => { if (activeTab === 'stock') { fetchStock(); } }, [activeTab]);
 
   // ======== Auto-Refresh Polling ========
 
@@ -119,7 +119,6 @@ export default function DashboardPage() {
         const { fingerprint, products, homepage, orders } = data;
 
         if (lastFingerprint && fingerprint !== lastFingerprint && !isSavingRef.current) {
-          // Determine what changed for context-aware notification
           const prev = lastFingerprints;
           let message = 'Data updated';
           if (orders !== prev.orders) {
@@ -130,11 +129,9 @@ export default function DashboardPage() {
             message = 'Homepage content updated';
           }
 
-          // Refresh relevant data
           fetchContentData();
           if (activeTab === 'orders') fetchOrders();
           if (activeTab === 'stock') fetchStock();
-          // Always update orders count for the tab badge
           const countRes = await fetch('/api/cms/orders?limit=1');
           if (countRes.ok) { const countData = await countRes.json(); setOrdersTotal(countData.total || 0); }
 
@@ -145,11 +142,10 @@ export default function DashboardPage() {
         setLastFingerprint(fingerprint);
         setLastFingerprints({ products: products || '', homepage: homepage || '', orders: orders || '' });
       } catch {
-        // Silently fail — don't disrupt the CMS experience
+        // Silently fail
       }
     };
 
-    // Initial fingerprint fetch after data loads
     const initTimeout = setTimeout(() => {
       fetch('/api/cms/fingerprint')
         .then(res => res.ok ? res.json() : { fingerprint: '', products: '', homepage: '', orders: '' })
@@ -167,7 +163,7 @@ export default function DashboardPage() {
     };
   }, [lastFingerprint, lastFingerprints, activeTab, playCmsSound]);
 
-  // ======== Content Tab Helpers ========
+  // ======== Helpers ========
 
   const save = async (type: string, data: any, id?: string) => {
     let payload = data;
@@ -179,7 +175,6 @@ export default function DashboardPage() {
     try {
       const res = await fetch('/api/cms/content', { method: 'POST', body: JSON.stringify({ type, data: payload }) });
       if (res.ok) {
-        // Update fingerprint after own save to prevent false positive
         const fpRes = await fetch('/api/cms/fingerprint');
         if (fpRes.ok) {
           const fpData = await fpRes.json();
@@ -239,7 +234,6 @@ export default function DashboardPage() {
         fetchOrders();
         setStatusNote('');
         setExpandedOrder(null);
-        // Update fingerprint after own save
         const fpRes = await fetch('/api/cms/fingerprint');
         if (fpRes.ok) {
           const fpData = await fpRes.json();
@@ -277,6 +271,7 @@ export default function DashboardPage() {
   };
 
   const updateVariantStock = async (productId: string, size: string, color: string, field: string, value: any) => {
+    isSavingRef.current = true;
     try {
       const res = await fetch('/api/cms/stock/variant', {
         method: 'PATCH',
@@ -286,9 +281,16 @@ export default function DashboardPage() {
       if (res.ok) {
         fetchVariants(productId);
         fetchStock();
+        const fpRes = await fetch('/api/cms/fingerprint');
+        if (fpRes.ok) {
+          const fpData = await fpRes.json();
+          setLastFingerprint(fpData.fingerprint);
+          setLastFingerprints({ products: fpData.products || '', homepage: fpData.homepage || '', orders: fpData.orders || '' });
+        }
       }
       else alert('Failed to update variant stock');
     } catch { alert('Error updating variant stock'); }
+    finally { isSavingRef.current = false; }
   };
 
   const fetchVariants = async (productId: string) => {
@@ -320,7 +322,7 @@ export default function DashboardPage() {
 
   if (!homepageData || !productsData) return <div className="min-h-screen flex items-center justify-center bg-background"><div className="animate-pulse font-heading text-2xl text-foreground/20 tracking-[0.3em]">DRMA</div></div>;
 
-  const filteredProducts = productsData?.filter(p => p.name.toLowerCase().includes(filter.toLowerCase()) || p.category.toLowerCase().includes(filter.toLowerCase())) || [];
+  const filteredProducts = stockData?.filter((p: any) => p.name.toLowerCase().includes(filter.toLowerCase()) || p.category.toLowerCase().includes(filter.toLowerCase())) || [];
   const uniqueCategories = Array.from(new Set(productsData?.map(p => p.category).filter(Boolean)));
   const uniqueTags = Array.from(new Set(productsData?.flatMap(p => p.tags || []).filter(Boolean)));
   const uniqueSizes = Array.from(new Set(productsData?.flatMap(p => p.variations?.sizes || []).filter(Boolean)));
@@ -328,12 +330,15 @@ export default function DashboardPage() {
   const uniqueMaterials = Array.from(new Set(productsData?.flatMap(p => p.variations?.materials || []).filter(Boolean)));
 
   const tabs: { key: Tab; label: string }[] = [
-    { key: 'content', label: 'Content' },
+    { key: 'stock', label: 'Products' },
     { key: 'orders', label: `Orders${ordersTotal > 0 ? ` (${ordersTotal})` : ''}` },
-    { key: 'stock', label: 'Stock' },
+    { key: 'homepage', label: 'Homepage' },
   ];
 
   const formatDate = (d: string) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+  // Find product content data by id (merge stockData with productsData)
+  const getProductContent = (id: string) => productsData?.find((p: any) => p.id === id);
 
   // ======== ORDERS TAB ========
 
@@ -379,7 +384,6 @@ export default function DashboardPage() {
 
               {expandedOrder === order.id && (
                 <div className="border-t border-foreground/10 p-5 space-y-6 bg-foreground/[0.02]">
-                  {/* Shipping Info */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                     <div><span className="text-foreground/40 text-xs uppercase block mb-1">Ship To</span><p>{order.shipping_address}</p><p>{order.shipping_city}, {order.shipping_state} {order.shipping_zip}</p></div>
                     <div><span className="text-foreground/40 text-xs uppercase block mb-1">Shipping</span><p className="capitalize">{order.shipping_method?.replace('_', ' ')}</p></div>
@@ -387,7 +391,6 @@ export default function DashboardPage() {
                     <div><span className="text-foreground/40 text-xs uppercase block mb-1">Tax + Shipping</span><p>${parseFloat(order.tax_amount || 0).toFixed(2)} + ${parseFloat(order.shipping_cost).toFixed(2)}</p></div>
                   </div>
 
-                  {/* Items */}
                   <div>
                     <h4 className="text-xs uppercase tracking-widest text-foreground/40 mb-3">Items</h4>
                     <div className="space-y-2">
@@ -403,7 +406,6 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  {/* Update Status */}
                   <div className="flex flex-wrap items-end gap-3 pt-4 border-t border-foreground/10">
                     <div className="flex-1 min-w-[200px]">
                       <label className="text-xs uppercase tracking-widest text-foreground/40 block mb-2">Update Status</label>
@@ -426,7 +428,6 @@ export default function DashboardPage() {
             </div>
           ))}
 
-          {/* Pagination */}
           {ordersTotal > 20 && (
             <div className="flex justify-center gap-2">
               <button disabled={ordersPage <= 1} onClick={() => setOrdersPage(p => p - 1)} className="px-4 py-2 border border-foreground/10 rounded-xl text-sm disabled:opacity-30">Previous</button>
@@ -439,7 +440,7 @@ export default function DashboardPage() {
     </div>
   );
 
-  // ======== STOCK TAB ========
+  // ======== STOCK TAB (Products + Content Editing + Stock) ========
 
   const getVariantStockDisplay = (productId: string, size: string, color: string): number => {
     const variants = variantData[productId] || [];
@@ -449,7 +450,30 @@ export default function DashboardPage() {
 
   const renderStock = () => (
     <div className="space-y-4">
-      <p className="text-sm text-foreground/50">Manage inventory. Click a product to edit per-variant (size x color) stock. <span className="font-mono text-foreground/70">-1</span> = untracked (in stock). <span className="font-mono text-foreground/70">--</span> = no override (uses product default).</p>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <p className="text-sm text-foreground/50">Manage products, content, and inventory. Click a product to edit details, images, and per-variant stock.</p>
+        <div className="flex items-center gap-3">
+          <input className="bg-foreground/[0.03] border border-foreground/10 rounded-full px-4 py-2 text-xs focus:outline-none focus:border-foreground/30 transition-colors w-40 placeholder:text-foreground/25" placeholder="Filter..." value={filter} onChange={e => setFilter(e.target.value)} />
+          <button onClick={() => {
+            const newId = Date.now().toString();
+            const newProduct = { id: newId, name: 'New Product', price: 0, images: [], tags: [], category: '', variations: { sizes: [], colors: [], materials: [] }, description: '', in_stock: true, stock_quantity: -1, low_stock_threshold: 3, max_per_order: 3 };
+            save('products', newProduct, newId);
+          }} className="bg-foreground text-background rounded-full px-4 py-2 text-[11px] uppercase tracking-widest font-medium hover:bg-foreground/90 transition-all active:scale-[0.98]">
+            + Add Product
+          </button>
+          <label className={`cursor-pointer bg-foreground text-background w-9 h-9 rounded-full flex items-center justify-center hover:bg-foreground/90 transition-all active:scale-95 ${uploading ? 'opacity-40 cursor-not-allowed' : ''}`}>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+            <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileUpload} disabled={uploading} accept="image/*" />
+          </label>
+        </div>
+      </div>
+
+      {/* Datalists */}
+      <datalist id="categories">{uniqueCategories.map((c, i) => <option key={`${c}-${i}`} value={c} />)}</datalist>
+      <datalist id="tags">{uniqueTags.map((t, i) => <option key={`${t}-${i}`} value={t} />)}</datalist>
+      <datalist id="sizes">{uniqueSizes.map((s, i) => <option key={`${s}-${i}`} value={s} />)}</datalist>
+      <datalist id="colors">{uniqueColors.map((c, i) => <option key={`${c}-${i}`} value={c} />)}</datalist>
+      <datalist id="materials">{uniqueMaterials.map((m, i) => <option key={`${m}-${i}`} value={m} />)}</datalist>
 
       {stockData.length === 0 ? (
         <div className="text-center py-20 text-foreground/40">
@@ -457,8 +481,9 @@ export default function DashboardPage() {
           <p className="text-sm">Products will appear here once they exist in the database.</p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {stockData.map((product: any) => {
+            const content = getProductContent(product.id);
             const stock = product.stock_quantity ?? -1;
             const lowThreshold = product.low_stock_threshold ?? 5;
             const isLow = stock >= 0 && stock <= lowThreshold && stock > 0;
@@ -467,29 +492,40 @@ export default function DashboardPage() {
             const sizes: string[] = product.variations?.sizes || [];
             const colors: string[] = product.variations?.colors || [];
             const hasVariants = sizes.length > 0 && colors.length > 0;
+            const isEditingContent = editingProductContent === product.id;
 
             return (
-              <div key={product.id} className="border border-foreground/10 rounded-2xl overflow-hidden transition-colors hover:border-foreground/20">
-                {/* Product row */}
-                <button
-                  onClick={() => hasVariants && toggleExpandStock(product.id)}
-                  className={`w-full px-5 py-4 flex items-center gap-4 text-left transition-colors ${isExpanded ? 'bg-foreground/[0.03]' : 'hover:bg-foreground/[0.015]'} ${hasVariants ? 'cursor-pointer' : ''}`}
-                >
+              <div key={product.id} className="border border-foreground/10 rounded-2xl overflow-hidden transition-all hover:border-foreground/20">
+                {/* Product row header */}
+                <div className="px-5 py-4 flex items-center gap-4">
+                  {/* Thumbnail */}
+                  <div className="w-12 h-12 rounded-xl overflow-hidden border border-foreground/10 bg-foreground/5 shrink-0">
+                    {(content?.images?.[0] || product.images?.[0]) ? (
+                      <img src={content?.images?.[0] || product.images?.[0]} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-foreground/20 text-xs">No img</div>
+                    )}
+                  </div>
+
+                  {/* Product info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3">
-                      <p className="font-medium text-sm truncate">{product.name}</p>
+                      <p className="font-medium text-sm truncate">{content?.name || product.name}</p>
                       {hasVariants && (
                         <span className="text-[9px] uppercase tracking-widest text-foreground/30">{sizes.length} sizes x {colors.length} colors</span>
+                      )}
+                      {content?.category && (
+                        <span className="text-[9px] uppercase tracking-widest text-foreground/20">{content.category}</span>
                       )}
                     </div>
                     <p className="text-[10px] text-foreground/40">${parseFloat(product.price).toFixed(2)}{product.sku ? ` · ${product.sku}` : ''}</p>
                   </div>
 
                   <div className="flex items-center gap-4 shrink-0">
-                    {/* Default stock (product level) */}
+                    {/* Stock info */}
                     <div className="hidden md:flex items-center gap-3">
                       <div className="text-right">
-                        <p className="text-[10px] uppercase tracking-widest text-foreground/30">Default Stock</p>
+                        <p className="text-[10px] uppercase tracking-widest text-foreground/30">Stock</p>
                         <p className="font-mono text-sm">{stock === -1 ? <span className="text-foreground/40 italic">untracked</span> : stock}</p>
                       </div>
                       <div className="text-right">
@@ -511,98 +547,196 @@ export default function DashboardPage() {
                       )}
                     </div>
 
-                    {/* Expand chevron */}
-                    {hasVariants && (
-                      <span className={`text-foreground/30 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}>&#9654;</span>
-                    )}
+                    {/* Expand button */}
+                    <button
+                      onClick={() => toggleExpandStock(product.id)}
+                      className={`text-foreground/30 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}
+                    >&#9654;</button>
                   </div>
-                </button>
+                </div>
 
-                {/* Edit product-level stock inline */}
-                {editingStock === product.id && !isExpanded && (
-                  <div className="px-5 py-4 border-t border-foreground/10 bg-foreground/[0.02] grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <div><label className="text-[10px] uppercase tracking-widest text-foreground/30 block mb-1">SKU</label><input className="w-full border border-foreground/20 bg-background p-2 rounded-lg text-sm" defaultValue={product.sku || ''} placeholder="SKU" onBlur={e => updateStock(product.id, 'sku', e.target.value || null)} /></div>
-                    <div><label className="text-[10px] uppercase tracking-widest text-foreground/30 block mb-1">Stock (-1=untracked)</label><input type="number" className="w-full border border-foreground/20 bg-background p-2 rounded-lg text-sm" defaultValue={stock === -1 ? '' : stock} placeholder="-1" onBlur={e => { const v = e.target.value; updateStock(product.id, 'stockQuantity', v === '' ? -1 : parseInt(v)); }} /></div>
-                    <div><label className="text-[10px] uppercase tracking-widest text-foreground/30 block mb-1">Low Alert</label><input type="number" className="w-full border border-foreground/20 bg-background p-2 rounded-lg text-sm" defaultValue={lowThreshold} min={0} onBlur={e => updateStock(product.id, 'lowStockThreshold', parseInt(e.target.value) || 3)} /></div>
-                    <div><label className="text-[10px] uppercase tracking-widest text-foreground/30 block mb-1">Max/Order</label><input type="number" className="w-full border border-foreground/20 bg-background p-2 rounded-lg text-sm" defaultValue={product.max_per_order ?? 3} min={1} onBlur={e => updateStock(product.id, 'maxPerOrder', parseInt(e.target.value) || 3)} /></div>
-                    <div className="col-span-2 md:col-span-4 flex justify-end"><button onClick={() => { setEditingStock(null); fetchStock(); }} className="px-4 py-1.5 bg-foreground text-background rounded-full text-xs">Done</button></div>
-                  </div>
-                )}
-
-                {/* Variant stock grid (expanded) */}
-                {isExpanded && hasVariants && (
-                  <div className="border-t border-foreground/10 px-5 py-4 bg-foreground/[0.015]">
-                    <div className="flex items-center justify-between mb-4">
-                      <p className="text-[10px] uppercase tracking-widest text-foreground/40">Per-Variant Stock (Size x Color)</p>
-                      <button onClick={() => setEditingStock(editingStock === product.id ? null : product.id)} className="px-3 py-1 border border-foreground/20 rounded-full text-[10px] uppercase tracking-wider hover:bg-foreground/5 transition-colors">
-                        {editingStock === product.id ? 'Close Editing' : 'Edit Defaults'}
-                      </button>
+                {/* ===== Expanded: Content + Stock Editing ===== */}
+                {isExpanded && (
+                  <div className="border-t border-foreground/10 bg-foreground/[0.015]">
+                    {/* Sub-tabs: Content | Stock */}
+                    <div className="flex gap-1 px-5 pt-4">
+                      <button
+                        onClick={() => setEditingProductContent(product.id)}
+                        className={`px-4 py-2 text-[10px] uppercase tracking-widest rounded-full transition-colors ${isEditingContent ? 'bg-foreground text-background' : 'text-foreground/40 hover:text-foreground/70 hover:bg-foreground/5'}`}
+                      >Edit Content</button>
+                      <button
+                        onClick={() => { setEditingProductContent(null); setEditingStock(editingStock === product.id ? null : product.id); }}
+                        className={`px-4 py-2 text-[10px] uppercase tracking-widest rounded-full transition-colors ${!isEditingContent && editingStock === product.id ? 'bg-foreground text-background' : 'text-foreground/40 hover:text-foreground/70 hover:bg-foreground/5'}`}
+                      >Stock Settings</button>
+                      {hasVariants && (
+                        <button
+                          onClick={() => { setEditingProductContent(null); setEditingStock(null); }}
+                          className={`px-4 py-2 text-[10px] uppercase tracking-widest rounded-full transition-colors ${!isEditingContent && editingStock !== product.id ? 'bg-foreground text-background' : 'text-foreground/40 hover:text-foreground/70 hover:bg-foreground/5'}`}
+                        >Variant Grid</button>
+                      )}
                     </div>
 
-                    {/* Product-level defaults when editing */}
-                    {editingStock === product.id && (
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4 p-3 rounded-xl bg-foreground/[0.03] border border-foreground/10">
-                        <div><label className="text-[10px] uppercase tracking-widest text-foreground/30 block mb-1">SKU</label><input className="w-full border border-foreground/20 bg-background p-1.5 rounded-lg text-xs" defaultValue={product.sku || ''} placeholder="SKU" onBlur={e => updateStock(product.id, 'sku', e.target.value || null)} /></div>
-                        <div><label className="text-[10px] uppercase tracking-widest text-foreground/30 block mb-1">Default Stock</label><input type="number" className="w-full border border-foreground/20 bg-background p-1.5 rounded-lg text-xs" defaultValue={stock === -1 ? '' : stock} placeholder="-1" onBlur={e => { const v = e.target.value; updateStock(product.id, 'stockQuantity', v === '' ? -1 : parseInt(v)); }} /></div>
-                        <div><label className="text-[10px] uppercase tracking-widest text-foreground/30 block mb-1">Low Alert</label><input type="number" className="w-full border border-foreground/20 bg-background p-1.5 rounded-lg text-xs" defaultValue={lowThreshold} min={0} onBlur={e => updateStock(product.id, 'lowStockThreshold', parseInt(e.target.value) || 3)} /></div>
-                        <div><label className="text-[10px] uppercase tracking-widest text-foreground/30 block mb-1">Max/Order</label><input type="number" className="w-full border border-foreground/20 bg-background p-1.5 rounded-lg text-xs" defaultValue={product.max_per_order ?? 3} min={1} onBlur={e => updateStock(product.id, 'maxPerOrder', parseInt(e.target.value) || 3)} /></div>
+                    {/* ===== CONTENT EDITING SECTION ===== */}
+                    {isEditingContent && content && (
+                      <div className="px-5 py-5 space-y-5">
+                        {/* Name + Price + Category */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div>
+                            <p className="text-[10px] uppercase tracking-[0.2em] text-foreground/40 mb-2">Name</p>
+                            <input className="w-full bg-transparent border-b border-foreground/10 pb-1 text-sm font-heading font-light focus:border-foreground/30 focus:outline-none transition-colors" value={content.name || ''} onChange={e => {
+                              const p = [...productsData]; const idx = p.findIndex(x => x.id === product.id);
+                              if (idx >= 0) { p[idx].name = e.target.value; setProductsData(p); }
+                            }} placeholder="Product name" />
+                          </div>
+                          <div>
+                            <p className="text-[10px] uppercase tracking-[0.2em] text-foreground/40 mb-2">Price</p>
+                            <div className="relative">
+                              <span className="absolute left-0 top-1/2 -translate-y-1/2 text-foreground/30 text-sm">$</span>
+                              <input type="number" className="w-full bg-transparent border-b border-foreground/10 pb-1 pl-4 text-sm focus:border-foreground/30 focus:outline-none transition-colors" value={content.price ?? 0} onChange={e => {
+                                const p = [...productsData]; const idx = p.findIndex(x => x.id === product.id);
+                                if (idx >= 0) { p[idx].price = parseFloat(e.target.value); setProductsData(p); }
+                              }} />
+                            </div>
+                          </div>
+                          <div>
+                            <p className="text-[10px] uppercase tracking-[0.2em] text-foreground/40 mb-2">Category</p>
+                            <input list="categories" className="w-full bg-transparent border-b border-foreground/10 pb-1 text-sm focus:border-foreground/30 focus:outline-none transition-colors" value={content.category || ''} onChange={e => {
+                              const p = [...productsData]; const idx = p.findIndex(x => x.id === product.id);
+                              if (idx >= 0) { p[idx].category = e.target.value; setProductsData(p); }
+                            }} placeholder="Category" />
+                          </div>
+                        </div>
+
+                        {/* Description */}
+                        <div>
+                          <p className="text-[10px] uppercase tracking-[0.2em] text-foreground/40 mb-2">Description</p>
+                          <textarea className="w-full bg-transparent border-b border-foreground/10 pb-1 text-sm text-foreground/70 font-light leading-relaxed focus:border-foreground/30 focus:outline-none transition-colors resize-none" rows={2} value={content.description || ''} onChange={e => {
+                            const p = [...productsData]; const idx = p.findIndex(x => x.id === product.id);
+                            if (idx >= 0) { p[idx].description = e.target.value; setProductsData(p); }
+                          }} placeholder="Description" />
+                        </div>
+
+                        {/* Tags, Sizes, Colors, Materials */}
+                        <div className="grid grid-cols-2 gap-4">
+                          <TagInput label="Tags" values={content.tags || []} onChange={vals => { const p = [...productsData]; const idx = p.findIndex(x => x.id === product.id); if (idx >= 0) { p[idx].tags = vals; setProductsData(p); } }} listId="tags" placeholder="Type and press Enter" />
+                          <TagInput label="Sizes" values={content.variations?.sizes || []} onChange={vals => { const p = [...productsData]; const idx = p.findIndex(x => x.id === product.id); if (idx >= 0) { p[idx].variations = { ...p[idx].variations, sizes: vals }; setProductsData(p); } }} listId="sizes" placeholder="Type and press Enter" />
+                          <TagInput label="Colors" values={content.variations?.colors || []} onChange={vals => { const p = [...productsData]; const idx = p.findIndex(x => x.id === product.id); if (idx >= 0) { p[idx].variations = { ...p[idx].variations, colors: vals }; setProductsData(p); } }} listId="colors" placeholder="Type and press Enter" />
+                          <TagInput label="Materials" values={content.variations?.materials || []} onChange={vals => { const p = [...productsData]; const idx = p.findIndex(x => x.id === product.id); if (idx >= 0) { p[idx].variations = { ...p[idx].variations, materials: vals }; setProductsData(p); } }} listId="materials" placeholder="Type and press Enter" />
+                        </div>
+
+                        {/* Images */}
+                        <div>
+                          <p className="text-[10px] uppercase tracking-[0.2em] text-foreground/40 mb-3">Images <span className="normal-case tracking-normal text-foreground/25">(drag from library or click + on toolbar to upload)</span></p>
+                          <div className="flex gap-3 flex-wrap">
+                            {(content.images || []).map((img: string, i: number) => (
+                              <div key={i} className="relative group">
+                                {img && img.trim() !== '' ? (
+                                  <div className="p-1 rounded-xl border border-foreground/10 hover:ring-1 hover:ring-foreground/20 transition-all">
+                                    <img src={img} className="max-h-24 w-auto object-contain rounded-lg" alt="product" />
+                                    <button className="absolute -top-1.5 -right-1.5 bg-foreground/80 text-background rounded-full w-4 h-4 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-[9px]" onClick={() => {
+                                      const p = [...productsData]; const idx = p.findIndex(x => x.id === product.id);
+                                      if (idx >= 0) { p[idx].images.splice(i, 1); setProductsData(p); }
+                                    }}>&times;</button>
+                                  </div>
+                                ) : null}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Save / Delete */}
+                        <div className="flex items-center justify-between pt-3 border-t border-foreground/10">
+                          <button onClick={() => {
+                            if (confirm('Delete this product? This cannot be undone.')) {
+                              setProductsData(productsData.filter(p => p.id !== product.id));
+                              save('products', productsData.filter(p => p.id !== product.id));
+                              setExpandedStockProduct(null);
+                            }
+                          }} className="text-[10px] uppercase tracking-widest text-red-400/60 hover:text-red-500 transition-colors px-3 py-1 rounded-full border border-red-400/20 hover:border-red-400/40">Delete Product</button>
+                          <button onClick={() => { save('products', content, product.id); fetchStock(); }} className="group relative bg-foreground text-background rounded-full pl-6 pr-1.5 py-1.5 text-[11px] uppercase tracking-widest font-medium hover:bg-foreground/90 transition-all active:scale-[0.98]">
+                            <span className="py-1.5">Save Content</span>
+                            <span className="inline-flex w-7 h-7 items-center justify-center rounded-full bg-background/20 ml-2">
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                            </span>
+                          </button>
+                        </div>
                       </div>
                     )}
 
-                    {/* Variant grid: rows = sizes, cols = colors */}
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="border-b border-foreground/10">
-                            <th className="text-left text-[10px] uppercase tracking-widest text-foreground/30 py-2 pr-3 font-medium">Size \ Color</th>
-                            {colors.map(c => (
-                              <th key={c} className="text-center text-[10px] uppercase tracking-widest text-foreground/30 py-2 px-2 font-medium min-w-[80px]">{c}</th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {sizes.map(size => (
-                            <tr key={size} className="border-b border-foreground/5 hover:bg-foreground/[0.02]">
-                              <td className="py-2 pr-3 text-foreground/70 font-medium text-xs whitespace-nowrap">{size}</td>
-                              {colors.map(color => {
-                                const vStock = getVariantStockDisplay(product.id, size, color);
-                                const displayStock = vStock === -2 ? '—' : (vStock === -1 ? 'untracked' : vStock);
-                                const vIsOut = vStock === 0;
-                                const vIsLow = vStock > 0 && vStock <= (product.low_stock_threshold ?? 3);
+                    {/* ===== STOCK SETTINGS (product-level) ===== */}
+                    {!isEditingContent && editingStock === product.id && (
+                      <div className="px-5 py-5 space-y-4">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                          <div><label className="text-[10px] uppercase tracking-widest text-foreground/30 block mb-1">SKU</label><input className="w-full border border-foreground/20 bg-background p-2 rounded-lg text-sm" defaultValue={product.sku || ''} placeholder="SKU" onBlur={e => updateStock(product.id, 'sku', e.target.value || null)} /></div>
+                          <div><label className="text-[10px] uppercase tracking-widest text-foreground/30 block mb-1">Stock (-1=untracked)</label><input type="number" className="w-full border border-foreground/20 bg-background p-2 rounded-lg text-sm" defaultValue={stock === -1 ? '' : stock} placeholder="-1" onBlur={e => { const v = e.target.value; updateStock(product.id, 'stockQuantity', v === '' ? -1 : parseInt(v)); }} /></div>
+                          <div><label className="text-[10px] uppercase tracking-widest text-foreground/30 block mb-1">Low Alert</label><input type="number" className="w-full border border-foreground/20 bg-background p-2 rounded-lg text-sm" defaultValue={lowThreshold} min={0} onBlur={e => updateStock(product.id, 'lowStockThreshold', parseInt(e.target.value) || 3)} /></div>
+                          <div><label className="text-[10px] uppercase tracking-widest text-foreground/30 block mb-1">Max/Order</label><input type="number" className="w-full border border-foreground/20 bg-background p-2 rounded-lg text-sm" defaultValue={product.max_per_order ?? 3} min={1} onBlur={e => updateStock(product.id, 'maxPerOrder', parseInt(e.target.value) || 3)} /></div>
+                        </div>
+                        <div className="flex justify-end">
+                          <button onClick={() => { setEditingStock(null); fetchStock(); }} className="px-4 py-1.5 bg-foreground text-background rounded-full text-xs">Done</button>
+                        </div>
+                      </div>
+                    )}
 
-                                return (
-                                  <td key={`${size}-${color}`} className="py-2 px-2 text-center">
-                                    <div className={`inline-flex items-center justify-center min-w-[48px] h-8 rounded-lg text-xs font-mono ${vIsOut ? 'bg-red-50 text-red-600' : vIsLow ? 'bg-amber-50 text-amber-600' : 'bg-foreground/[0.03] text-foreground/70'} transition-colors`}>
-                                      <input
-                                        type="number"
-                                        className="w-full text-center bg-transparent border-0 focus:outline-none focus:ring-1 focus:ring-foreground/30 rounded-lg p-1 text-xs font-mono"
-                                        defaultValue={vStock === -2 ? '' : (vStock === -1 ? '-1' : vStock)}
-                                        placeholder="--"
-                                        onBlur={e => {
-                                          const v = e.target.value;
-                                          updateVariantStock(product.id, size, color, 'stockQuantity', v === '' ? null : (v === '-1' ? -1 : parseInt(v)));
-                                        }}
-                                      />
-                                    </div>
-                                  </td>
-                                );
-                              })}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                    <p className="text-[10px] text-foreground/25 mt-3">Blank = use default stock. -1 = untracked (always in stock). 0 = out of stock.</p>
-                  </div>
-                )}
+                    {/* ===== VARIANT STOCK GRID ===== */}
+                    {!isEditingContent && editingStock !== product.id && hasVariants && (
+                      <div className="px-5 py-4">
+                        <p className="text-[10px] uppercase tracking-widest text-foreground/40 mb-3">Per-Variant Stock (Size x Color)</p>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b border-foreground/10">
+                                <th className="text-left text-[10px] uppercase tracking-widest text-foreground/30 py-2 pr-3 font-medium">Size \ Color</th>
+                                {colors.map(c => (
+                                  <th key={c} className="text-center text-[10px] uppercase tracking-widest text-foreground/30 py-2 px-2 font-medium min-w-[80px]">{c}</th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {sizes.map(size => (
+                                <tr key={size} className="border-b border-foreground/5 hover:bg-foreground/[0.02]">
+                                  <td className="py-2 pr-3 text-foreground/70 font-medium text-xs whitespace-nowrap">{size}</td>
+                                  {colors.map(color => {
+                                    const vStock = getVariantStockDisplay(product.id, size, color);
+                                    const displayStock = vStock === -2 ? '—' : (vStock === -1 ? 'untracked' : vStock);
+                                    const vIsOut = vStock === 0;
+                                    const vIsLow = vStock > 0 && vStock <= (product.low_stock_threshold ?? 3);
 
-                {/* Actions footer when not expanded and no variants */}
-                {!isExpanded && !hasVariants && (
-                  <div className="px-5 py-3 border-t border-foreground/10 flex justify-end">
-                    {editingStock === product.id ? (
-                      <button onClick={() => { setEditingStock(null); fetchStock(); }} className="px-3 py-1 bg-primary text-primary-foreground rounded-full text-xs">Done</button>
-                    ) : (
-                      <button onClick={() => setEditingStock(product.id)} className="px-3 py-1 border border-foreground/20 rounded-full text-xs hover:bg-foreground/5 transition-colors">Edit Stock</button>
+                                    return (
+                                      <td key={`${size}-${color}`} className="py-2 px-2 text-center">
+                                        <div className={`inline-flex items-center justify-center min-w-[48px] h-8 rounded-lg text-xs font-mono ${vIsOut ? 'bg-red-50 text-red-600' : vIsLow ? 'bg-amber-50 text-amber-600' : 'bg-foreground/[0.03] text-foreground/70'} transition-colors`}>
+                                          <input
+                                            type="number"
+                                            className="w-full text-center bg-transparent border-0 focus:outline-none focus:ring-1 focus:ring-foreground/30 rounded-lg p-1 text-xs font-mono"
+                                            defaultValue={vStock === -2 ? '' : (vStock === -1 ? '-1' : vStock)}
+                                            placeholder="--"
+                                            onBlur={e => {
+                                              const v = e.target.value;
+                                              updateVariantStock(product.id, size, color, 'stockQuantity', v === '' ? null : (v === '-1' ? -1 : parseInt(v)));
+                                            }}
+                                          />
+                                        </div>
+                                      </td>
+                                    );
+                                  })}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                        <p className="text-[10px] text-foreground/25 mt-3">Blank = use default stock. -1 = untracked (always in stock). 0 = out of stock.</p>
+                      </div>
+                    )}
+
+                    {/* Non-variant product: show stock edit button */}
+                    {!isExpanded && !hasVariants && (
+                      <div className="px-5 py-3 border-t border-foreground/10 flex justify-end">
+                        {editingStock === product.id ? (
+                          <button onClick={() => { setEditingStock(null); fetchStock(); }} className="px-3 py-1 bg-primary text-primary-foreground rounded-full text-xs">Done</button>
+                        ) : (
+                          <button onClick={() => setEditingStock(product.id)} className="px-3 py-1 border border-foreground/20 rounded-full text-xs hover:bg-foreground/5 transition-colors">Edit Stock</button>
+                        )}
+                      </div>
                     )}
                   </div>
                 )}
@@ -611,6 +745,177 @@ export default function DashboardPage() {
           })}
         </div>
       )}
+    </div>
+  );
+
+  // ======== HOMEPAGE TAB ========
+
+  const renderHomepage = () => (
+    <div className="grid grid-cols-12 gap-8 lg:gap-12">
+      {/* Media Library Sidebar */}
+      <aside className="col-span-12 lg:col-span-5 xl:col-span-4 lg:sticky lg:top-28 self-start">
+        <div className="p-1.5 rounded-[2rem] bg-foreground/5 ring-1 ring-foreground/10">
+          <div className="rounded-[calc(2rem-0.375rem)] bg-background p-6 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.25em] text-foreground/40 mb-1">Library</p>
+                <h2 className="text-lg font-heading font-light">Media</h2>
+              </div>
+              <label className={`cursor-pointer bg-foreground text-background w-9 h-9 rounded-full flex items-center justify-center hover:bg-foreground/90 transition-all active:scale-95 ${uploading ? 'opacity-40 cursor-not-allowed' : ''}`}>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" /></svg>
+                <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileUpload} disabled={uploading} accept="image/*" />
+              </label>
+            </div>
+            {uploading && <p className="text-[10px] uppercase tracking-widest text-foreground/40 mb-4">Uploading...</p>}
+            <div className="columns-3 gap-2 overflow-y-auto max-h-[75vh] pr-1">
+              {images.length === 0 ? (
+                <p className="text-foreground/30 text-xs uppercase tracking-widest col-span-3 py-12 text-center">No images yet</p>
+              ) : (
+                images.map((img, index) => (
+                  <div key={`${img}-${index}`} className="relative group border border-foreground/10 p-1 rounded-xl mb-2 break-inside-avoid hover:ring-1 hover:ring-foreground/20 transition-all">
+                    <img draggable onDragStart={e => e.dataTransfer.setData('text/plain', img)} src={img} alt="Library" className="w-full h-auto object-contain rounded-lg cursor-grab" />
+                    <button className="absolute top-2 right-2 bg-foreground/80 text-background rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-[10px]"
+                      onClick={async () => {
+                        const res = await fetch('/api/cms/images/delete', { method: 'POST', body: JSON.stringify({ imageUrl: img }) });
+                        if (res.ok) { setImages(images.filter(i => i !== img)); }
+                      }}>&times;</button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <main className="col-span-12 lg:col-span-7 xl:col-span-8 space-y-10">
+        {/* Homepage Editor */}
+        <section>
+          <div className="flex items-center gap-3 mb-6">
+            <span className="h-[1px] w-6 bg-foreground/20"></span>
+            <p className="text-[10px] uppercase tracking-[0.25em] text-foreground/40">Section</p>
+          </div>
+          <div className="p-1.5 rounded-[2rem] bg-foreground/5 ring-1 ring-foreground/10">
+            <div className="rounded-[calc(2rem-0.375rem)] bg-background p-8 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)] space-y-8">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-heading font-light">Homepage</h2>
+                <button onClick={() => save('homepage', homepageData)} className="group relative bg-foreground text-background rounded-full pl-6 pr-1.5 py-1.5 text-[11px] uppercase tracking-widest font-medium hover:bg-foreground/90 transition-all active:scale-[0.98]">
+                  <span className="py-1.5">Save</span>
+                  <span className="inline-flex w-7 h-7 items-center justify-center rounded-full bg-background/20 ml-2">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                  </span>
+                </button>
+              </div>
+
+              {/* Hero */}
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.25em] text-foreground/40 mb-4">Hero</p>
+                <div className="space-y-4">
+                  <input className="w-full bg-transparent border-b border-foreground/10 pb-2 text-xl font-heading font-light focus:border-foreground/30 focus:outline-none transition-colors placeholder:text-foreground/20" value={homepageData.hero.title} onChange={e => setHomepageData({...homepageData, hero: {...homepageData.hero, title: e.target.value}})} placeholder="Title" />
+                  <textarea className="w-full bg-transparent border-b border-foreground/10 pb-2 text-sm text-foreground/70 font-light leading-relaxed focus:border-foreground/30 focus:outline-none transition-colors resize-none placeholder:text-foreground/20" rows={3} value={homepageData.hero.description || ''} onChange={e => setHomepageData({...homepageData, hero: {...homepageData.hero, description: e.target.value}})} placeholder="Description" />
+                  <div className="border border-dashed border-foreground/15 p-4 rounded-2xl" onDragOver={e => e.preventDefault()} onDrop={e => { const img = e.dataTransfer.getData('text/plain'); setHomepageData({...homepageData, hero: {...homepageData.hero, image: img}}); }}>
+                    <p className="text-[10px] uppercase tracking-widest text-foreground/30 mb-3">Hero Image <span className="normal-case tracking-normal">(drag from library)</span></p>
+                    {homepageData.hero.image ? (
+                      <div className="relative inline-block">
+                        <img src={homepageData.hero.image} alt="Hero" className="max-h-64 w-auto object-contain rounded-xl" />
+                        <button className="absolute -top-2 -right-2 bg-foreground/80 text-background rounded-full w-5 h-5 flex items-center justify-center text-[10px] hover:bg-foreground transition-colors" onClick={() => setHomepageData({...homepageData, hero: {...homepageData.hero, image: ''}})}>&times;</button>
+                      </div>
+                    ) : (
+                      <div className="h-32 w-full bg-foreground/[0.02] rounded-xl flex items-center justify-center">
+                        <span className="text-[10px] uppercase tracking-widest text-foreground/25">Drop image here</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="w-full h-px bg-foreground/5"></div>
+
+              {/* Mission */}
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.25em] text-foreground/40 mb-4">Mission</p>
+                <div className="space-y-4">
+                  <input className="w-full bg-transparent border-b border-foreground/10 pb-2 text-xl font-heading font-light focus:border-foreground/30 focus:outline-none transition-colors placeholder:text-foreground/20" value={homepageData.mission.title} onChange={e => setHomepageData({...homepageData, mission: {...homepageData.mission, title: e.target.value}})} placeholder="Title" />
+                  <textarea className="w-full bg-transparent border-b border-foreground/10 pb-2 text-sm text-foreground/70 font-light leading-relaxed focus:border-foreground/30 focus:outline-none transition-colors resize-none placeholder:text-foreground/20" rows={3} value={homepageData.mission.description || ''} onChange={e => setHomepageData({...homepageData, mission: {...homepageData.mission, description: e.target.value}})} placeholder="Description" />
+                  <div className="border border-dashed border-foreground/15 p-4 rounded-2xl" onDragOver={e => e.preventDefault()} onDrop={e => { const img = e.dataTransfer.getData('text/plain'); setHomepageData({...homepageData, mission: {...homepageData.mission, image: img}}); }}>
+                    <p className="text-[10px] uppercase tracking-widest text-foreground/30 mb-3">Mission Image <span className="normal-case tracking-normal">(drag from library)</span></p>
+                    {homepageData.mission.image ? (
+                      <div className="relative inline-block">
+                        <img src={homepageData.mission.image} alt="Mission" className="max-h-64 w-auto object-contain rounded-xl" />
+                        <button className="absolute -top-2 -right-2 bg-foreground/80 text-background rounded-full w-5 h-5 flex items-center justify-center text-[10px] hover:bg-foreground transition-colors" onClick={() => setHomepageData({...homepageData, mission: {...homepageData.mission, image: ''}})}>&times;</button>
+                      </div>
+                    ) : (
+                      <div className="h-32 w-full bg-foreground/[0.02] rounded-xl flex items-center justify-center">
+                        <span className="text-[10px] uppercase tracking-widest text-foreground/25">Drop image here</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="w-full h-px bg-foreground/5"></div>
+
+              {/* Differentiation Points */}
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.25em] text-foreground/40 mb-4">Differentiation</p>
+                <div className="space-y-3">
+                  {(homepageData.differentiation?.points || []).map((point: any, index: number) => (
+                    <div key={index} className="p-4 bg-foreground/[0.02] rounded-2xl space-y-2">
+                      <input className="w-full bg-transparent border-b border-foreground/10 pb-1 text-sm font-medium focus:border-foreground/30 focus:outline-none transition-colors placeholder:text-foreground/20" value={point.title} onChange={e => { const newPoints = [...homepageData.differentiation.points]; newPoints[index].title = e.target.value; setHomepageData({...homepageData, differentiation: {...homepageData.differentiation, points: newPoints}}); }} placeholder="Point Title" />
+                      <textarea className="w-full bg-transparent border-b border-foreground/10 pb-1 text-sm text-foreground/60 font-light focus:border-foreground/30 focus:outline-none transition-colors resize-none placeholder:text-foreground/20" rows={2} value={point.description} onChange={e => { const newPoints = [...homepageData.differentiation.points]; newPoints[index].description = e.target.value; setHomepageData({...homepageData, differentiation: {...homepageData.differentiation, points: newPoints}}); }} placeholder="Point Description" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Featured Products Editor */}
+        <section>
+          <div className="flex items-center gap-3 mb-6">
+            <span className="h-[1px] w-6 bg-foreground/20"></span>
+            <p className="text-[10px] uppercase tracking-[0.25em] text-foreground/40">Featured</p>
+          </div>
+          <div className="p-1.5 rounded-[2rem] bg-foreground/5 ring-1 ring-foreground/10">
+            <div className="rounded-[calc(2rem-0.375rem)] bg-background p-8 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)] space-y-6">
+              <h2 className="text-2xl font-heading font-light">Featured Products</h2>
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.2em] text-foreground/40 mb-3">Currently Featured</p>
+                <div className="flex flex-wrap gap-2">
+                  {(homepageData.featuredProductIds || []).length === 0 ? (
+                    <span className="text-xs text-foreground/30 italic">None selected</span>
+                  ) : (homepageData.featuredProductIds || []).map((id: string) => {
+                    const product = productsData.find(p => p.id === id);
+                    if (!product) return null;
+                    return (
+                      <span key={id} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-foreground text-background text-xs">
+                        {product.name}
+                        <button onClick={() => setHomepageData({...homepageData, featuredProductIds: homepageData.featuredProductIds.filter((fid: string) => fid !== id)})} className="hover:bg-background/20 rounded-full w-4 h-4 flex items-center justify-center transition-colors text-[10px]">&times;</button>
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className="w-full h-px bg-foreground/5"></div>
+              <div className="flex items-end gap-4">
+                <div className="flex-1">
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-foreground/40 mb-2">Add Product</p>
+                  <select className="w-full bg-foreground/[0.03] border border-foreground/10 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:border-foreground/30 transition-colors appearance-none" onChange={e => { if (e.target.value && !homepageData.featuredProductIds.includes(e.target.value)) { setHomepageData({...homepageData, featuredProductIds: [...homepageData.featuredProductIds, e.target.value]}); e.target.value = ''; } }}>
+                    <option value="">Select a product...</option>
+                    {productsData?.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                </div>
+                <button onClick={() => save('homepage', homepageData)} className="group relative bg-foreground text-background rounded-full pl-6 pr-1.5 py-1.5 text-[11px] uppercase tracking-widest font-medium hover:bg-foreground/90 transition-all active:scale-[0.98]">
+                  <span className="py-1.5">Save</span>
+                  <span className="inline-flex w-7 h-7 items-center justify-center rounded-full bg-background/20 ml-2">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                  </span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
     </div>
   );
 
@@ -652,266 +957,15 @@ export default function DashboardPage() {
           ))}
         </div>
 
+      {/* ====== PRODUCTS TAB ====== */}
+      {activeTab === 'stock' && renderStock()}
+
       {/* ====== ORDERS TAB ====== */}
       {activeTab === 'orders' && renderOrders()}
 
-      {/* ====== STOCK TAB ====== */}
-      {activeTab === 'stock' && renderStock()}
+      {/* ====== HOMEPAGE TAB ====== */}
+      {activeTab === 'homepage' && renderHomepage()}
 
-      {/* ====== CONTENT TAB ====== */}
-      {activeTab === 'content' && (
-      <div className="grid grid-cols-12 gap-8 lg:gap-12">
-        {/* Datalists */}
-        <datalist id="categories">{uniqueCategories.map((c, i) => <option key={`${c}-${i}`} value={c} />)}</datalist>
-        <datalist id="tags">{uniqueTags.map((t, i) => <option key={`${t}-${i}`} value={t} />)}</datalist>
-        <datalist id="sizes">{uniqueSizes.map((s, i) => <option key={`${s}-${i}`} value={s} />)}</datalist>
-        <datalist id="colors">{uniqueColors.map((c, i) => <option key={`${c}-${i}`} value={c} />)}</datalist>
-        <datalist id="materials">{uniqueMaterials.map((m, i) => <option key={`${m}-${i}`} value={m} />)}</datalist>
-
-        {/* Media Library */}
-        <aside className="col-span-12 lg:col-span-5 xl:col-span-4 lg:sticky lg:top-28 self-start">
-          <div className="p-1.5 rounded-[2rem] bg-foreground/5 ring-1 ring-foreground/10">
-            <div className="rounded-[calc(2rem-0.375rem)] bg-background p-6 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <p className="text-[10px] uppercase tracking-[0.25em] text-foreground/40 mb-1">Library</p>
-                  <h2 className="text-lg font-heading font-light">Media</h2>
-                </div>
-                <label className={`cursor-pointer bg-foreground text-background w-9 h-9 rounded-full flex items-center justify-center hover:bg-foreground/90 transition-all active:scale-95 ${uploading ? 'opacity-40 cursor-not-allowed' : ''}`}>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" /></svg>
-                  <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileUpload} disabled={uploading} accept="image/*" />
-                </label>
-              </div>
-              {uploading && <p className="text-[10px] uppercase tracking-widest text-foreground/40 mb-4">Uploading...</p>}
-              <div className="columns-3 gap-2 overflow-y-auto max-h-[75vh] pr-1">
-                {images.length === 0 ? (
-                  <p className="text-foreground/30 text-xs uppercase tracking-widest col-span-3 py-12 text-center">No images yet</p>
-                ) : (
-                  images.map((img, index) => (
-                    <div key={`${img}-${index}`} className="relative group border border-foreground/10 p-1 rounded-xl mb-2 break-inside-avoid hover:ring-1 hover:ring-foreground/20 transition-all">
-                      <img draggable onDragStart={e => e.dataTransfer.setData('text/plain', img)} src={img} alt="Library" className="w-full h-auto object-contain rounded-lg cursor-grab" />
-                      <button className="absolute top-2 right-2 bg-foreground/80 text-background rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-[10px]"
-                        onClick={async () => {
-                          const res = await fetch('/api/cms/images/delete', { method: 'POST', body: JSON.stringify({ imageUrl: img }) });
-                          if (res.ok) { setImages(images.filter(i => i !== img)); }
-                        }}>&times;</button>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
-        </aside>
-
-        <main className="col-span-12 lg:col-span-7 xl:col-span-8 space-y-10">
-          {/* Homepage Editor */}
-          <section>
-            <div className="flex items-center gap-3 mb-6">
-              <span className="h-[1px] w-6 bg-foreground/20"></span>
-              <p className="text-[10px] uppercase tracking-[0.25em] text-foreground/40">Section</p>
-            </div>
-            <div className="p-1.5 rounded-[2rem] bg-foreground/5 ring-1 ring-foreground/10">
-              <div className="rounded-[calc(2rem-0.375rem)] bg-background p-8 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)] space-y-8">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-2xl font-heading font-light">Homepage</h2>
-                  <button onClick={() => save('homepage', homepageData)} className="group relative bg-foreground text-background rounded-full pl-6 pr-1.5 py-1.5 text-[11px] uppercase tracking-widest font-medium hover:bg-foreground/90 transition-all active:scale-[0.98]">
-                    <span className="py-1.5">Save</span>
-                    <span className="inline-flex w-7 h-7 items-center justify-center rounded-full bg-background/20 ml-2">
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                    </span>
-                  </button>
-                </div>
-
-                {/* Hero */}
-                <div>
-                  <p className="text-[10px] uppercase tracking-[0.25em] text-foreground/40 mb-4">Hero</p>
-                  <div className="space-y-4">
-                    <input className="w-full bg-transparent border-b border-foreground/10 pb-2 text-xl font-heading font-light focus:border-foreground/30 focus:outline-none transition-colors placeholder:text-foreground/20" value={homepageData.hero.title} onChange={e => setHomepageData({...homepageData, hero: {...homepageData.hero, title: e.target.value}})} placeholder="Title" />
-                    <textarea className="w-full bg-transparent border-b border-foreground/10 pb-2 text-sm text-foreground/70 font-light leading-relaxed focus:border-foreground/30 focus:outline-none transition-colors resize-none placeholder:text-foreground/20" rows={3} value={homepageData.hero.description || ''} onChange={e => setHomepageData({...homepageData, hero: {...homepageData.hero, description: e.target.value}})} placeholder="Description" />
-                    <div className="border border-dashed border-foreground/15 p-4 rounded-2xl" onDragOver={e => e.preventDefault()} onDrop={e => { const img = e.dataTransfer.getData('text/plain'); setHomepageData({...homepageData, hero: {...homepageData.hero, image: img}}); }}>
-                      <p className="text-[10px] uppercase tracking-widest text-foreground/30 mb-3">Hero Image <span className="normal-case tracking-normal">(drag from library)</span></p>
-                      {homepageData.hero.image ? (
-                        <div className="relative inline-block">
-                          <img src={homepageData.hero.image} alt="Hero" className="max-h-64 w-auto object-contain rounded-xl" />
-                          <button className="absolute -top-2 -right-2 bg-foreground/80 text-background rounded-full w-5 h-5 flex items-center justify-center text-[10px] hover:bg-foreground transition-colors" onClick={() => setHomepageData({...homepageData, hero: {...homepageData.hero, image: ''}})}>&times;</button>
-                        </div>
-                      ) : (
-                        <div className="h-32 w-full bg-foreground/[0.02] rounded-xl flex items-center justify-center">
-                          <span className="text-[10px] uppercase tracking-widest text-foreground/25">Drop image here</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="w-full h-px bg-foreground/5"></div>
-
-                {/* Mission */}
-                <div>
-                  <p className="text-[10px] uppercase tracking-[0.25em] text-foreground/40 mb-4">Mission</p>
-                  <div className="space-y-4">
-                    <input className="w-full bg-transparent border-b border-foreground/10 pb-2 text-xl font-heading font-light focus:border-foreground/30 focus:outline-none transition-colors placeholder:text-foreground/20" value={homepageData.mission.title} onChange={e => setHomepageData({...homepageData, mission: {...homepageData.mission, title: e.target.value}})} placeholder="Title" />
-                    <textarea className="w-full bg-transparent border-b border-foreground/10 pb-2 text-sm text-foreground/70 font-light leading-relaxed focus:border-foreground/30 focus:outline-none transition-colors resize-none placeholder:text-foreground/20" rows={3} value={homepageData.mission.description || ''} onChange={e => setHomepageData({...homepageData, mission: {...homepageData.mission, description: e.target.value}})} placeholder="Description" />
-                    <div className="border border-dashed border-foreground/15 p-4 rounded-2xl" onDragOver={e => e.preventDefault()} onDrop={e => { const img = e.dataTransfer.getData('text/plain'); setHomepageData({...homepageData, mission: {...homepageData.mission, image: img}}); }}>
-                      <p className="text-[10px] uppercase tracking-widest text-foreground/30 mb-3">Mission Image <span className="normal-case tracking-normal">(drag from library)</span></p>
-                      {homepageData.mission.image ? (
-                        <div className="relative inline-block">
-                          <img src={homepageData.mission.image} alt="Mission" className="max-h-64 w-auto object-contain rounded-xl" />
-                          <button className="absolute -top-2 -right-2 bg-foreground/80 text-background rounded-full w-5 h-5 flex items-center justify-center text-[10px] hover:bg-foreground transition-colors" onClick={() => setHomepageData({...homepageData, mission: {...homepageData.mission, image: ''}})}>&times;</button>
-                        </div>
-                      ) : (
-                        <div className="h-32 w-full bg-foreground/[0.02] rounded-xl flex items-center justify-center">
-                          <span className="text-[10px] uppercase tracking-widest text-foreground/25">Drop image here</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="w-full h-px bg-foreground/5"></div>
-
-                {/* Differentiation Points */}
-                <div>
-                  <p className="text-[10px] uppercase tracking-[0.25em] text-foreground/40 mb-4">Differentiation</p>
-                  <div className="space-y-3">
-                    {(homepageData.differentiation?.points || []).map((point: any, index: number) => (
-                      <div key={index} className="p-4 bg-foreground/[0.02] rounded-2xl space-y-2">
-                        <input className="w-full bg-transparent border-b border-foreground/10 pb-1 text-sm font-medium focus:border-foreground/30 focus:outline-none transition-colors placeholder:text-foreground/20" value={point.title} onChange={e => { const newPoints = [...homepageData.differentiation.points]; newPoints[index].title = e.target.value; setHomepageData({...homepageData, differentiation: {...homepageData.differentiation, points: newPoints}}); }} placeholder="Point Title" />
-                        <textarea className="w-full bg-transparent border-b border-foreground/10 pb-1 text-sm text-foreground/60 font-light focus:border-foreground/30 focus:outline-none transition-colors resize-none placeholder:text-foreground/20" rows={2} value={point.description} onChange={e => { const newPoints = [...homepageData.differentiation.points]; newPoints[index].description = e.target.value; setHomepageData({...homepageData, differentiation: {...homepageData.differentiation, points: newPoints}}); }} placeholder="Point Description" />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* Featured Products Editor */}
-          <section>
-            <div className="flex items-center gap-3 mb-6">
-              <span className="h-[1px] w-6 bg-foreground/20"></span>
-              <p className="text-[10px] uppercase tracking-[0.25em] text-foreground/40">Featured</p>
-            </div>
-            <div className="p-1.5 rounded-[2rem] bg-foreground/5 ring-1 ring-foreground/10">
-              <div className="rounded-[calc(2rem-0.375rem)] bg-background p-8 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)] space-y-6">
-                <h2 className="text-2xl font-heading font-light">Featured Products</h2>
-                <div>
-                  <p className="text-[10px] uppercase tracking-[0.2em] text-foreground/40 mb-3">Currently Featured</p>
-                  <div className="flex flex-wrap gap-2">
-                    {(homepageData.featuredProductIds || []).length === 0 ? (
-                      <span className="text-xs text-foreground/30 italic">None selected</span>
-                    ) : (homepageData.featuredProductIds || []).map((id: string) => {
-                      const product = productsData.find(p => p.id === id);
-                      if (!product) return null;
-                      return (
-                        <span key={id} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-foreground text-background text-xs">
-                          {product.name}
-                          <button onClick={() => setHomepageData({...homepageData, featuredProductIds: homepageData.featuredProductIds.filter((fid: string) => fid !== id)})} className="hover:bg-background/20 rounded-full w-4 h-4 flex items-center justify-center transition-colors text-[10px]">&times;</button>
-                        </span>
-                      );
-                    })}
-                  </div>
-                </div>
-                <div className="w-full h-px bg-foreground/5"></div>
-                <div className="flex items-end gap-4">
-                  <div className="flex-1">
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-foreground/40 mb-2">Add Product</p>
-                    <select className="w-full bg-foreground/[0.03] border border-foreground/10 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:border-foreground/30 transition-colors appearance-none" onChange={e => { if (e.target.value && !homepageData.featuredProductIds.includes(e.target.value)) { setHomepageData({...homepageData, featuredProductIds: [...homepageData.featuredProductIds, e.target.value]}); e.target.value = ''; } }}>
-                      <option value="">Select a product...</option>
-                      {productsData?.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                    </select>
-                  </div>
-                  <button onClick={() => save('homepage', homepageData)} className="group relative bg-foreground text-background rounded-full pl-6 pr-1.5 py-1.5 text-[11px] uppercase tracking-widest font-medium hover:bg-foreground/90 transition-all active:scale-[0.98]">
-                    <span className="py-1.5">Save</span>
-                    <span className="inline-flex w-7 h-7 items-center justify-center rounded-full bg-background/20 ml-2">
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                    </span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* Products Editor */}
-          <section>
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <span className="h-[1px] w-6 bg-foreground/20"></span>
-                <p className="text-[10px] uppercase tracking-[0.25em] text-foreground/40">Products</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <input className="bg-foreground/[0.03] border border-foreground/10 rounded-full px-4 py-2 text-xs focus:outline-none focus:border-foreground/30 transition-colors w-40 placeholder:text-foreground/25" placeholder="Filter..." value={filter} onChange={e => setFilter(e.target.value)} />
-                <button onClick={() => setProductsData([...productsData, { id: Date.now().toString(), name: 'New Product', price: 0, images: [], tags: [], category: '', variations: { sizes: [], colors: [], materials: [] }, description: '' }])} className="bg-foreground text-background rounded-full px-4 py-2 text-[11px] uppercase tracking-widest font-medium hover:bg-foreground/90 transition-all active:scale-[0.98]">
-                  + Add
-                </button>
-              </div>
-            </div>
-            <div className="space-y-6">
-              {filteredProducts.map((product, index) => (
-                <div key={product.id} className="p-1.5 rounded-[2rem] bg-foreground/5 ring-1 ring-foreground/10 transition-all hover:ring-foreground/15" onDragOver={e => e.preventDefault()} onDrop={e => { const img = e.dataTransfer.getData('text/plain'); const newProducts = [...productsData]; if (!newProducts[index].images.includes(img)) { newProducts[index].images.push(img); setProductsData(newProducts); } }}>
-                  <div className="rounded-[calc(2rem-0.375rem)] bg-background p-6 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]">
-                    {/* Product Header */}
-                    <div className="flex items-start justify-between mb-6">
-                      <input className="font-heading text-xl font-light bg-transparent border-b border-foreground/10 pb-1 focus:border-foreground/30 focus:outline-none transition-colors w-full mr-4 placeholder:text-foreground/20" value={product.name || ''} onChange={e => { const newProducts = [...productsData]; newProducts[index].name = e.target.value; setProductsData(newProducts); }} />
-                      <div className="flex items-center gap-2 shrink-0 mt-1">
-                        <button onClick={() => save('products', product, product.id)} className="text-[10px] uppercase tracking-widest text-foreground/50 hover:text-foreground transition-colors px-3 py-1 rounded-full border border-foreground/10 hover:border-foreground/25">Save</button>
-                        <button onClick={() => setProductsData(productsData.filter(p => p.id !== product.id))} className="text-[10px] uppercase tracking-widest text-red-400/60 hover:text-red-500 transition-colors px-3 py-1 rounded-full border border-red-400/20 hover:border-red-400/40">Delete</button>
-                      </div>
-                    </div>
-
-                    {/* Price & Category */}
-                    <div className="grid grid-cols-2 gap-6 mb-6">
-                      <div>
-                        <p className="text-[10px] uppercase tracking-[0.2em] text-foreground/40 mb-2">Price</p>
-                        <div className="relative">
-                          <span className="absolute left-0 top-1/2 -translate-y-1/2 text-foreground/30 text-sm">$</span>
-                          <input type="number" className="w-full bg-transparent border-b border-foreground/10 pb-1 pl-4 text-sm focus:border-foreground/30 focus:outline-none transition-colors" value={product.price ?? 0} onChange={e => { const newProducts = [...productsData]; newProducts[index].price = parseFloat(e.target.value); setProductsData(newProducts); }} />
-                        </div>
-                      </div>
-                      <div>
-                        <p className="text-[10px] uppercase tracking-[0.2em] text-foreground/40 mb-2">Category</p>
-                        <input list="categories" className="w-full bg-transparent border-b border-foreground/10 pb-1 text-sm focus:border-foreground/30 focus:outline-none transition-colors placeholder:text-foreground/20" value={product.category} onChange={e => { const newProducts = [...productsData]; newProducts[index].category = e.target.value; setProductsData(newProducts); }} placeholder="Category" />
-                      </div>
-                    </div>
-
-                    {/* Description */}
-                    <div className="mb-6">
-                      <p className="text-[10px] uppercase tracking-[0.2em] text-foreground/40 mb-2">Description</p>
-                      <textarea className="w-full bg-transparent border-b border-foreground/10 pb-1 text-sm text-foreground/70 font-light leading-relaxed focus:border-foreground/30 focus:outline-none transition-colors resize-none placeholder:text-foreground/20" rows={2} value={product.description || ''} onChange={e => { const newProducts = [...productsData]; newProducts[index].description = e.target.value; setProductsData(newProducts); }} placeholder="Description" />
-                    </div>
-
-                    {/* Tags, Sizes, Colors, Materials */}
-                    <div className="grid grid-cols-2 gap-4 mb-6">
-                      <TagInput label="Tags" values={product.tags || []} onChange={vals => { const p = [...productsData]; p[index].tags = vals; setProductsData(p); }} listId="tags" placeholder="Type and press Enter" />
-                      <TagInput label="Sizes" values={product.variations?.sizes || []} onChange={vals => { const p = [...productsData]; p[index].variations = { ...p[index].variations, sizes: vals }; setProductsData(p); }} listId="sizes" placeholder="Type and press Enter" />
-                      <TagInput label="Colors" values={product.variations?.colors || []} onChange={vals => { const p = [...productsData]; p[index].variations = { ...p[index].variations, colors: vals }; setProductsData(p); }} listId="colors" placeholder="Type and press Enter" />
-                      <TagInput label="Materials" values={product.variations?.materials || []} onChange={vals => { const p = [...productsData]; p[index].variations = { ...p[index].variations, materials: vals }; setProductsData(p); }} listId="materials" placeholder="Type and press Enter" />
-                    </div>
-
-                    {/* Images */}
-                    <div>
-                      <p className="text-[10px] uppercase tracking-[0.2em] text-foreground/40 mb-3">Images <span className="normal-case tracking-normal text-foreground/25">(drag from library)</span></p>
-                      <div className="flex gap-3 flex-wrap">
-                        {(product.images || []).map((img: string, i: number) => (
-                          <div key={i} className="relative group">
-                            {img && img.trim() !== '' ? (
-                              <div className="p-1 rounded-xl border border-foreground/10 hover:ring-1 hover:ring-foreground/20 transition-all">
-                                <img src={img} className="max-h-28 w-auto object-contain rounded-lg" alt="product" />
-                                <button className="absolute -top-1.5 -right-1.5 bg-foreground/80 text-background rounded-full w-4 h-4 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-[9px]" onClick={() => { const newProducts = [...productsData]; newProducts[index].images.splice(i, 1); setProductsData(newProducts); }}>&times;</button>
-                              </div>
-                            ) : null}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        </main>
-      </div>
-      )}
       </div>
     </div>
   );

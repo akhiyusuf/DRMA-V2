@@ -1,7 +1,7 @@
 "use client";
 
 import { notFound } from "next/navigation";
-import { use, useState, useEffect, useRef, useCallback } from "react";
+import { use, useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, ArrowUpRight, Info, Check, Minus, Plus } from "lucide-react";
 import Link from "next/link";
@@ -25,20 +25,16 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
   const feedbackTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // ALL hooks must be declared before any early returns (Rules of Hooks)
-  const initSound = useCallback(() => {
+  const playCartSound = () => {
     if (!soundRef.current) {
       soundRef.current = new Audio('/sounds/add-to-cart.wav');
       soundRef.current.volume = 0.3;
     }
-  }, []);
-
-  const playCartSound = useCallback(() => {
-    initSound();
     if (soundRef.current) {
       soundRef.current.currentTime = 0;
       soundRef.current.play().catch(() => {});
     }
-  }, [initSound]);
+  };
 
   useEffect(() => {
     fetch('/api/products')
@@ -91,7 +87,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
     notFound();
   }
 
-  // --- Derived values (after early returns, no hooks below) ---
+  // Reset quantity if it exceeds the new effective max
   const maxPerOrder = product.max_per_order ?? DEFAULT_MAX_PER_ORDER;
   const productStockTracked = product.stock_quantity !== null && product.stock_quantity !== undefined && product.stock_quantity >= 0;
 
@@ -101,11 +97,6 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
   const isOutOfStock = effectiveStock === 0;
   const isLowStock = stockTracked && effectiveStock > 0 && effectiveStock <= (product.low_stock_threshold ?? 3);
   const effectiveMax = stockTracked ? Math.min(maxPerOrder, effectiveStock) : maxPerOrder;
-
-  // Reset quantity if it exceeds the new effective max
-  useEffect(() => {
-    if (quantity > effectiveMax) setQuantity(effectiveMax);
-  }, [effectiveMax, quantity]);
 
   const showFeedback = (type: 'error' | 'success', message: string) => {
     if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
