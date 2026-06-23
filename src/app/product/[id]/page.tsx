@@ -1,9 +1,9 @@
 "use client";
 
 import { notFound } from "next/navigation";
-import { use, useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { ArrowLeft, ArrowUpRight, Info, Check } from "lucide-react";
+import { use, useState, useEffect, useRef, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ArrowLeft, ArrowUpRight, Info, Check, Minus, Plus, ShoppingBag } from "lucide-react";
 import Link from "next/link";
 import type { Product } from "@/types/product";
 import { DEFAULT_MAX_PER_ORDER } from "@/types/product";
@@ -15,8 +15,24 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
   const [loading, setLoading] = useState(true);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
+  const [quantity, setQuantity] = useState(1);
   const [feedback, setFeedback] = useState<{ type: 'error' | 'success', message: string } | null>(null);
   const { addItem } = useCart();
+
+  // Flying animation state
+  const [flyingItems, setFlyingItems] = useState<{ id: number; x: number; y: number }[]>([]);
+  const [showCartFlash, setShowCartFlash] = useState(false);
+  const imageRef = useRef<HTMLDivElement>(null);
+  const flyingIdRef = useRef(0);
+  const soundRef = useRef<HTMLAudioElement | null>(null);
+
+  // Initialize sound on first user interaction
+  const initSound = useCallback(() => {
+    if (!soundRef.current) {
+      soundRef.current = new Audio('/sounds/add-to-cart.wav');
+      soundRef.current.volume = 0.3;
+    }
+  }, []);
 
   useEffect(() => {
     fetch('/api/products')
@@ -58,6 +74,26 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
   const stockIsTracked = product.stock_quantity !== null && product.stock_quantity !== undefined && product.stock_quantity >= 0;
   const effectiveMax = stockIsTracked ? Math.min(maxPerOrder, product.stock_quantity!) : maxPerOrder;
 
+  const triggerFlyAnimation = () => {
+    if (!imageRef.current) return;
+    const rect = imageRef.current.getBoundingClientRect();
+    const startX = rect.left + rect.width / 2;
+    const startY = rect.top + rect.height / 2;
+    const id = flyingIdRef.current++;
+    setFlyingItems(prev => [...prev, { id, x: startX, y: startY }]);
+    setTimeout(() => {
+      setFlyingItems(prev => prev.filter(item => item.id !== id));
+    }, 900);
+  };
+
+  const playCartSound = () => {
+    initSound();
+    if (soundRef.current) {
+      soundRef.current.currentTime = 0;
+      soundRef.current.play().catch(() => {});
+    }
+  };
+
   const addToCart = () => {
     if (!selectedSize || !selectedColor) {
       setFeedback({ type: 'error', message: 'Please select both a size and a color.' });
@@ -80,14 +116,83 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
       selectedColor,
       maxPerOrder,
       stockQuantity: product.stock_quantity,
+      quantity,
     });
 
-    setFeedback({ type: 'success', message: `${product.name} (${selectedSize}, ${selectedColor}) added to cart!` });
+    // Trigger animations
+    triggerFlyAnimation();
+    playCartSound();
+
+    setFeedback({ type: 'success', message: `${quantity}x ${product.name} (${selectedSize}, ${selectedColor}) added to cart!` });
     setTimeout(() => setFeedback(null), 3000);
   };
 
+  const incrementQty = () => setQuantity(prev => Math.min(prev + 1, effectiveMax));
+  const decrementQty = () => setQuantity(prev => Math.max(prev - 1, 1));
+
   return (
     <div className="w-full bg-background min-h-screen selection:bg-primary selection:text-primary-foreground pt-32 pb-24">
+      {/* Flying cart animation overlay */}
+      <div className="fixed inset-0 pointer-events-none z-[100]">
+        <AnimatePresence>
+          {flyingItems.map((item) => {
+            // Target: top-right corner where cart icon lives
+            const targetX = typeof window !== 'undefined' ? window.innerWidth - 40 : 800;
+            const targetY = 40;
+            return (
+              <motion.div
+                key={item.id}
+                initial={{ 
+                  x: item.x - 20, 
+                  y: item.y - 20,
+                  scale: 1,
+                  opacity: 1,
+                }}
+                animate={{ 
+                  x: targetX, 
+                  y: targetY,
+                  scale: 0.2,
+                  opacity: 0.6,
+                }}
+                exit={{ opacity: 0 }}
+                transition={{ 
+                  duration: 0.7, 
+                  ease: [0.22, 1, 0.36, 1],
+                }}
+                className="absolute w-10 h-10"
+              >
+                <div className="w-10 h-10 rounded-xl overflow-hidden shadow-lg border border-foreground/20">
+                  {product?.images[0] ? (
+                    <img src={product.images[0]} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-foreground/10 flex items-center justify-center">
+                      <ShoppingBag className="w-4 h-4" />
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
+      </div>
+
+      {/* Cart icon flash in navbar */}
+      <AnimatePresence>
+        {showCartFlash && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{ opacity: [0, 1, 0], scale: [0.5, 1.5, 2] }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+            className="fixed top-5 right-5 md:right-[8%] z-[101] pointer-events-none"
+          >
+            <div className="w-8 h-8 rounded-full bg-primary/30 flex items-center justify-center">
+              <ShoppingBag className="w-4 h-4 text-primary" />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="container mx-auto px-4 md:px-8 max-w-7xl">
         
         {/* Breadcrumb / Back */}
@@ -115,7 +220,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
               transition={{ duration: 1, ease: [0.32, 0.72, 0, 1] }}
               className="p-2 rounded-[2.5rem] bg-foreground/5 ring-1 ring-foreground/10"
             >
-              <div className="aspect-[3/4] relative rounded-[calc(2.5rem-0.5rem)] overflow-hidden shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]">
+              <div ref={imageRef} className="aspect-[3/4] relative rounded-[calc(2.5rem-0.5rem)] overflow-hidden shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]">
                 {product.images[0] ? (
                   <img 
                     src={product.images[0]} 
@@ -170,7 +275,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
               </div>
 
               {/* Colors Selection */}
-              <div className="mb-16">
+              <div className="mb-10">
                 <h3 className="text-xs font-medium uppercase tracking-[0.2em] text-foreground/50 mb-4">Color</h3>
                 <div className="flex flex-wrap gap-3">
                   {product.variations?.colors?.map(color => (
@@ -179,6 +284,33 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                     </button>
                   ))}
                 </div>
+              </div>
+
+              {/* Quantity Selector */}
+              <div className="mb-10">
+                <h3 className="text-xs font-medium uppercase tracking-[0.2em] text-foreground/50 mb-4">Quantity</h3>
+                <div className="inline-flex items-center gap-0 border border-foreground/10 rounded-full">
+                  <button
+                    onClick={decrementQty}
+                    disabled={quantity <= 1}
+                    className="w-12 h-12 flex items-center justify-center text-foreground/60 hover:text-foreground hover:bg-foreground/5 transition-all rounded-l-full disabled:opacity-25 disabled:cursor-not-allowed"
+                    aria-label="Decrease quantity"
+                  >
+                    <Minus className="w-4 h-4" />
+                  </button>
+                  <span className="w-14 text-center text-sm font-light tabular-nums">{quantity}</span>
+                  <button
+                    onClick={incrementQty}
+                    disabled={quantity >= effectiveMax}
+                    className="w-12 h-12 flex items-center justify-center text-foreground/60 hover:text-foreground hover:bg-foreground/5 transition-all rounded-r-full disabled:opacity-25 disabled:cursor-not-allowed"
+                    aria-label="Increase quantity"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+                {effectiveMax < Infinity && (
+                  <p className="text-[10px] uppercase tracking-widest text-foreground/30 mt-2">Max {effectiveMax} per order</p>
+                )}
               </div>
 
               {/* Inline Feedback */}
@@ -207,12 +339,6 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                   ) : (
                     <p className="text-xs uppercase tracking-widest text-foreground/40">In Stock</p>
                   )}
-                  <p className="text-[10px] uppercase tracking-widest text-foreground/30">Limit {effectiveMax} per order</p>
-                </div>
-              )}
-              {!stockIsTracked && (
-                <div className="mb-6">
-                  <p className="text-[10px] uppercase tracking-widest text-foreground/30">Limit {maxPerOrder} per order</p>
                 </div>
               )}
 

@@ -1,5 +1,7 @@
 "use client";
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+
+const POLL_INTERVAL = 8000; // Check every 8 seconds
 
 type Tab = 'content' | 'orders' | 'stock';
 
@@ -35,6 +37,12 @@ export default function DashboardPage() {
   // --- Stock Tab State ---
   const [stockData, setStockData] = useState<any[]>([]);
   const [editingStock, setEditingStock] = useState<string | null>(null);
+
+  // --- Auto-Refresh State ---
+  const [lastFingerprint, setLastFingerprint] = useState('');
+  const [refreshNotification, setRefreshNotification] = useState<string | null>(null);
+  const isSavingRef = useRef(false);
+  const cmsSoundRef = useRef<HTMLAudioElement | null>(null);
 
   // ======== Data Fetching ========
 
@@ -84,6 +92,56 @@ export default function DashboardPage() {
   useEffect(() => { if (activeTab === 'orders') fetchOrders(); }, [activeTab, ordersPage, ordersFilter]);
   useEffect(() => { if (activeTab === 'stock') fetchStock(); }, [activeTab]);
 
+  // ======== Auto-Refresh Polling ========
+
+  const playCmsSound = useCallback(() => {
+    if (!cmsSoundRef.current) {
+      cmsSoundRef.current = new Audio('/sounds/cms-refresh.wav');
+      cmsSoundRef.current.volume = 0.3;
+    }
+    if (cmsSoundRef.current) {
+      cmsSoundRef.current.currentTime = 0;
+      cmsSoundRef.current.play().catch(() => {});
+    }
+  }, []);
+
+  useEffect(() => {
+    const pollFingerprint = async () => {
+      try {
+        const res = await fetch('/api/cms/fingerprint');
+        if (!res.ok) return;
+        const { fingerprint } = await res.json();
+
+        if (lastFingerprint && fingerprint !== lastFingerprint && !isSavingRef.current) {
+          // External change detected — refresh data
+          fetchContentData();
+          if (activeTab === 'orders') fetchOrders();
+          if (activeTab === 'stock') fetchStock();
+          playCmsSound();
+          setRefreshNotification('Content updated — auto-refreshed');
+          setTimeout(() => setRefreshNotification(null), 3000);
+        }
+        setLastFingerprint(fingerprint);
+      } catch {
+        // Silently fail — don't disrupt the CMS experience
+      }
+    };
+
+    // Initial fingerprint fetch after data loads
+    const initTimeout = setTimeout(() => {
+      fetch('/api/cms/fingerprint')
+        .then(res => res.ok ? res.json() : { fingerprint: '' })
+        .then(({ fingerprint }) => setLastFingerprint(fingerprint))
+        .catch(() => {});
+    }, 2000);
+
+    const interval = setInterval(pollFingerprint, POLL_INTERVAL);
+    return () => {
+      clearInterval(interval);
+      clearTimeout(initTimeout);
+    };
+  }, [lastFingerprint, activeTab, playCmsSound]);
+
   // ======== Content Tab Helpers ========
 
   const save = async (type: string, data: any, id?: string) => {
@@ -92,11 +150,21 @@ export default function DashboardPage() {
       const currentData = await fetch('/api/cms/content?type=products').then(res => res.json());
       payload = currentData.map((p: any) => p.id === id ? data : p);
     }
+    isSavingRef.current = true;
     try {
       const res = await fetch('/api/cms/content', { method: 'POST', body: JSON.stringify({ type, data: payload }) });
-      if (res.ok) alert('Saved successfully!');
+      if (res.ok) {
+        // Update fingerprint after own save to prevent false positive
+        const fpRes = await fetch('/api/cms/fingerprint');
+        if (fpRes.ok) {
+          const { fingerprint } = await fpRes.json();
+          setLastFingerprint(fingerprint);
+        }
+        alert('Saved successfully!');
+      }
       else alert('Failed to save');
     } catch (err) { alert('Error saving: ' + err); }
+    finally { isSavingRef.current = false; }
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -134,29 +202,51 @@ export default function DashboardPage() {
   // ======== Orders Tab Helpers ========
 
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
+    isSavingRef.current = true;
     try {
       const res = await fetch(`/api/cms/orders/${orderId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus, note: statusNote || undefined }),
       });
-      if (res.ok) { fetchOrders(); setStatusNote(''); setExpandedOrder(null); }
+      if (res.ok) {
+        fetchOrders();
+        setStatusNote('');
+        setExpandedOrder(null);
+        // Update fingerprint after own save
+        const fpRes = await fetch('/api/cms/fingerprint');
+        if (fpRes.ok) {
+          const { fingerprint } = await fpRes.json();
+          setLastFingerprint(fingerprint);
+        }
+      }
       else alert('Failed to update order');
     } catch { alert('Error updating order'); }
+    finally { isSavingRef.current = false; }
   };
 
   // ======== Stock Tab Helpers ========
 
   const updateStock = async (productId: string, field: string, value: any) => {
+    isSavingRef.current = true;
     try {
       const res = await fetch('/api/cms/stock', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ productId, [field]: value }),
       });
-      if (res.ok) fetchStock();
+      if (res.ok) {
+        fetchStock();
+        // Update fingerprint after own save
+        const fpRes = await fetch('/api/cms/fingerprint');
+        if (fpRes.ok) {
+          const { fingerprint } = await fpRes.json();
+          setLastFingerprint(fingerprint);
+        }
+      }
       else alert('Failed to update stock');
     } catch { alert('Error updating stock'); }
+    finally { isSavingRef.current = false; }
   };
 
   // ======== Render Helpers ========
@@ -366,7 +456,20 @@ export default function DashboardPage() {
 
   return (
     <div className="w-full bg-background text-foreground min-h-screen selection:bg-primary selection:text-primary-foreground">
-      <div className="max-w-[1400px] mx-auto px-4 md:px-8 pt-32 pb-24">
+      <div className="max-w-[1400px] mx-auto px-4 md:px-8 pt-32 pb-24 relative">
+
+        {/* Auto-refresh notification toast */}
+        {refreshNotification && (
+          <div className="fixed top-24 right-6 z-50 bg-foreground text-background px-5 py-3 rounded-full text-xs uppercase tracking-widest font-medium shadow-lg animate-in slide-in-from-right fade-in duration-300">
+            {refreshNotification}
+          </div>
+        )}
+
+        {/* Auto-refresh indicator */}
+        <div className="absolute top-32 right-6 flex items-center gap-2 text-[10px] uppercase tracking-widest text-foreground/25">
+          <span className="w-1.5 h-1.5 rounded-full bg-green-500/60 animate-pulse"></span>
+          Live Sync
+        </div>
 
         {/* Header */}
         <div className="mb-16">

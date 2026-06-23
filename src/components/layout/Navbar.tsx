@@ -6,10 +6,16 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCart } from "@/context/CartContext";
 
+const badgeBounce = {
+  initial: { scale: 1 },
+  animate: { scale: [1, 1.6, 0.9, 1.2, 1] },
+  transition: { duration: 0.5, ease: "easeOut" as const },
+};
+
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { itemCount } = useCart();
+  const { itemCount, cartBounceKey } = useCart();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -73,11 +79,24 @@ export function Navbar() {
               <User className="w-5 h-5 stroke-[1.5]" />
             </button>
             <Link href="/cart" className="p-2 hover:text-primary transition-colors relative" aria-label="Shopping Cart">
-              <ShoppingBag className="w-5 h-5 stroke-[1.5]" />
+              <motion.div
+                key={cartBounceKey}
+                initial={badgeBounce.initial}
+                animate={badgeBounce.animate}
+                transition={badgeBounce.transition}
+              >
+                <ShoppingBag className="w-5 h-5 stroke-[1.5]" />
+              </motion.div>
               {itemCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-primary text-primary-foreground text-[10px] font-semibold rounded-full flex items-center justify-center px-1 leading-none">
+                <motion.span
+                  key={`badge-${cartBounceKey}`}
+                  initial={badgeBounce.initial}
+                  animate={badgeBounce.animate}
+                  transition={{ ...badgeBounce.transition, delay: 0.1 }}
+                  className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-primary text-primary-foreground text-[10px] font-semibold rounded-full flex items-center justify-center px-1 leading-none"
+                >
                   {itemCount}
-                </span>
+                </motion.span>
               )}
             </Link>
           </div>
