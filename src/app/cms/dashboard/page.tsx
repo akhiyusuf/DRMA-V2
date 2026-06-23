@@ -36,10 +36,8 @@ export default function DashboardPage() {
 
   // --- Stock Tab State ---
   const [stockData, setStockData] = useState<any[]>([]);
-  const [editingStock, setEditingStock] = useState<string | null>(null);
   const [expandedStockProduct, setExpandedStockProduct] = useState<string | null>(null);
   const [variantData, setVariantData] = useState<Record<string, any[]>>({});
-  const [editingProductContent, setEditingProductContent] = useState<string | null>(null);
 
   // --- Auto-Refresh State ---
   const [lastFingerprint, setLastFingerprint] = useState('');
@@ -312,6 +310,7 @@ export default function DashboardPage() {
       setExpandedStockProduct(null);
     } else {
       setExpandedStockProduct(productId);
+      // Fetch variants for all products with variations
       if (!variantData[productId]) {
         await fetchVariants(productId);
       }
@@ -322,7 +321,15 @@ export default function DashboardPage() {
 
   if (!homepageData || !productsData) return <div className="min-h-screen flex items-center justify-center bg-background"><div className="animate-pulse font-heading text-2xl text-foreground/20 tracking-[0.3em]">DRMA</div></div>;
 
-  const filteredProducts = stockData?.filter((p: any) => p.name.toLowerCase().includes(filter.toLowerCase()) || p.category.toLowerCase().includes(filter.toLowerCase())) || [];
+  // Find product content data by id (merge stockData with productsData)
+  const getProductContent = (id: string) => productsData?.find((p: any) => p.id === id);
+
+  const filteredProducts = stockData?.filter((p: any) => {
+    const content = getProductContent(p.id);
+    const name = content?.name || p.name;
+    const category = content?.category || p.category || '';
+    return name.toLowerCase().includes(filter.toLowerCase()) || category.toLowerCase().includes(filter.toLowerCase());
+  }) || [];
   const uniqueCategories = Array.from(new Set(productsData?.map(p => p.category).filter(Boolean)));
   const uniqueTags = Array.from(new Set(productsData?.flatMap(p => p.tags || []).filter(Boolean)));
   const uniqueSizes = Array.from(new Set(productsData?.flatMap(p => p.variations?.sizes || []).filter(Boolean)));
@@ -336,9 +343,6 @@ export default function DashboardPage() {
   ];
 
   const formatDate = (d: string) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-
-  // Find product content data by id (merge stockData with productsData)
-  const getProductContent = (id: string) => productsData?.find((p: any) => p.id === id);
 
   // ======== ORDERS TAB ========
 
@@ -492,7 +496,6 @@ export default function DashboardPage() {
             const sizes: string[] = product.variations?.sizes || [];
             const colors: string[] = product.variations?.colors || [];
             const hasVariants = sizes.length > 0 && colors.length > 0;
-            const isEditingContent = editingProductContent === product.id;
 
             return (
               <div key={product.id} className="border border-foreground/10 rounded-2xl overflow-hidden transition-all hover:border-foreground/20">
@@ -555,189 +558,162 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                {/* ===== Expanded: Content + Stock Editing ===== */}
-                {isExpanded && (
+                {/* ===== Expanded: Unified Product Editing (Content + Stock + Variants) ===== */}
+                {isExpanded && content && (
                   <div className="border-t border-foreground/10 bg-foreground/[0.015]">
-                    {/* Sub-tabs: Content | Stock */}
-                    <div className="flex gap-1 px-5 pt-4">
-                      <button
-                        onClick={() => setEditingProductContent(product.id)}
-                        className={`px-4 py-2 text-[10px] uppercase tracking-widest rounded-full transition-colors ${isEditingContent ? 'bg-foreground text-background' : 'text-foreground/40 hover:text-foreground/70 hover:bg-foreground/5'}`}
-                      >Edit Content</button>
-                      <button
-                        onClick={() => { setEditingProductContent(null); setEditingStock(editingStock === product.id ? null : product.id); }}
-                        className={`px-4 py-2 text-[10px] uppercase tracking-widest rounded-full transition-colors ${!isEditingContent && editingStock === product.id ? 'bg-foreground text-background' : 'text-foreground/40 hover:text-foreground/70 hover:bg-foreground/5'}`}
-                      >Stock Settings</button>
+                    {/* --- Content Section --- */}
+                    <div className="px-5 py-5 space-y-5">
+                      <div className="flex items-center gap-3 mb-1">
+                        <span className="h-[1px] w-4 bg-foreground/20"></span>
+                        <p className="text-[10px] uppercase tracking-[0.25em] text-foreground/40">Details</p>
+                      </div>
+                      {/* Name + Price + Category */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <p className="text-[10px] uppercase tracking-[0.2em] text-foreground/40 mb-2">Name</p>
+                          <input className="w-full bg-transparent border-b border-foreground/10 pb-1 text-sm font-heading font-light focus:border-foreground/30 focus:outline-none transition-colors" value={content.name || ''} onChange={e => {
+                            const p = [...productsData]; const idx = p.findIndex(x => x.id === product.id);
+                            if (idx >= 0) { p[idx].name = e.target.value; setProductsData(p); }
+                          }} placeholder="Product name" />
+                        </div>
+                        <div>
+                          <p className="text-[10px] uppercase tracking-[0.2em] text-foreground/40 mb-2">Price</p>
+                          <div className="relative">
+                            <span className="absolute left-0 top-1/2 -translate-y-1/2 text-foreground/30 text-sm">$</span>
+                            <input type="number" className="w-full bg-transparent border-b border-foreground/10 pb-1 pl-4 text-sm focus:border-foreground/30 focus:outline-none transition-colors" value={content.price ?? 0} onChange={e => {
+                              const p = [...productsData]; const idx = p.findIndex(x => x.id === product.id);
+                              if (idx >= 0) { p[idx].price = parseFloat(e.target.value); setProductsData(p); }
+                            }} />
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-[10px] uppercase tracking-[0.2em] text-foreground/40 mb-2">Category</p>
+                          <input list="categories" className="w-full bg-transparent border-b border-foreground/10 pb-1 text-sm focus:border-foreground/30 focus:outline-none transition-colors" value={content.category || ''} onChange={e => {
+                            const p = [...productsData]; const idx = p.findIndex(x => x.id === product.id);
+                            if (idx >= 0) { p[idx].category = e.target.value; setProductsData(p); }
+                          }} placeholder="Category" />
+                        </div>
+                      </div>
+
+                      {/* Description */}
+                      <div>
+                        <p className="text-[10px] uppercase tracking-[0.2em] text-foreground/40 mb-2">Description</p>
+                        <textarea className="w-full bg-transparent border-b border-foreground/10 pb-1 text-sm text-foreground/70 font-light leading-relaxed focus:border-foreground/30 focus:outline-none transition-colors resize-none" rows={2} value={content.description || ''} onChange={e => {
+                          const p = [...productsData]; const idx = p.findIndex(x => x.id === product.id);
+                          if (idx >= 0) { p[idx].description = e.target.value; setProductsData(p); }
+                        }} placeholder="Description" />
+                      </div>
+
+                      {/* Tags, Sizes, Colors, Materials */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <TagInput label="Tags" values={content.tags || []} onChange={vals => { const p = [...productsData]; const idx = p.findIndex(x => x.id === product.id); if (idx >= 0) { p[idx].tags = vals; setProductsData(p); } }} listId="tags" placeholder="Type and press Enter" />
+                        <TagInput label="Sizes" values={content.variations?.sizes || []} onChange={vals => { const p = [...productsData]; const idx = p.findIndex(x => x.id === product.id); if (idx >= 0) { p[idx].variations = { ...p[idx].variations, sizes: vals }; setProductsData(p); } }} listId="sizes" placeholder="Type and press Enter" />
+                        <TagInput label="Colors" values={content.variations?.colors || []} onChange={vals => { const p = [...productsData]; const idx = p.findIndex(x => x.id === product.id); if (idx >= 0) { p[idx].variations = { ...p[idx].variations, colors: vals }; setProductsData(p); } }} listId="colors" placeholder="Type and press Enter" />
+                        <TagInput label="Materials" values={content.variations?.materials || []} onChange={vals => { const p = [...productsData]; const idx = p.findIndex(x => x.id === product.id); if (idx >= 0) { p[idx].variations = { ...p[idx].variations, materials: vals }; setProductsData(p); } }} listId="materials" placeholder="Type and press Enter" />
+                      </div>
+
+                      {/* Images */}
+                      <div>
+                        <p className="text-[10px] uppercase tracking-[0.2em] text-foreground/40 mb-3">Images <span className="normal-case tracking-normal text-foreground/25">(drag from library or click + on toolbar to upload)</span></p>
+                        <div className="flex gap-3 flex-wrap">
+                          {(content.images || []).map((img: string, i: number) => (
+                            <div key={i} className="relative group">
+                              {img && img.trim() !== '' ? (
+                                <div className="p-1 rounded-xl border border-foreground/10 hover:ring-1 hover:ring-foreground/20 transition-all">
+                                  <img src={img} className="max-h-24 w-auto object-contain rounded-lg" alt="product" />
+                                  <button className="absolute -top-1.5 -right-1.5 bg-foreground/80 text-background rounded-full w-4 h-4 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-[9px]" onClick={() => {
+                                    const p = [...productsData]; const idx = p.findIndex(x => x.id === product.id);
+                                    if (idx >= 0) { p[idx].images.splice(i, 1); setProductsData(p); }
+                                  }}>&times;</button>
+                                </div>
+                              ) : null}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mx-5 h-px bg-foreground/5"></div>
+
+                    {/* --- Stock & Inventory Section --- */}
+                    <div className="px-5 py-5 space-y-4">
+                      <div className="flex items-center gap-3 mb-1">
+                        <span className="h-[1px] w-4 bg-foreground/20"></span>
+                        <p className="text-[10px] uppercase tracking-[0.25em] text-foreground/40">Inventory</p>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div><label className="text-[10px] uppercase tracking-widest text-foreground/30 block mb-1">SKU</label><input className="w-full border border-foreground/20 bg-background p-2 rounded-lg text-sm" defaultValue={product.sku || ''} placeholder="SKU" onBlur={e => updateStock(product.id, 'sku', e.target.value || null)} /></div>
+                        <div><label className="text-[10px] uppercase tracking-widest text-foreground/30 block mb-1">Stock (-1=untracked)</label><input type="number" className="w-full border border-foreground/20 bg-background p-2 rounded-lg text-sm" defaultValue={stock === -1 ? '' : stock} placeholder="-1" onBlur={e => { const v = e.target.value; updateStock(product.id, 'stockQuantity', v === '' ? -1 : parseInt(v)); }} /></div>
+                        <div><label className="text-[10px] uppercase tracking-widest text-foreground/30 block mb-1">Low Alert</label><input type="number" className="w-full border border-foreground/20 bg-background p-2 rounded-lg text-sm" defaultValue={lowThreshold} min={0} onBlur={e => updateStock(product.id, 'lowStockThreshold', parseInt(e.target.value) || 3)} /></div>
+                        <div><label className="text-[10px] uppercase tracking-widest text-foreground/30 block mb-1">Max/Order</label><input type="number" className="w-full border border-foreground/20 bg-background p-2 rounded-lg text-sm" defaultValue={product.max_per_order ?? 3} min={1} onBlur={e => updateStock(product.id, 'maxPerOrder', parseInt(e.target.value) || 3)} /></div>
+                      </div>
+
+                      {/* Variant Stock Grid */}
                       {hasVariants && (
-                        <button
-                          onClick={() => { setEditingProductContent(null); setEditingStock(null); }}
-                          className={`px-4 py-2 text-[10px] uppercase tracking-widest rounded-full transition-colors ${!isEditingContent && editingStock !== product.id ? 'bg-foreground text-background' : 'text-foreground/40 hover:text-foreground/70 hover:bg-foreground/5'}`}
-                        >Variant Grid</button>
+                        <div className="mt-4">
+                          <p className="text-[10px] uppercase tracking-widest text-foreground/40 mb-3">Per-Variant Stock (Size x Color)</p>
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                              <thead>
+                                <tr className="border-b border-foreground/10">
+                                  <th className="text-left text-[10px] uppercase tracking-widest text-foreground/30 py-2 pr-3 font-medium">Size \ Color</th>
+                                  {colors.map(c => (
+                                    <th key={c} className="text-center text-[10px] uppercase tracking-widest text-foreground/30 py-2 px-2 font-medium min-w-[80px]">{c}</th>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {sizes.map(size => (
+                                  <tr key={size} className="border-b border-foreground/5 hover:bg-foreground/[0.02]">
+                                    <td className="py-2 pr-3 text-foreground/70 font-medium text-xs whitespace-nowrap">{size}</td>
+                                    {colors.map(color => {
+                                      const vStock = getVariantStockDisplay(product.id, size, color);
+                                      const vIsOut = vStock === 0;
+                                      const vIsLow = vStock > 0 && vStock <= (product.low_stock_threshold ?? 3);
+
+                                      return (
+                                        <td key={`${size}-${color}`} className="py-2 px-2 text-center">
+                                          <div className={`inline-flex items-center justify-center min-w-[48px] h-8 rounded-lg text-xs font-mono ${vIsOut ? 'bg-red-50 text-red-600' : vIsLow ? 'bg-amber-50 text-amber-600' : 'bg-foreground/[0.03] text-foreground/70'} transition-colors`}>
+                                            <input
+                                              type="number"
+                                              className="w-full text-center bg-transparent border-0 focus:outline-none focus:ring-1 focus:ring-foreground/30 rounded-lg p-1 text-xs font-mono"
+                                              defaultValue={vStock === -2 ? '' : (vStock === -1 ? '-1' : vStock)}
+                                              placeholder="--"
+                                              onBlur={e => {
+                                                const v = e.target.value;
+                                                updateVariantStock(product.id, size, color, 'stockQuantity', v === '' ? null : (v === '-1' ? -1 : parseInt(v)));
+                                              }}
+                                            />
+                                          </div>
+                                        </td>
+                                      );
+                                    })}
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                          <p className="text-[10px] text-foreground/25 mt-3">Blank = use default stock. -1 = untracked (always in stock). 0 = out of stock.</p>
+                        </div>
                       )}
                     </div>
 
-                    {/* ===== CONTENT EDITING SECTION ===== */}
-                    {isEditingContent && content && (
-                      <div className="px-5 py-5 space-y-5">
-                        {/* Name + Price + Category */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <div>
-                            <p className="text-[10px] uppercase tracking-[0.2em] text-foreground/40 mb-2">Name</p>
-                            <input className="w-full bg-transparent border-b border-foreground/10 pb-1 text-sm font-heading font-light focus:border-foreground/30 focus:outline-none transition-colors" value={content.name || ''} onChange={e => {
-                              const p = [...productsData]; const idx = p.findIndex(x => x.id === product.id);
-                              if (idx >= 0) { p[idx].name = e.target.value; setProductsData(p); }
-                            }} placeholder="Product name" />
-                          </div>
-                          <div>
-                            <p className="text-[10px] uppercase tracking-[0.2em] text-foreground/40 mb-2">Price</p>
-                            <div className="relative">
-                              <span className="absolute left-0 top-1/2 -translate-y-1/2 text-foreground/30 text-sm">$</span>
-                              <input type="number" className="w-full bg-transparent border-b border-foreground/10 pb-1 pl-4 text-sm focus:border-foreground/30 focus:outline-none transition-colors" value={content.price ?? 0} onChange={e => {
-                                const p = [...productsData]; const idx = p.findIndex(x => x.id === product.id);
-                                if (idx >= 0) { p[idx].price = parseFloat(e.target.value); setProductsData(p); }
-                              }} />
-                            </div>
-                          </div>
-                          <div>
-                            <p className="text-[10px] uppercase tracking-[0.2em] text-foreground/40 mb-2">Category</p>
-                            <input list="categories" className="w-full bg-transparent border-b border-foreground/10 pb-1 text-sm focus:border-foreground/30 focus:outline-none transition-colors" value={content.category || ''} onChange={e => {
-                              const p = [...productsData]; const idx = p.findIndex(x => x.id === product.id);
-                              if (idx >= 0) { p[idx].category = e.target.value; setProductsData(p); }
-                            }} placeholder="Category" />
-                          </div>
-                        </div>
-
-                        {/* Description */}
-                        <div>
-                          <p className="text-[10px] uppercase tracking-[0.2em] text-foreground/40 mb-2">Description</p>
-                          <textarea className="w-full bg-transparent border-b border-foreground/10 pb-1 text-sm text-foreground/70 font-light leading-relaxed focus:border-foreground/30 focus:outline-none transition-colors resize-none" rows={2} value={content.description || ''} onChange={e => {
-                            const p = [...productsData]; const idx = p.findIndex(x => x.id === product.id);
-                            if (idx >= 0) { p[idx].description = e.target.value; setProductsData(p); }
-                          }} placeholder="Description" />
-                        </div>
-
-                        {/* Tags, Sizes, Colors, Materials */}
-                        <div className="grid grid-cols-2 gap-4">
-                          <TagInput label="Tags" values={content.tags || []} onChange={vals => { const p = [...productsData]; const idx = p.findIndex(x => x.id === product.id); if (idx >= 0) { p[idx].tags = vals; setProductsData(p); } }} listId="tags" placeholder="Type and press Enter" />
-                          <TagInput label="Sizes" values={content.variations?.sizes || []} onChange={vals => { const p = [...productsData]; const idx = p.findIndex(x => x.id === product.id); if (idx >= 0) { p[idx].variations = { ...p[idx].variations, sizes: vals }; setProductsData(p); } }} listId="sizes" placeholder="Type and press Enter" />
-                          <TagInput label="Colors" values={content.variations?.colors || []} onChange={vals => { const p = [...productsData]; const idx = p.findIndex(x => x.id === product.id); if (idx >= 0) { p[idx].variations = { ...p[idx].variations, colors: vals }; setProductsData(p); } }} listId="colors" placeholder="Type and press Enter" />
-                          <TagInput label="Materials" values={content.variations?.materials || []} onChange={vals => { const p = [...productsData]; const idx = p.findIndex(x => x.id === product.id); if (idx >= 0) { p[idx].variations = { ...p[idx].variations, materials: vals }; setProductsData(p); } }} listId="materials" placeholder="Type and press Enter" />
-                        </div>
-
-                        {/* Images */}
-                        <div>
-                          <p className="text-[10px] uppercase tracking-[0.2em] text-foreground/40 mb-3">Images <span className="normal-case tracking-normal text-foreground/25">(drag from library or click + on toolbar to upload)</span></p>
-                          <div className="flex gap-3 flex-wrap">
-                            {(content.images || []).map((img: string, i: number) => (
-                              <div key={i} className="relative group">
-                                {img && img.trim() !== '' ? (
-                                  <div className="p-1 rounded-xl border border-foreground/10 hover:ring-1 hover:ring-foreground/20 transition-all">
-                                    <img src={img} className="max-h-24 w-auto object-contain rounded-lg" alt="product" />
-                                    <button className="absolute -top-1.5 -right-1.5 bg-foreground/80 text-background rounded-full w-4 h-4 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-[9px]" onClick={() => {
-                                      const p = [...productsData]; const idx = p.findIndex(x => x.id === product.id);
-                                      if (idx >= 0) { p[idx].images.splice(i, 1); setProductsData(p); }
-                                    }}>&times;</button>
-                                  </div>
-                                ) : null}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Save / Delete */}
-                        <div className="flex items-center justify-between pt-3 border-t border-foreground/10">
-                          <button onClick={() => {
-                            if (confirm('Delete this product? This cannot be undone.')) {
-                              setProductsData(productsData.filter(p => p.id !== product.id));
-                              save('products', productsData.filter(p => p.id !== product.id));
-                              setExpandedStockProduct(null);
-                            }
-                          }} className="text-[10px] uppercase tracking-widest text-red-400/60 hover:text-red-500 transition-colors px-3 py-1 rounded-full border border-red-400/20 hover:border-red-400/40">Delete Product</button>
-                          <button onClick={() => { save('products', content, product.id); fetchStock(); }} className="group relative bg-foreground text-background rounded-full pl-6 pr-1.5 py-1.5 text-[11px] uppercase tracking-widest font-medium hover:bg-foreground/90 transition-all active:scale-[0.98]">
-                            <span className="py-1.5">Save Content</span>
-                            <span className="inline-flex w-7 h-7 items-center justify-center rounded-full bg-background/20 ml-2">
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                            </span>
-                          </button>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* ===== STOCK SETTINGS (product-level) ===== */}
-                    {!isEditingContent && editingStock === product.id && (
-                      <div className="px-5 py-5 space-y-4">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                          <div><label className="text-[10px] uppercase tracking-widest text-foreground/30 block mb-1">SKU</label><input className="w-full border border-foreground/20 bg-background p-2 rounded-lg text-sm" defaultValue={product.sku || ''} placeholder="SKU" onBlur={e => updateStock(product.id, 'sku', e.target.value || null)} /></div>
-                          <div><label className="text-[10px] uppercase tracking-widest text-foreground/30 block mb-1">Stock (-1=untracked)</label><input type="number" className="w-full border border-foreground/20 bg-background p-2 rounded-lg text-sm" defaultValue={stock === -1 ? '' : stock} placeholder="-1" onBlur={e => { const v = e.target.value; updateStock(product.id, 'stockQuantity', v === '' ? -1 : parseInt(v)); }} /></div>
-                          <div><label className="text-[10px] uppercase tracking-widest text-foreground/30 block mb-1">Low Alert</label><input type="number" className="w-full border border-foreground/20 bg-background p-2 rounded-lg text-sm" defaultValue={lowThreshold} min={0} onBlur={e => updateStock(product.id, 'lowStockThreshold', parseInt(e.target.value) || 3)} /></div>
-                          <div><label className="text-[10px] uppercase tracking-widest text-foreground/30 block mb-1">Max/Order</label><input type="number" className="w-full border border-foreground/20 bg-background p-2 rounded-lg text-sm" defaultValue={product.max_per_order ?? 3} min={1} onBlur={e => updateStock(product.id, 'maxPerOrder', parseInt(e.target.value) || 3)} /></div>
-                        </div>
-                        <div className="flex justify-end">
-                          <button onClick={() => { setEditingStock(null); fetchStock(); }} className="px-4 py-1.5 bg-foreground text-background rounded-full text-xs">Done</button>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* ===== VARIANT STOCK GRID ===== */}
-                    {!isEditingContent && editingStock !== product.id && hasVariants && (
-                      <div className="px-5 py-4">
-                        <p className="text-[10px] uppercase tracking-widest text-foreground/40 mb-3">Per-Variant Stock (Size x Color)</p>
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-sm">
-                            <thead>
-                              <tr className="border-b border-foreground/10">
-                                <th className="text-left text-[10px] uppercase tracking-widest text-foreground/30 py-2 pr-3 font-medium">Size \ Color</th>
-                                {colors.map(c => (
-                                  <th key={c} className="text-center text-[10px] uppercase tracking-widest text-foreground/30 py-2 px-2 font-medium min-w-[80px]">{c}</th>
-                                ))}
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {sizes.map(size => (
-                                <tr key={size} className="border-b border-foreground/5 hover:bg-foreground/[0.02]">
-                                  <td className="py-2 pr-3 text-foreground/70 font-medium text-xs whitespace-nowrap">{size}</td>
-                                  {colors.map(color => {
-                                    const vStock = getVariantStockDisplay(product.id, size, color);
-                                    const displayStock = vStock === -2 ? '—' : (vStock === -1 ? 'untracked' : vStock);
-                                    const vIsOut = vStock === 0;
-                                    const vIsLow = vStock > 0 && vStock <= (product.low_stock_threshold ?? 3);
-
-                                    return (
-                                      <td key={`${size}-${color}`} className="py-2 px-2 text-center">
-                                        <div className={`inline-flex items-center justify-center min-w-[48px] h-8 rounded-lg text-xs font-mono ${vIsOut ? 'bg-red-50 text-red-600' : vIsLow ? 'bg-amber-50 text-amber-600' : 'bg-foreground/[0.03] text-foreground/70'} transition-colors`}>
-                                          <input
-                                            type="number"
-                                            className="w-full text-center bg-transparent border-0 focus:outline-none focus:ring-1 focus:ring-foreground/30 rounded-lg p-1 text-xs font-mono"
-                                            defaultValue={vStock === -2 ? '' : (vStock === -1 ? '-1' : vStock)}
-                                            placeholder="--"
-                                            onBlur={e => {
-                                              const v = e.target.value;
-                                              updateVariantStock(product.id, size, color, 'stockQuantity', v === '' ? null : (v === '-1' ? -1 : parseInt(v)));
-                                            }}
-                                          />
-                                        </div>
-                                      </td>
-                                    );
-                                  })}
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                        <p className="text-[10px] text-foreground/25 mt-3">Blank = use default stock. -1 = untracked (always in stock). 0 = out of stock.</p>
-                      </div>
-                    )}
-
-                    {/* Non-variant product: show stock edit button */}
-                    {!isExpanded && !hasVariants && (
-                      <div className="px-5 py-3 border-t border-foreground/10 flex justify-end">
-                        {editingStock === product.id ? (
-                          <button onClick={() => { setEditingStock(null); fetchStock(); }} className="px-3 py-1 bg-primary text-primary-foreground rounded-full text-xs">Done</button>
-                        ) : (
-                          <button onClick={() => setEditingStock(product.id)} className="px-3 py-1 border border-foreground/20 rounded-full text-xs hover:bg-foreground/5 transition-colors">Edit Stock</button>
-                        )}
-                      </div>
-                    )}
+                    {/* Save / Delete */}
+                    <div className="px-5 py-4 flex items-center justify-between border-t border-foreground/10">
+                      <button onClick={() => {
+                        if (confirm('Delete this product? This cannot be undone.')) {
+                          setProductsData(productsData.filter(p => p.id !== product.id));
+                          save('products', productsData.filter(p => p.id !== product.id));
+                          setExpandedStockProduct(null);
+                        }
+                      }} className="text-[10px] uppercase tracking-widest text-red-400/60 hover:text-red-500 transition-colors px-3 py-1 rounded-full border border-red-400/20 hover:border-red-400/40">Delete Product</button>
+                      <button onClick={() => { save('products', content, product.id); fetchStock(); }} className="group relative bg-foreground text-background rounded-full pl-6 pr-1.5 py-1.5 text-[11px] uppercase tracking-widest font-medium hover:bg-foreground/90 transition-all active:scale-[0.98]">
+                        <span className="py-1.5">Save All</span>
+                        <span className="inline-flex w-7 h-7 items-center justify-center rounded-full bg-background/20 ml-2">
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                        </span>
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
