@@ -194,7 +194,7 @@ export default function Home() {
                   {homepageData.mission?.description || ""}
                 </p>
                 
-                <Link href={homepageData.mission?.ctaUrl || "#"} className="group inline-flex items-center text-primary font-medium tracking-wide uppercase text-xs w-max">
+                <Link href={homepageData.mission?.ctaUrl || "#"} className="group inline-flex items-center text-primary font-medium tracking-wide uppercase text-xs w-max focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring focus-visible:rounded-full focus-visible:px-2 focus-visible:py-1">
                   {homepageData.mission?.buttonLabel || "Learn More"}
                   <span className="relative ml-3 flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 transition-transform duration-300 ease-spring group-hover:translate-x-2">
                     <ArrowRight className="h-3 w-3" />
@@ -247,7 +247,7 @@ export default function Home() {
                   transition={{ duration: 0.8, delay: index * 0.1, ease: [0.32, 0.72, 0, 1] }}
                   className={`group relative flex flex-col bg-white rounded-[1rem] md:rounded-[1.5rem] lg:rounded-[2rem] border border-[#E5E5E1] p-1 md:p-1.5 overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 ${bentoClasses[index]}`}
                 >
-                  <Link href={`/product/${product.id}`} className="absolute inset-0 z-30 block" aria-label={`View ${product.name}`} />
+                  <Link href={`/product/${product.id}`} className="absolute inset-0 z-30 block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring" aria-label={`View ${product.name}`} />
                   
                   {/* Image Area */}
                   <div className="relative flex-1 w-full bg-[#F3F3F1] rounded-[calc(1rem-0.25rem)] md:rounded-[calc(1.5rem-0.375rem)] lg:rounded-[calc(2rem-0.375rem)] overflow-hidden">
@@ -337,7 +337,7 @@ export default function Home() {
                   {index === 2 && (
                     <Link 
                       href="/shop" 
-                      className="group relative inline-flex items-center gap-3 rounded-full bg-background pl-5 pr-2 py-1.5 text-sm font-medium tracking-wide text-foreground transition-all active:scale-95 mt-6 md:mt-8"
+                      className="group relative inline-flex items-center gap-3 rounded-full bg-background pl-5 pr-2 py-1.5 text-sm font-medium tracking-wide text-foreground transition-all active:scale-95 mt-6 md:mt-8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                     >
                       <span className="uppercase tracking-widest text-[9px] md:text-[10px]">Shop Now</span>
                       <div className="flex h-7 w-7 md:h-8 md:w-8 items-center justify-center rounded-full bg-foreground/10 transition-transform duration-300 ease-spring group-hover:translate-x-1 group-hover:scale-110">
