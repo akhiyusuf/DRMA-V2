@@ -14,6 +14,72 @@ const STATUS_STYLES: Record<string, string> = {
   refunded: 'bg-foreground/5 text-foreground/30 border-foreground/10',
 };
 
+// =============================================================================
+// TagInput — MUST live at module scope (NOT inside DashboardPage).
+// When defined inside the parent, every parent re-render (e.g. the 8s poll)
+// creates a NEW function reference, React sees a different component type at
+// the same position, unmounts the old subtree and mounts a new one — which
+// destroys the <input>'s focus AND its uncontrolled value mid-keystroke.
+// Keeping it at module scope gives it a stable identity so the DOM persists.
+// =============================================================================
+interface TagInputProps {
+  label: string;
+  values: string[];
+  onChange: (vals: string[]) => void;
+  listId: string;
+  placeholder: string;
+}
+
+function TagInput({ label, values, onChange, listId, placeholder }: TagInputProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const commit = () => {
+    const v = inputRef.current?.value.trim();
+    if (v && !values.includes(v)) {
+      onChange([...values, v]);
+    }
+    if (inputRef.current) inputRef.current.value = '';
+  };
+
+  return (
+    <div>
+      <p className="text-[10px] uppercase tracking-[0.2em] text-foreground/40 mb-2">{label}</p>
+      <div className="flex flex-wrap gap-1.5 mb-2">
+        {(values || []).map((val: string, i: number) => (
+          <span key={`${val}-${i}`} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-foreground text-background text-[11px]">
+            {val}
+            <button
+              type="button"
+              onClick={() => onChange(values.filter((_, idx) => idx !== i))}
+              className="hover:bg-background/20 rounded-full w-3.5 h-3.5 flex items-center justify-center transition-colors text-[9px]"
+              aria-label={`Remove ${val}`}
+            >×</button>
+          </span>
+        ))}
+      </div>
+      <input
+        ref={inputRef}
+        list={listId}
+        className="w-full bg-transparent border-b border-foreground/10 pb-1 text-sm focus:border-foreground/30 focus:outline-none transition-colors placeholder:text-foreground/20"
+        onKeyDown={e => {
+          if (e.key === 'Enter' || e.key === ',') {
+            e.preventDefault();
+            commit();
+          } else if (e.key === 'Backspace' && e.currentTarget.value === '' && values.length > 0) {
+            // Backspace on empty input removes the last tag (common UX)
+            onChange(values.slice(0, -1));
+          }
+        }}
+        onBlur={() => {
+          // Commit on blur so partially-typed values aren't lost when polling fires
+          if (inputRef.current?.value.trim()) commit();
+        }}
+        placeholder={placeholder}
+      />
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<Tab>('stock');
 
@@ -221,22 +287,7 @@ export default function DashboardPage() {
     finally { setUploading(false); }
   };
 
-  const TagInput = ({ label, values, onChange, listId, placeholder }: { label: string, values: string[], onChange: (vals: string[]) => void, listId: string, placeholder: string }) => (
-    <div>
-      <p className="text-[10px] uppercase tracking-[0.2em] text-foreground/40 mb-2">{label}</p>
-      <div className="flex flex-wrap gap-1.5 mb-2">
-        {(values || []).map((val: string, i: number) => (
-          <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-foreground text-background text-[11px]">
-            {val}
-            <button onClick={() => onChange(values.filter((_, idx) => idx !== i))} className="hover:bg-background/20 rounded-full w-3.5 h-3.5 flex items-center justify-center transition-colors text-[9px]">×</button>
-          </span>
-        ))}
-      </div>
-      <input list={listId} className="w-full bg-transparent border-b border-foreground/10 pb-1 text-sm focus:border-foreground/30 focus:outline-none transition-colors placeholder:text-foreground/20" onKeyDown={e => {
-        if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); const val = e.currentTarget.value.trim(); if (val && !values.includes(val)) { onChange([...values, val]); e.currentTarget.value = ''; } }
-      }} placeholder={placeholder} />
-    </div>
-  );
+  // TagInput is now defined at module scope above (see top of file).
 
   // ======== Orders Tab Helpers ========
 
@@ -519,8 +570,8 @@ export default function DashboardPage() {
             const isLow = stock >= 0 && stock <= lowThreshold && stock > 0;
             const isOut = stock === 0;
             const isExpanded = expandedStockProduct === product.id;
-            const sizes: string[] = product.variations?.sizes || [];
-            const colors: string[] = product.variations?.colors || [];
+            const sizes: string[] = content?.variations?.sizes || product.variations?.sizes || [];
+            const colors: string[] = content?.variations?.colors || product.variations?.colors || [];
             const hasVariants = sizes.length > 0 && colors.length > 0;
 
             return (
