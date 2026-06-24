@@ -37,6 +37,8 @@ export function Navbar() {
   return (
     <>
       <motion.header
+        role="banner"
+        aria-label="Site header"
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
@@ -57,7 +59,7 @@ export function Navbar() {
                {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
              </button>
              
-             <nav className="hidden md:flex items-center gap-12">
+             <nav role="navigation" aria-label="Primary" className="hidden md:flex items-center gap-12">
               <Link href="/shop" className="text-[11px] font-medium tracking-[0.25em] hover:text-primary transition-colors uppercase">
                 Shop
               </Link>
@@ -136,20 +138,22 @@ export function Navbar() {
               className="md:hidden overflow-hidden"
             >
               <div className="flex flex-col items-center py-12 gap-8 border-t border-border/20 mx-6">
-                {[
-                  { name: "Shop", href: "/shop" },
-                  { name: "Our Mission", href: "/ethics" },
-                  { name: "About", href: "/about" }
-                ].map((item) => (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="text-2xl font-heading font-light tracking-widest text-foreground hover:text-primary transition-colors uppercase"
-                  >
-                    {item.name}
-                  </Link>
-                ))}
+                <nav role="navigation" aria-label="Mobile" className="flex flex-col items-center gap-8">
+                  {[
+                    { name: "Shop", href: "/shop" },
+                    { name: "Our Mission", href: "/ethics" },
+                    { name: "About", href: "/about" }
+                  ].map((item) => (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="text-2xl font-heading font-light tracking-widest text-foreground hover:text-primary transition-colors uppercase"
+                    >
+                      {item.name}
+                    </Link>
+                  ))}
+                </nav>
               </div>
             </motion.div>
           )}

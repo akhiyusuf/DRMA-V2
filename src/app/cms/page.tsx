@@ -33,7 +33,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-background">
+    <main role="main" aria-label="CMS login" className="flex flex-col items-center justify-center min-h-screen bg-background">
       <h1 className="text-2xl mb-4 font-heading">CMS Login</h1>
       <form onSubmit={handleLogin} className="flex flex-col gap-4 w-80">
         <input
@@ -44,8 +44,8 @@ export default function LoginPage() {
           className="border border-foreground/10 bg-background/5 p-3 rounded-xl"
           autoFocus
         />
-        <button 
-          type="submit" 
+        <button
+          type="submit"
           disabled={loading}
           className="bg-primary text-primary-foreground p-3 rounded-full font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
         >
@@ -53,6 +53,6 @@ export default function LoginPage() {
         </button>
       </form>
       {error && <p className="text-red-500 mt-2 text-sm">{error}</p>}
-    </div>
+    </main>
   );
 }

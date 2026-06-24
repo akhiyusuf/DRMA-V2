@@ -977,7 +977,7 @@ export default function DashboardPage() {
 
   return (
     <div className="w-full bg-background text-foreground min-h-screen selection:bg-primary selection:text-primary-foreground">
-      <div className="max-w-[1400px] mx-auto px-4 md:px-8 pt-32 pb-24 relative">
+      <main role="main" aria-label="CMS dashboard" className="max-w-[1400px] mx-auto px-4 md:px-8 pt-32 pb-24 relative">
 
         {/* Toast Notifications */}
         {toast && (
@@ -1005,23 +1005,23 @@ export default function DashboardPage() {
         </div>
 
         {/* Header */}
-        <div className="mb-16">
+        <header role="banner" aria-label="CMS dashboard header" className="mb-16">
           <div className="flex items-center gap-3 mb-4">
             <span className="h-[1px] w-8 bg-foreground/20"></span>
             <span className="text-[10px] uppercase tracking-[0.25em] text-foreground/50 font-medium">Dashboard</span>
           </div>
           <h1 className="text-5xl md:text-6xl font-heading font-light tracking-tight leading-[0.9]">Content <span className="italic text-foreground/50">Management</span></h1>
-        </div>
+        </header>
 
         {/* Tab Navigation */}
-        <div className="flex gap-1 mb-12">
+        <nav role="navigation" aria-label="CMS sections" className="flex gap-1 mb-12">
           {tabs.map(tab => (
             <button key={tab.key} onClick={() => setActiveTab(tab.key)}
               className={`relative px-6 py-3 text-[11px] uppercase tracking-[0.15em] font-medium transition-all rounded-full ${activeTab === tab.key ? 'bg-foreground text-background' : 'text-foreground/40 hover:text-foreground/70 hover:bg-foreground/5'}`}>
               {tab.label}
             </button>
           ))}
-        </div>
+        </nav>
 
       {/* ====== PRODUCTS TAB ====== */}
       {activeTab === 'stock' && renderStock()}
@@ -1032,7 +1032,7 @@ export default function DashboardPage() {
       {/* ====== HOMEPAGE TAB ====== */}
       {activeTab === 'homepage' && renderHomepage()}
 
-      </div>
+      </main>
     </div>
   );
 }
