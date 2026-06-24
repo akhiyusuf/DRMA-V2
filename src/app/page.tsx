@@ -43,7 +43,7 @@ export default function Home() {
       */}
       <section className="relative min-h-[100dvh] w-full grid grid-cols-1 overflow-hidden bg-[#FAFAF9]">
         {/* Animated background blurs for liquid effect */}
-        <div className="absolute top-1/4 left-1/4 w-[40vw] h-[40vw] bg-[#CA8A04]/10 rounded-full blur-[100px] animate-pulse duration-10000 pointer-events-none mix-blend-multiply"></div>
+        <div className="absolute top-1/4 left-1/4 w-[40vw] h-[40vw] bg-[#9A6B04]/10 rounded-full blur-[100px] animate-pulse duration-10000 pointer-events-none mix-blend-multiply"></div>
         <div className="absolute bottom-1/4 right-1/4 w-[50vw] h-[50vw] bg-[#1C1917]/5 rounded-full blur-[120px] animate-pulse duration-[12000ms] pointer-events-none mix-blend-multiply delay-1000"></div>
         
         <div className="container mx-auto px-4 md:px-8 relative z-10 w-full h-full flex flex-col justify-start pt-24 md:pt-32 lg:pt-56">
@@ -61,7 +61,7 @@ export default function Home() {
               >
                 {(homepageData.hero?.title || "").split(", ")[0]}, <br className="hidden sm:block" /> 
                 <span className="italic font-medium text-[#1C1917]/80 flex flex-col lg:flex-row items-center gap-2 md:gap-8 mt-1 md:mt-4">
-                  <span className="hidden lg:block w-32 h-[1px] bg-[#CA8A04]/40 mt-4"></span>
+                  <span className="hidden lg:block w-32 h-[1px] bg-[#9A6B04]/40 mt-4"></span>
                   {(homepageData.hero?.title || "").split(", ")[1]}
                 </span>
               </motion.h1>
@@ -74,7 +74,7 @@ export default function Home() {
               >
                 <Link 
                   href={homepageData.hero?.ctaUrl || "/shop"} 
-                  className="group relative inline-flex items-center gap-3 rounded-full bg-[#CA8A04] pl-6 md:pl-8 pr-2 py-2 text-sm font-medium tracking-wide text-white transition-colors duration-300 hover:bg-[#CA8A04]/90"
+                  className="group relative inline-flex items-center gap-3 rounded-full bg-[#9A6B04] pl-6 md:pl-8 pr-2 py-2 text-sm font-medium tracking-wide text-white transition-colors duration-300 hover:bg-[#9A6B04]/90"
                 >
                   <span className="uppercase tracking-widest text-xs md:text-sm">{homepageData.hero?.buttonLabel || "Shop Now"}</span>
                   <div className="flex h-8 w-8 md:h-10 md:w-10 items-center justify-center rounded-full bg-white/20 transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-1 group-hover:scale-110">
@@ -100,7 +100,7 @@ export default function Home() {
                   <img 
                     src={homepageData.hero.image} 
                     alt="Modest Fashion Model" 
-                    className="w-full h-auto object-contain transition-transform duration-[4s] hover:scale-[1.01] shadow-[12px_12px_0px_rgba(202,138,4,0.2)] md:shadow-[20px_20px_0px_rgba(202,138,4,0.25)] shadow-2xl"
+                    className="w-full h-auto object-contain transition-transform duration-[4s] hover:scale-[1.01] shadow-[12px_12px_0px_rgba(154,107,4,0.2)] md:shadow-[20px_20px_0px_rgba(154,107,4,0.25)] shadow-2xl"
                   />
                 )}
 
@@ -114,7 +114,7 @@ export default function Home() {
       {/* 
         SECTION BREAKER: Scrolling Editorial Statement
       */}
-      <div className="-mt-8 md:-mt-16 lg:-mt-24 relative w-full py-6 md:py-10 bg-[#1C1917] overflow-hidden border-y border-[#CA8A04]/20 z-20">
+      <div className="-mt-8 md:-mt-16 lg:-mt-24 relative w-full py-6 md:py-10 bg-[#1C1917] overflow-hidden border-y border-[#9A6B04]/20 z-20">
         <div className="flex whitespace-nowrap">
           <motion.div 
             animate={{ x: ["0%", "-50%"] }}
@@ -128,15 +128,15 @@ export default function Home() {
             {[1, 2].map((i) => (
               <div key={i} className="flex items-center gap-10 md:gap-20 lg:gap-24">
                 <span className="text-white/80 text-sm md:text-base font-medium uppercase tracking-[0.25em]">Conscious Design</span>
-                <div className="w-2 h-2 rotate-45 border border-[#CA8A04]/50"></div>
+                <div className="w-2 h-2 rotate-45 border border-[#9A6B04]/50"></div>
                 <span className="text-white/80 text-sm md:text-base font-medium uppercase tracking-[0.25em]">Ethical Production</span>
-                <div className="w-2 h-2 rotate-45 border border-[#CA8A04]/50"></div>
+                <div className="w-2 h-2 rotate-45 border border-[#9A6B04]/50"></div>
                 <span className="text-white/80 text-sm md:text-base font-medium uppercase tracking-[0.25em]">Timeless Elegance</span>
-                <div className="w-2 h-2 rotate-45 border border-[#CA8A04]/50"></div>
+                <div className="w-2 h-2 rotate-45 border border-[#9A6B04]/50"></div>
                 <span className="text-white/80 text-sm md:text-base font-medium uppercase tracking-[0.25em]">Modern Heritage</span>
-                <div className="w-2 h-2 rotate-45 border border-[#CA8A04]/50"></div>
+                <div className="w-2 h-2 rotate-45 border border-[#9A6B04]/50"></div>
                 <span className="text-white/80 text-sm md:text-base font-medium uppercase tracking-[0.25em]">Unapologetically Modest</span>
-                <div className="w-2 h-2 rotate-45 border border-[#CA8A04]/50"></div>
+                <div className="w-2 h-2 rotate-45 border border-[#9A6B04]/50"></div>
               </div>
             ))}
           </motion.div>
@@ -288,8 +288,8 @@ export default function Home() {
       */}
       <section className="py-16 md:py-28 lg:py-40 bg-gradient-to-b from-[#1a1614] via-[#14100E] to-[#0D0B0A] text-[#FAFAF9] relative rounded-t-[2rem] md:rounded-t-[3rem] -mt-6 md:-mt-10 shadow-2xl overflow-hidden">
         {/* Background accents */}
-        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-[#CA8A04]/[0.03] rounded-full blur-[120px] pointer-events-none" />
-        <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-[#CA8A04]/[0.02] rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-[#9A6B04]/[0.03] rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-[#9A6B04]/[0.02] rounded-full blur-[100px] pointer-events-none" />
         
         <div className="container mx-auto px-4 md:px-8 relative z-10">
           <motion.div
@@ -300,14 +300,14 @@ export default function Home() {
             className="flex flex-col items-center text-center max-w-3xl mx-auto mb-14 md:mb-20 lg:mb-24"
           >
             <div className="flex items-center gap-3 md:gap-5 mb-8 md:mb-12">
-              <span className="h-px w-8 md:w-14 bg-[#CA8A04]/50" />
-              <span className="text-sm md:text-xl lg:text-2xl uppercase tracking-[0.2em] md:tracking-[0.25em] font-heading font-light text-[#CA8A04]">
+              <span className="h-px w-8 md:w-14 bg-[#9A6B04]/50" />
+              <span className="text-sm md:text-xl lg:text-2xl uppercase tracking-[0.2em] md:tracking-[0.25em] font-heading font-light text-[#9A6B04]">
                 {homepageData.differentiation?.label || "Why Us"}
               </span>
-              <span className="h-px w-8 md:w-14 bg-[#CA8A04]/50" />
+              <span className="h-px w-8 md:w-14 bg-[#9A6B04]/50" />
             </div>
             <h2 className="text-3xl md:text-5xl lg:text-7xl font-heading font-light leading-[1.05] text-white">
-              {(homepageData.differentiation?.title || " ").split(" <br/> ")[0]} <br/> <span className="italic text-[#CA8A04]">{(homepageData.differentiation?.title || " ").split(" <br/> ")[1]}</span>
+              {(homepageData.differentiation?.title || " ").split(" <br/> ")[0]} <br/> <span className="italic text-[#9A6B04]">{(homepageData.differentiation?.title || " ").split(" <br/> ")[1]}</span>
             </h2>
           </motion.div>
 
@@ -321,11 +321,11 @@ export default function Home() {
                 transition={{ duration: 0.8, delay: index * 0.1, ease: [0.32, 0.72, 0, 1] }}
                 whileHover={{ y: -4 }}
                 className={index === 2 
-                  ? "md:col-span-12 rounded-[1.25rem] md:rounded-[2rem] bg-gradient-to-br from-[#262220] to-[#1a1614] border border-[#CA8A04]/20 shadow-[0_8px_40px_rgba(202,138,4,0.06)]" 
-                  : "md:col-span-6 rounded-[1.25rem] md:rounded-[2rem] bg-gradient-to-br from-[#262220] to-[#1a1614] border border-white/[0.06] hover:border-[#CA8A04]/20 transition-colors duration-500"}
+                  ? "md:col-span-12 rounded-[1.25rem] md:rounded-[2rem] bg-gradient-to-br from-[#262220] to-[#1a1614] border border-[#9A6B04]/20 shadow-[0_8px_40px_rgba(154,107,4,0.06)]" 
+                  : "md:col-span-6 rounded-[1.25rem] md:rounded-[2rem] bg-gradient-to-br from-[#262220] to-[#1a1614] border border-white/[0.06] hover:border-[#9A6B04]/20 transition-colors duration-500"}
               >
                 <div className="h-full p-5 md:p-8 lg:p-12 flex flex-col justify-between">
-                  <div className="text-4xl md:text-5xl lg:text-6xl font-heading font-semibold text-[#CA8A04] mb-4 md:mb-6 lg:mb-8 tracking-tight">{point.number}</div>
+                  <div className="text-4xl md:text-5xl lg:text-6xl font-heading font-semibold text-[#9A6B04] mb-4 md:mb-6 lg:mb-8 tracking-tight">{point.number}</div>
                   <div>
                     <h3 className="text-lg md:text-xl lg:text-2xl font-heading mb-3 md:mb-4 text-white font-medium">
                       {point.title}
