@@ -977,7 +977,14 @@ export default function DashboardPage() {
 
   return (
     <div className="w-full bg-background text-foreground min-h-screen selection:bg-primary selection:text-primary-foreground">
-      <main role="main" aria-label="CMS dashboard" className="max-w-[1400px] mx-auto px-4 md:px-8 pt-32 pb-24 relative">
+      {/* Skip-to-content link — first focusable element */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:px-4 focus:py-2 focus:bg-foreground focus:text-background focus:text-xs focus:uppercase focus:tracking-widest focus:font-medium focus:rounded-full focus:shadow-lg focus:outline-2 focus:outline-offset-2 focus:outline-ring"
+      >
+        Skip to Content
+      </a>
+      <main role="main" aria-label="CMS dashboard" id="main-content" tabIndex={-1} className="max-w-[1400px] mx-auto px-4 md:px-8 pt-32 pb-24 relative focus:outline-none">
 
         {/* Toast Notifications */}
         {toast && (
