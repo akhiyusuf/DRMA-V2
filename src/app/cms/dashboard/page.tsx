@@ -531,7 +531,7 @@ export default function DashboardPage() {
           <input className="bg-foreground/[0.03] border border-foreground/10 rounded-full px-4 py-2 text-xs focus:outline-none focus:border-foreground/30 transition-colors w-40 placeholder:text-foreground/25" placeholder="Filter..." value={filter} onChange={e => setFilter(e.target.value)} />
           <button onClick={async () => {
             const newId = Date.now().toString();
-            const newProduct = { id: newId, name: 'New Product', price: 0, images: [], tags: [], category: '', variations: { sizes: [], colors: [], materials: [] }, description: '', in_stock: true, stock_quantity: -1, low_stock_threshold: 3, max_per_order: 3 };
+            const newProduct = { id: newId, name: 'New Product', price: 0, images: [], tags: [], category: '', variations: { sizes: [], colors: [], materials: [] }, description: '', in_stock: true, stock_quantity: -1, low_stock_threshold: 3, max_per_order: 3, page_title: null, meta_description: null };
             // Append to local state immediately so it appears
             if (productsData) {
               setProductsData([...productsData, newProduct]);
@@ -679,6 +679,30 @@ export default function DashboardPage() {
                           const p = [...productsData]; const idx = p.findIndex(x => x.id === product.id);
                           if (idx >= 0) { p[idx].description = e.target.value; setProductsData(p); }
                         }} placeholder="Description" />
+                      </div>
+
+                      {/* SEO: Page Title + Meta Description (per-product) */}
+                      <div className="space-y-3 pt-2 border-t border-foreground/5">
+                        <div className="flex items-center gap-2 pt-2">
+                          <span className="h-[1px] w-3 bg-foreground/20"></span>
+                          <p className="text-[10px] uppercase tracking-[0.25em] text-foreground/40">SEO</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] uppercase tracking-[0.2em] text-foreground/40 mb-2">Page Title <span className="normal-case tracking-normal text-foreground/25">(shown in the browser tab & search results)</span></p>
+                          <input className="w-full bg-transparent border-b border-foreground/10 pb-1 text-sm font-heading font-light focus:border-foreground/30 focus:outline-none transition-colors" value={content.page_title ?? ''} onChange={e => {
+                            const p = [...productsData]; const idx = p.findIndex(x => x.id === product.id);
+                            if (idx >= 0) { p[idx].page_title = e.target.value; setProductsData(p); }
+                          }} placeholder={`${content.name || 'Product'} | DRMA`} />
+                          <p className="text-[10px] text-foreground/30 mt-1 normal-case tracking-normal">Leave blank to use “{content.name || 'Product'} | DRMA”.</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] uppercase tracking-[0.2em] text-foreground/40 mb-2">Meta Description <span className="normal-case tracking-normal text-foreground/25">(≤ 160 characters, used by search engines)</span></p>
+                          <textarea className="w-full bg-transparent border-b border-foreground/10 pb-1 text-sm text-foreground/70 font-light leading-relaxed focus:border-foreground/30 focus:outline-none transition-colors resize-none" rows={2} value={content.meta_description ?? ''} onChange={e => {
+                            const p = [...productsData]; const idx = p.findIndex(x => x.id === product.id);
+                            if (idx >= 0) { p[idx].meta_description = e.target.value; setProductsData(p); }
+                          }} placeholder="Short, keyword-rich description shown beneath the title in search results." />
+                          <p className="text-[10px] text-foreground/30 mt-1 normal-case tracking-normal">{(content.meta_description ?? '').length}/160 characters</p>
+                        </div>
                       </div>
 
                       {/* Tags, Sizes, Colors, Materials */}
@@ -1014,7 +1038,7 @@ export default function DashboardPage() {
             <span className="h-[1px] w-8 bg-foreground/20"></span>
             <span className="text-[10px] uppercase tracking-[0.25em] text-foreground/50 font-medium">Dashboard</span>
           </div>
-          <h1 className="text-5xl md:text-6xl font-heading font-light tracking-tight leading-[0.9]">Content <span className="italic text-foreground/50">Management</span></h1>
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-heading font-light tracking-tight leading-[0.9]">Content <span className="italic text-foreground/50">Management</span></h1>
         </header>
 
         {/* Tab Navigation */}

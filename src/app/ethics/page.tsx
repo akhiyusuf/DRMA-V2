@@ -16,7 +16,7 @@ export default function EthicsPage() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: [0.32, 0.72, 0, 1] }}
-            className="inline-flex rounded-full px-3 py-1 text-[10px] uppercase tracking-[0.2em] font-medium bg-foreground/5 text-foreground/70 mb-8 border border-foreground/10"
+            className="inline-flex rounded-full px-3 py-1 text-[11px] uppercase tracking-[0.2em] font-medium bg-foreground/5 text-foreground/70 mb-8 border border-foreground/10"
           >
             The Manifesto
           </motion.div>
@@ -41,9 +41,15 @@ export default function EthicsPage() {
           </motion.p>
         </div>
         
-        {/* Massive Background Typography Watermark */}
+        {/* Massive Background Typography Watermark.
+            `clamp(80px, 20vw, 384px)` keeps the watermark readable on phones
+            while preventing it from blowing past the viewport on large
+            screens — at 20vw on a 1920px viewport it would otherwise hit
+            ~384px (which is the intended cap) but on ultra-wide displays
+            it would overflow horizontally. The 80px floor keeps it visible
+            on small phones (≥ 400px viewport → 80px from the clamp). */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full text-center pointer-events-none opacity-[0.02] overflow-hidden select-none z-0">
-           <h2 className="text-[20vw] font-heading font-bold whitespace-nowrap">DIGNITY.</h2>
+           <h2 className="text-[clamp(80px,20vw,384px)] font-heading font-bold whitespace-nowrap">DIGNITY.</h2>
         </div>
       </section>
 
@@ -124,7 +130,7 @@ export default function EthicsPage() {
             viewport={{ once: true }}
             className="flex flex-col items-center mb-24"
           >
-            <span className="rounded-full px-3 py-1 text-[10px] uppercase tracking-[0.2em] font-medium bg-foreground/5 text-foreground/70 mb-6 border border-foreground/10">Foundation</span>
+            <span className="rounded-full px-3 py-1 text-[11px] uppercase tracking-[0.2em] font-medium bg-foreground/5 text-foreground/70 mb-6 border border-foreground/10">Foundation</span>
             <h2 className="text-4xl md:text-6xl font-heading font-light text-center">Our Core <span className="italic text-foreground/60">Pillars</span></h2>
           </motion.div>
 

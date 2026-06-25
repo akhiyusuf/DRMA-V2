@@ -37,7 +37,7 @@ function FilterContent({
             Filters
           </h2>
           {activeFilterCount > 0 && (
-            <span className="ml-1 min-w-[18px] h-[18px] bg-foreground text-background text-[10px] font-semibold rounded-full flex items-center justify-center px-1 leading-none">
+            <span className="ml-1 min-w-[18px] h-[18px] bg-foreground text-background text-[11px] font-semibold rounded-full flex items-center justify-center px-1 leading-none">
               {activeFilterCount}
             </span>
           )}
@@ -55,7 +55,7 @@ function FilterContent({
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto overscroll-contain -mx-1 px-1">
-        <h3 className="text-[10px] font-medium mb-4 uppercase tracking-[0.2em] text-foreground/50 border-b border-foreground/10 pb-3">
+        <h3 className="text-[11px] font-medium mb-4 uppercase tracking-[0.2em] text-foreground/50 border-b border-foreground/10 pb-3">
           Category
         </h3>
         
@@ -66,7 +66,7 @@ function FilterContent({
           ))}
         </div>
 
-        <h3 className="text-[10px] font-medium mb-4 uppercase tracking-[0.2em] text-foreground/50 border-b border-foreground/10 pb-3">
+        <h3 className="text-[11px] font-medium mb-4 uppercase tracking-[0.2em] text-foreground/50 border-b border-foreground/10 pb-3">
           Refine By Ethics
         </h3>
         
@@ -193,7 +193,7 @@ export default function ShopPage() {
             <SlidersHorizontal className="w-3.5 h-3.5" />
             Filters
             {activeFilterCount > 0 && (
-              <span className="min-w-[16px] h-[16px] bg-foreground text-background text-[9px] font-semibold rounded-full flex items-center justify-center px-1 leading-none">
+              <span className="min-w-[16px] h-[16px] bg-foreground text-background text-[11px] font-semibold rounded-full flex items-center justify-center px-1 leading-none">
                 {activeFilterCount}
               </span>
             )}
@@ -269,7 +269,7 @@ export default function ShopPage() {
                           {/* Aesthetic Tags */}
                           <div className="absolute bottom-2.5 left-2.5 md:bottom-4 md:left-4 flex flex-wrap gap-1.5 md:gap-2 z-10">
                             {product.tags.includes("Artisan Made") && (
-                              <span className="backdrop-blur-md bg-background/80 text-foreground text-[8px] md:text-[9px] font-medium uppercase tracking-[0.2em] px-2 md:px-3 py-1 md:py-1.5 rounded-full shadow-sm">
+                              <span className="backdrop-blur-md bg-background/80 text-foreground text-[11px] md:text-xs font-medium uppercase tracking-[0.2em] px-2 md:px-3 py-1 md:py-1.5 rounded-full shadow-sm">
                                 Artisan
                               </span>
                             )}

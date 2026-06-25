@@ -102,7 +102,7 @@ function OrderConfirmationContent() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: [0.32, 0.72, 0, 1] }}
           >
-            <h1 className="text-4xl md:text-5xl font-heading font-light tracking-tight mb-6">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-heading font-light tracking-tight mb-6">
               Payment <span className="italic text-foreground/60">Cancelled.</span>
             </h1>
             <p className="text-foreground/60 font-light text-lg mb-10">
@@ -127,7 +127,7 @@ function OrderConfirmationContent() {
     return (
       <div className="w-full bg-background min-h-screen pt-24 md:pt-32 pb-16 md:pb-24">
         <div className="container mx-auto px-4 md:px-8 max-w-2xl text-center">
-          <h1 className="text-4xl font-heading font-light tracking-tight mb-6">No order found.</h1>
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-heading font-light tracking-tight mb-6">No order found.</h1>
           <Link href="/shop" className="text-primary underline">Continue shopping</Link>
         </div>
       </div>
@@ -147,7 +147,7 @@ function OrderConfirmationContent() {
           <div className="w-16 h-16 rounded-full bg-green-100 text-green-600 flex items-center justify-center mx-auto mb-6">
             <Check className="w-8 h-8" />
           </div>
-          <h1 className="text-4xl md:text-5xl font-heading font-light tracking-tight mb-4">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-heading font-light tracking-tight mb-4">
             Thank You, <span className="italic text-foreground/60">{order.firstName}.</span>
           </h1>
           <p className="text-foreground/60 font-light text-lg">

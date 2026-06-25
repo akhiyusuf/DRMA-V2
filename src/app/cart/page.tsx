@@ -107,14 +107,14 @@ export default function CartPage() {
           className="flex flex-col mb-16 border-b border-foreground/5 pb-8"
         >
           <div className="flex items-center gap-4 mb-6">
-            <span className="rounded-full px-3 py-1 text-[10px] uppercase tracking-[0.2em] font-medium bg-foreground/5 text-foreground/70 border border-foreground/10">
+            <span className="rounded-full px-3 py-1 text-[11px] uppercase tracking-[0.2em] font-medium bg-foreground/5 text-foreground/70 border border-foreground/10">
               The Vault
             </span>
             <span className="text-xs font-medium tracking-widest text-foreground/40 uppercase">
               {itemCount} {itemCount === 1 ? 'Piece' : 'Pieces'}
             </span>
           </div>
-          <h1 className="text-5xl md:text-6xl font-heading font-light tracking-tight">Your <span className="italic text-foreground/60">Cart.</span></h1>
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-heading font-light tracking-tight">Your <span className="italic text-foreground/60">Cart.</span></h1>
         </motion.div>
 
         <div className="flex flex-col lg:flex-row gap-16 lg:gap-24">
@@ -165,10 +165,10 @@ export default function CartPage() {
                         </div>
                         
                         <div className="flex gap-4 mt-4">
-                          <span className="text-[10px] uppercase tracking-[0.2em] font-medium text-foreground/60 bg-foreground/5 px-3 py-1 rounded-full border border-foreground/10">
+                          <span className="text-[11px] uppercase tracking-[0.2em] font-medium text-foreground/60 bg-foreground/5 px-3 py-1 rounded-full border border-foreground/10">
                             {item.selectedSize}
                           </span>
-                          <span className="text-[10px] uppercase tracking-[0.2em] font-medium text-foreground/60 bg-foreground/5 px-3 py-1 rounded-full border border-foreground/10">
+                          <span className="text-[11px] uppercase tracking-[0.2em] font-medium text-foreground/60 bg-foreground/5 px-3 py-1 rounded-full border border-foreground/10">
                             {item.selectedColor}
                           </span>
                         </div>
@@ -211,11 +211,11 @@ export default function CartPage() {
                             >+</button>
                           </div>
                           {quantityErrors[itemKey] && (
-                            <span className="text-[10px] text-amber-600 uppercase tracking-wider">{quantityErrors[itemKey]}</span>
+                            <span className="text-[11px] text-amber-600 uppercase tracking-wider">{quantityErrors[itemKey]}</span>
                           )}
                         </div>
                         
-                        <button onClick={() => removeItem(item.id, item.selectedSize, item.selectedColor)} className="group/btn flex items-center text-[10px] uppercase tracking-[0.2em] font-medium text-foreground/40 hover:text-destructive transition-colors">
+                        <button onClick={() => removeItem(item.id, item.selectedSize, item.selectedColor)} className="group/btn flex items-center text-[11px] uppercase tracking-[0.2em] font-medium text-foreground/40 hover:text-destructive transition-colors">
                           <Trash2 className="w-3 h-3 mr-2 transition-transform group-hover/btn:scale-110" />
                           Remove
                         </button>
@@ -282,7 +282,7 @@ export default function CartPage() {
                   )}
                   
                   <div className="mt-6 flex flex-col items-center gap-3">
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-foreground/40 flex items-center">
+                    <p className="text-[11px] uppercase tracking-[0.2em] text-foreground/40 flex items-center">
                       <ShieldCheck className="w-3 h-3 mr-2" />
                       Encrypted Payment
                     </p>

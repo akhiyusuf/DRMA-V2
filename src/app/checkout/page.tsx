@@ -158,7 +158,7 @@ export default function CheckoutPage() {
             </span>
             Return to Cart
           </Link>
-          <h1 className="text-4xl md:text-5xl font-heading font-light tracking-tight">Secure <span className="italic text-foreground/60">Checkout.</span></h1>
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-heading font-light tracking-tight">Secure <span className="italic text-foreground/60">Checkout.</span></h1>
         </motion.div>
 
         {items.length === 0 ? (

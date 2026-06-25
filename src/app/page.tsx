@@ -62,7 +62,10 @@ export default function Home() {
                 initial={{ opacity: 0, y: 40, filter: "blur(8px)" }}
                 animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
                 transition={{ duration: 1.2, ease: [0.32, 0.72, 0, 1] }}
-                className="text-4xl sm:text-6xl md:text-8xl lg:text-[10rem] font-heading font-normal tracking-tighter text-[#0C0A09] leading-[0.85] lg:leading-[0.85] lg:-ml-2 z-10"
+                // Was `lg:text-[10rem]` (160px) — too large vs the rest of
+                // the site's H1 scale (text-4xl → text-6xl). Capped at 128px
+                // via clamp so ultra-wide viewports don't blow it up further.
+                className="text-4xl sm:text-6xl md:text-8xl lg:text-[clamp(64px,8vw,128px)] font-heading font-normal tracking-tighter text-[#0C0A09] leading-[0.85] lg:leading-[0.85] lg:-ml-2 z-10"
               >
                 {(homepageData.hero?.title || "").split(", ")[0]}, <br className="hidden sm:block" /> 
                 <span className="italic font-medium text-[#1C1917]/80 flex flex-col lg:flex-row items-center gap-2 md:gap-8 mt-1 md:mt-4">

@@ -60,10 +60,10 @@ export function Navbar() {
              </button>
              
              <nav role="navigation" aria-label="Primary" className="hidden md:flex items-center gap-12">
-              <Link href="/shop" className="text-[11px] font-medium tracking-[0.25em] hover:text-primary transition-colors uppercase">
+              <Link href="/shop" className="text-[14px] font-medium tracking-[0.25em] hover:text-primary transition-colors uppercase">
                 Shop
               </Link>
-              <Link href="/ethics" className="text-[11px] font-medium tracking-[0.25em] hover:text-primary transition-colors uppercase">
+              <Link href="/ethics" className="text-[14px] font-medium tracking-[0.25em] hover:text-primary transition-colors uppercase">
                 Mission
               </Link>
             </nav>
@@ -74,7 +74,7 @@ export function Navbar() {
           </Link>
           
           <div className="flex-1 flex items-center justify-end gap-2 md:gap-8">
-            <Link href="/about" className="hidden md:block text-[11px] font-medium tracking-[0.25em] hover:text-primary transition-colors uppercase">
+            <Link href="/about" className="hidden md:block text-[14px] font-medium tracking-[0.25em] hover:text-primary transition-colors uppercase">
               About
             </Link>
             <button className="p-2 hover:text-primary transition-colors relative" aria-label="User Account">
@@ -96,7 +96,7 @@ export function Navbar() {
                     initial={badgeBounce.initial}
                     animate={badgeBounce.animate}
                     transition={{ ...badgeBounce.transition, delay: 0.1 }}
-                    className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-primary text-primary-foreground text-[10px] font-semibold rounded-full flex items-center justify-center px-1 leading-none"
+                    className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-primary text-primary-foreground text-[11px] font-semibold rounded-full flex items-center justify-center px-1 leading-none"
                   >
                     {itemCount}
                   </motion.span>
@@ -114,7 +114,7 @@ export function Navbar() {
                     transition={{ duration: 0.25, ease: "easeOut" as const }}
                     className="absolute top-full left-1/2 -translate-x-1/2 mt-2 whitespace-nowrap pointer-events-none z-[70]"
                   >
-                    <div className="bg-foreground text-background text-[10px] uppercase tracking-widest font-medium px-3 py-1.5 rounded-full shadow-lg">
+                    <div className="bg-foreground text-background text-[11px] uppercase tracking-widest font-medium px-3 py-1.5 rounded-full shadow-lg">
                       {lastAddedInfo.quantity > 1
                         ? `${lastAddedInfo.quantity}x Added`
                         : "Added"}

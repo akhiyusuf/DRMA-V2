@@ -81,6 +81,12 @@ export async function POST(request: NextRequest) {
             images: product.images || [],
             variations: product.variations || { sizes: [], colors: [], materials: [] },
             in_stock: product.inStock ?? true,
+            // CMS-editable per-product SEO. NULL is allowed so the product
+            // page falls back to `${name} | DRMA` when nothing is set. The
+            // dashboard sends snake_case; the typed Product type uses
+            // camelCase, so we accept either.
+            page_title: product.page_title ?? product.pageTitle ?? null,
+            meta_description: product.meta_description ?? product.metaDescription ?? null,
           }, { onConflict: "id" });
         
         if (error) throw error;

@@ -126,7 +126,7 @@ export function ProductRecommendations({
                 </div>
                 <div className={`flex justify-between items-end p-3 md:p-4 ${cardBg}`}>
                   <div>
-                    <h3 className={`font-medium text-xs md:text-sm ${headingColor} mb-0.5 md:mb-1`}>{product.name}</h3>
+                    <h3 className={`font-medium text-sm md:text-base ${headingColor} mb-0.5 md:mb-1`}>{product.name}</h3>
                     <p className={`text-[11px] md:text-xs ${mutedText}`}>${product.price.toFixed(2)}</p>
                   </div>
                   <div className={`flex h-8 w-8 md:h-9 md:w-9 items-center justify-center rounded-full ${accentBg} ${accentText} shrink-0 shadow-md transition-all duration-300 group-hover:scale-110`}>

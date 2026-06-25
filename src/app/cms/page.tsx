@@ -41,7 +41,7 @@ export default function LoginPage() {
           HTML5), so this page renders its content directly into that
           shared main landmark as a labelled region. */}
       <section role="region" aria-label="CMS login" className="flex flex-col items-center justify-center min-h-screen bg-background focus:outline-none">
-        <h1 className="text-2xl mb-4 font-heading">CMS Login</h1>
+        <h1 className="text-3xl md:text-4xl mb-4 font-heading">CMS Login</h1>
         <form onSubmit={handleLogin} className="flex flex-col gap-4 w-80">
           <input
             type="password"
