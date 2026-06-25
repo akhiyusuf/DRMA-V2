@@ -839,7 +839,7 @@ export default function DashboardPage() {
         </div>
       </aside>
 
-      <main className="col-span-12 lg:col-span-7 xl:col-span-8 space-y-10">
+      <section aria-label="CMS content editors" className="col-span-12 lg:col-span-7 xl:col-span-8 space-y-10">
         {/* Homepage Editor */}
         <section>
           <div className="flex items-center gap-3 mb-6">
@@ -969,7 +969,7 @@ export default function DashboardPage() {
             </div>
           </div>
         </section>
-      </main>
+      </section>
     </div>
   );
 
@@ -977,14 +977,11 @@ export default function DashboardPage() {
 
   return (
     <div className="w-full bg-background text-foreground min-h-screen selection:bg-primary selection:text-primary-foreground">
-      {/* Skip-to-content link — first focusable element */}
-      <a
-        href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:px-4 focus:py-2 focus:bg-foreground focus:text-background focus:text-xs focus:uppercase focus:tracking-widest focus:font-medium focus:rounded-full focus:shadow-lg focus:outline-2 focus:outline-offset-2 focus:outline-ring"
-      >
-        Skip to Content
-      </a>
-      <main role="main" aria-label="CMS dashboard" id="main-content" tabIndex={-1} className="max-w-[1400px] mx-auto px-4 md:px-8 pt-32 pb-24 relative focus:outline-none">
+      {/* Note: the shared ClientLayout already renders the "Skip to Content"
+          link and the <main role="main" id="main-content"> landmark. This
+          dashboard renders into that shared main as a labelled region to
+          avoid duplicate IDs and nested <main> elements (invalid HTML5). */}
+      <section role="region" aria-label="CMS dashboard" className="max-w-[1400px] mx-auto px-4 md:px-8 pt-32 pb-24 relative focus:outline-none">
 
         {/* Toast Notifications */}
         {toast && (
@@ -1039,7 +1036,7 @@ export default function DashboardPage() {
       {/* ====== HOMEPAGE TAB ====== */}
       {activeTab === 'homepage' && renderHomepage()}
 
-      </main>
+      </section>
     </div>
   );
 }

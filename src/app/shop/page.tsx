@@ -251,7 +251,7 @@ export default function ShopPage() {
                     key={product.id}
                     className="group flex flex-col break-inside-avoid mb-3 md:mb-4 lg:mb-6"
                   >
-                    <Link href={`/product/${product.id}`} className="block relative w-full mb-2.5 md:mb-4">
+                    <Link href={`/product/${product.id}`} className="block relative w-full mb-2.5 md:mb-4" aria-label={`View ${product.name}`}>
                       {/* Double Bezel Card */}
                       <div className="p-1 md:p-1.5 rounded-xl md:rounded-[1.5rem] bg-foreground/5 ring-1 ring-foreground/5 group-hover:ring-foreground/15 transition-all duration-500">
                         <div className="relative rounded-[0.65rem] md:rounded-[calc(1.5rem-0.375rem)] overflow-hidden bg-foreground/5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import Link from "next/link";
 import { ArrowUpRight, Plus, ArrowRight } from "lucide-react";
 import type { Product } from "@/types/product";
@@ -9,6 +9,11 @@ import type { Product } from "@/types/product";
 export default function Home() {
   const [homepageData, setHomepageData] = useState<any>(null);
   const [products, setProducts] = useState<Product[]>([]);
+  // WCAG 2.3.3 Animation from Interactions: respect the user's OS-level
+  // "reduce motion" setting. When enabled, the marquee ticker is slowed
+  // significantly (and could be frozen entirely) instead of scrolling
+  // continuously at the default 30s loop speed.
+  const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
     fetch('/api/cms/content?type=homepage')
@@ -117,11 +122,12 @@ export default function Home() {
       <div className="-mt-8 md:-mt-16 lg:-mt-24 relative w-full py-6 md:py-10 bg-[#1C1917] overflow-hidden border-y border-[#9A6B04]/20 z-20">
         <div className="flex whitespace-nowrap">
           <motion.div 
-            animate={{ x: ["0%", "-50%"] }}
+            animate={{ x: prefersReducedMotion ? "0%" : ["0%", "-50%"] }}
             transition={{ 
-              duration: 30, 
-              repeat: Infinity, 
-              ease: "linear" 
+              duration: prefersReducedMotion ? 0 : 30, 
+              repeat: prefersReducedMotion ? 0 : Infinity, 
+              ease: "linear",
+              repeatType: "loop"
             }}
             className="flex items-center gap-10 md:gap-20 lg:gap-24 px-6 md:px-8"
           >

@@ -34,14 +34,13 @@ export default function LoginPage() {
 
   return (
     <>
-      {/* Skip-to-content link — first focusable element */}
-      <a
-        href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:px-4 focus:py-2 focus:bg-foreground focus:text-background focus:text-xs focus:uppercase focus:tracking-widest focus:font-medium focus:rounded-full focus:shadow-lg focus:outline-2 focus:outline-offset-2 focus:outline-ring"
-      >
-        Skip to Content
-      </a>
-      <main role="main" aria-label="CMS login" id="main-content" tabIndex={-1} className="flex flex-col items-center justify-center min-h-screen bg-background focus:outline-none">
+      {/* Note: the shared ClientLayout already renders the "Skip to Content"
+          link and the <main role="main" id="main-content"> landmark as the
+          first focusable element / page wrapper. Rendering them again here
+          would create duplicate IDs and nested <main> elements (invalid
+          HTML5), so this page renders its content directly into that
+          shared main landmark as a labelled region. */}
+      <section role="region" aria-label="CMS login" className="flex flex-col items-center justify-center min-h-screen bg-background focus:outline-none">
         <h1 className="text-2xl mb-4 font-heading">CMS Login</h1>
         <form onSubmit={handleLogin} className="flex flex-col gap-4 w-80">
           <input
@@ -61,7 +60,7 @@ export default function LoginPage() {
           </button>
         </form>
         {error && <p className="text-red-500 mt-2 text-sm">{error}</p>}
-      </main>
+      </section>
     </>
   );
 }

@@ -106,7 +106,7 @@ export default function CartPage() {
                     className="flex flex-col sm:flex-row gap-8 pb-8 border-b border-foreground/5 group"
                   >
                     {/* Double Bezel Thumbnail */}
-                    <Link href={`/product/${item.id}`} className="block flex-shrink-0 w-32 md:w-40">
+                    <Link href={`/product/${item.id}`} className="block flex-shrink-0 w-32 md:w-40" aria-label={`View ${item.name}`}>
                       <div className="p-1 rounded-2xl bg-foreground/5 ring-1 ring-foreground/10 transition-all duration-300 group-hover:ring-foreground/20">
                         <div className="aspect-[3/4] rounded-[calc(1rem-0.25rem)] overflow-hidden relative shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]">
                            <img src={item.image} alt={item.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
@@ -117,7 +117,7 @@ export default function CartPage() {
                     <div className="flex-1 flex flex-col justify-between py-2">
                       <div>
                         <div className="flex justify-between items-start mb-2">
-                          <Link href={`/product/${item.id}`} className="font-heading text-xl md:text-2xl hover:underline underline-offset-4 decoration-foreground/30 transition-all">
+                          <Link href={`/product/${item.id}`} className="font-heading text-xl md:text-2xl hover:underline underline-offset-4 decoration-foreground/30 transition-all" aria-label={`View ${item.name}`}>
                             {item.name}
                           </Link>
                           <p className="font-light text-lg tracking-widest">${(item.price * item.quantity).toFixed(2)}</p>
