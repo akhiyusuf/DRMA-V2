@@ -68,7 +68,7 @@ export function ProductRecommendations({
           transition={{ duration: 1, ease: [0.32, 0.72, 0, 1] }}
           className="flex flex-col items-center text-center max-w-3xl mx-auto mb-14 md:mb-20"
         >
-          <span className={`rounded-full px-3 py-1 text-[10px] uppercase tracking-[0.2em] font-medium ${surfaceBg} ${subtleText} mb-6 border ${borderColor}`}>
+          <span className={`rounded-full px-3 py-1 text-[11px] uppercase tracking-[0.2em] font-medium ${surfaceBg} ${subtleText} mb-6 border ${borderColor}`}>
             The Collection
           </span>
           <h2 className={`text-4xl md:text-6xl font-heading font-light leading-tight ${headingColor}`}>
@@ -118,7 +118,7 @@ export function ProductRecommendations({
                   )}
                   {product.tags?.[0] && (
                     <div className="absolute top-3 left-3 z-10">
-                      <span className={`${cardBg}/90 backdrop-blur-md ${subtleText} text-[9px] md:text-[10px] font-semibold tracking-wider uppercase px-2.5 py-1 rounded-full shadow-sm`}>
+                      <span className={`${cardBg}/90 backdrop-blur-md ${subtleText} text-[11px] md:text-xs font-semibold tracking-wider uppercase px-2.5 py-1 rounded-full shadow-sm`}>
                         {product.tags[0]}
                       </span>
                     </div>

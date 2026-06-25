@@ -268,7 +268,7 @@ export default function Home() {
                     
                     {/* Badge */}
                     <div className="absolute top-3 left-3 md:top-4 md:left-4 z-10">
-                      <span className="bg-white/90 backdrop-blur-md text-[#1C1917] text-[8px] md:text-[10px] font-semibold tracking-wider uppercase px-2.5 py-1 md:px-3 md:py-1.5 rounded-full shadow-sm">
+                      <span className="bg-white/90 backdrop-blur-md text-[#1C1917] text-[11px] md:text-xs font-semibold tracking-wider uppercase px-2.5 py-1 md:px-3 md:py-1.5 rounded-full shadow-sm">
                         {product.tags[0]}
                       </span>
                     </div>
@@ -348,7 +348,7 @@ export default function Home() {
                       href="/shop" 
                       className="group relative inline-flex items-center gap-3 rounded-full bg-background pl-5 pr-2 py-1.5 text-sm font-medium tracking-wide text-foreground transition-all active:scale-95 mt-6 md:mt-8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                     >
-                      <span className="uppercase tracking-widest text-[9px] md:text-[10px]">Shop Now</span>
+                      <span className="uppercase tracking-widest text-[11px] md:text-xs">Shop Now</span>
                       <div className="flex h-7 w-7 md:h-8 md:w-8 items-center justify-center rounded-full bg-foreground/10 transition-transform duration-300 ease-spring group-hover:translate-x-1 group-hover:scale-110">
                         <ArrowRight className="h-3 w-3 stroke-[1.5]" />
                       </div>

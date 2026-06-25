@@ -152,7 +152,7 @@ export default function CheckoutPage() {
           transition={{ duration: 0.8, ease: [0.32, 0.72, 0, 1] }}
           className="flex flex-col items-center text-center mb-16"
         >
-          <Link href="/cart" className="group inline-flex items-center text-[10px] uppercase tracking-[0.2em] text-foreground/50 hover:text-foreground transition-colors mb-8">
+          <Link href="/cart" className="group inline-flex items-center text-[11px] uppercase tracking-[0.2em] text-foreground/50 hover:text-foreground transition-colors mb-8">
             <span className="flex items-center justify-center w-6 h-6 rounded-full bg-foreground/5 mr-3 transition-transform group-hover:-translate-x-1">
               <ArrowLeft className="w-3 h-3" />
             </span>
@@ -174,7 +174,7 @@ export default function CheckoutPage() {
             {/* Contact Info */}
             <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.8, ease: [0.32, 0.72, 0, 1] }}>
               <div className="flex items-center mb-8 border-b border-foreground/10 pb-4">
-                <span className="w-6 h-6 rounded-full bg-foreground text-background flex items-center justify-center text-[10px] mr-4">1</span>
+                <span className="w-6 h-6 rounded-full bg-foreground text-background flex items-center justify-center text-[11px] mr-4">1</span>
                 <h2 className="text-xs uppercase tracking-[0.2em] font-medium text-foreground/70">Contact Information</h2>
               </div>
               <div className="space-y-6">
@@ -189,7 +189,7 @@ export default function CheckoutPage() {
             {/* Shipping Address */}
             <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.8, ease: [0.32, 0.72, 0, 1] }}>
               <div className="flex items-center mb-8 border-b border-foreground/10 pb-4">
-                <span className="w-6 h-6 rounded-full bg-foreground/10 text-foreground flex items-center justify-center text-[10px] mr-4">2</span>
+                <span className="w-6 h-6 rounded-full bg-foreground/10 text-foreground flex items-center justify-center text-[11px] mr-4">2</span>
                 <h2 className="text-xs uppercase tracking-[0.2em] font-medium text-foreground/70">Shipping Address</h2>
               </div>
               <div className="space-y-6">
@@ -241,7 +241,7 @@ export default function CheckoutPage() {
             {/* Shipping Method */}
             <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.8, ease: [0.32, 0.72, 0, 1] }}>
               <div className="flex items-center mb-8 border-b border-foreground/10 pb-4">
-                <span className="w-6 h-6 rounded-full bg-foreground/10 text-foreground flex items-center justify-center text-[10px] mr-4">3</span>
+                <span className="w-6 h-6 rounded-full bg-foreground/10 text-foreground flex items-center justify-center text-[11px] mr-4">3</span>
                 <h2 className="text-xs uppercase tracking-[0.2em] font-medium text-foreground/70">Shipping Method</h2>
               </div>
               <RadioGroup value={shippingMethod} onValueChange={setShippingMethod} className="space-y-4">
@@ -267,7 +267,7 @@ export default function CheckoutPage() {
             {/* Payment */}
             <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4, duration: 0.8, ease: [0.32, 0.72, 0, 1] }}>
               <div className="flex items-center mb-8 border-b border-foreground/10 pb-4">
-                <span className="w-6 h-6 rounded-full bg-foreground/10 text-foreground flex items-center justify-center text-[10px] mr-4">4</span>
+                <span className="w-6 h-6 rounded-full bg-foreground/10 text-foreground flex items-center justify-center text-[11px] mr-4">4</span>
                 <h2 className="text-xs uppercase tracking-[0.2em] font-medium text-foreground/70">Payment</h2>
               </div>
               <div className="p-1 rounded-[1.5rem] bg-foreground/5 ring-1 ring-foreground/10">
@@ -313,13 +313,13 @@ export default function CheckoutPage() {
                       <div key={`${item.id}-${item.selectedSize}-${item.selectedColor}`} className="flex items-center gap-6">
                         <div className="w-20 h-24 rounded-lg bg-foreground/5 overflow-hidden flex-shrink-0 relative ring-1 ring-foreground/10">
                           <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
-                          <span className="absolute -top-1 -right-1 bg-foreground text-background text-[9px] w-5 h-5 rounded-full flex items-center justify-center border border-background">{item.quantity}</span>
+                          <span className="absolute -top-1 -right-1 bg-foreground text-background text-[11px] w-5 h-5 rounded-full flex items-center justify-center border border-background">{item.quantity}</span>
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-heading text-lg mb-1 truncate">{item.name}</p>
                           <div className="flex gap-2">
-                             <span className="text-[9px] uppercase tracking-widest text-foreground/50 border border-foreground/10 px-2 py-0.5 rounded-full">{item.selectedColor}</span>
-                             <span className="text-[9px] uppercase tracking-widest text-foreground/50 border border-foreground/10 px-2 py-0.5 rounded-full">{item.selectedSize}</span>
+                             <span className="text-[11px] uppercase tracking-widest text-foreground/50 border border-foreground/10 px-2 py-0.5 rounded-full">{item.selectedColor}</span>
+                             <span className="text-[11px] uppercase tracking-widest text-foreground/50 border border-foreground/10 px-2 py-0.5 rounded-full">{item.selectedSize}</span>
                           </div>
                         </div>
                         <p className="text-sm font-light tracking-widest">${(item.price * item.quantity).toFixed(2)}</p>
@@ -339,7 +339,7 @@ export default function CheckoutPage() {
                       <span className="tracking-widest">${shippingCost.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-foreground/70">Taxes {isTexas && <span className="text-[10px] uppercase ml-2 text-foreground/40">(TX 8.25%)</span>}</span>
+                      <span className="text-foreground/70">Taxes {isTexas && <span className="text-[11px] uppercase ml-2 text-foreground/40">(TX 8.25%)</span>}</span>
                       <span className="tracking-widest">${taxAmount.toFixed(2)}</span>
                     </div>
                   </div>

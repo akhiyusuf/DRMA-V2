@@ -29,7 +29,7 @@ export default function AboutPage() {
                 initial={{ opacity: 0, y: 40, filter: "blur(8px)" }}
                 animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
                 transition={{ duration: 1.2, ease: [0.32, 0.72, 0, 1] }}
-                className="text-6xl md:text-8xl font-heading font-normal tracking-tight text-foreground leading-[0.9]"
+                className="text-4xl md:text-5xl lg:text-6xl font-heading font-normal tracking-tight text-foreground leading-[0.9]"
               >
                 About <br/> <span className="italic font-light text-foreground/80">DRMA.</span>
               </motion.h1>

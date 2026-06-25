@@ -25,7 +25,7 @@ export default function EthicsPage() {
             initial={{ opacity: 0, y: 40, filter: "blur(8px)" }}
             animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
             transition={{ duration: 1.2, ease: [0.32, 0.72, 0, 1] }}
-            className="text-5xl md:text-7xl lg:text-8xl font-heading font-normal tracking-tight text-foreground leading-[1]"
+            className="text-4xl md:text-5xl lg:text-6xl font-heading font-normal tracking-tight text-foreground leading-[1]"
           >
             Our Ethical <br/> <span className="italic font-light text-foreground/80">Mission.</span>
           </motion.h1>
@@ -79,7 +79,7 @@ export default function EthicsPage() {
                     "Hazardous working conditions"
                   ].map((item, i) => (
                     <li key={i} className="flex items-center text-foreground/60 text-sm tracking-wide">
-                      <span className="flex items-center justify-center w-6 h-6 rounded-full bg-foreground/5 text-foreground mr-4 text-[10px]">✕</span>
+                      <span className="flex items-center justify-center w-6 h-6 rounded-full bg-foreground/5 text-foreground mr-4 text-[11px]">✕</span>
                       {item}
                     </li>
                   ))}
@@ -108,7 +108,7 @@ export default function EthicsPage() {
                     "Strict zero-tolerance policy for child labor"
                   ].map((item, i) => (
                     <li key={i} className="flex items-center text-background/80 text-sm tracking-wide">
-                      <span className="flex items-center justify-center w-6 h-6 rounded-full bg-background/10 text-background mr-4 text-[10px]">✓</span>
+                      <span className="flex items-center justify-center w-6 h-6 rounded-full bg-background/10 text-background mr-4 text-[11px]">✓</span>
                       {item}
                     </li>
                   ))}

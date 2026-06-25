@@ -176,7 +176,7 @@ export default function ShopPage() {
               initial={{ opacity: 0, y: 30, filter: "blur(8px)" }}
               animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
               transition={{ duration: 1.2, delay: 0.1, ease: [0.32, 0.72, 0, 1] }}
-              className="text-4xl md:text-6xl lg:text-8xl font-heading font-light tracking-tight text-foreground leading-[0.9] max-w-4xl"
+              className="text-4xl md:text-5xl lg:text-6xl font-heading font-light tracking-tight text-foreground leading-[0.9] max-w-4xl"
             >
               Curated <br/> <span className="italic font-light text-foreground/70">Essentials.</span>
             </motion.h1>
