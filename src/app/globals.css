@@ -140,6 +140,27 @@
   [tabindex]:focus-visible {
     @apply outline-2 outline-offset-2 outline-ring;
   }
+
+  /* Skip-to-content feedback: when the skip link is activated, the URL hash
+     becomes #main-content and <main> matches :target. Play a one-shot
+     brand-color box-shadow pulse so sighted keyboard users see that focus
+     actually moved into the main content. Animation runs once and the
+     element returns to its normal style. */
+  main#main-content:target {
+    animation: skip-link-flash 1.2s ease-out;
+  }
+}
+
+@keyframes skip-link-flash {
+  0% {
+    box-shadow: 0 0 0 0 rgba(154, 107, 4, 0);
+  }
+  15% {
+    box-shadow: 0 0 0 4px rgba(154, 107, 4, 0.45);
+  }
+  100% {
+    box-shadow: 0 0 0 4px rgba(154, 107, 4, 0);
+  }
 }
 
 @layer utilities {
