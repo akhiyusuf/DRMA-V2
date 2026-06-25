@@ -52,18 +52,20 @@ export default function CheckoutPage() {
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) newErrors.email = "Valid email required";
-    if (!firstName.trim()) newErrors.firstName = "Required";
-    if (!lastName.trim()) newErrors.lastName = "Required";
-    if (!address.trim()) newErrors.address = "Required";
-    if (!city.trim()) newErrors.city = "Required";
-    if (!/^\d{5}(-\d{4})?$/.test(zip)) newErrors.zip = "Valid ZIP required (e.g. 12345)";
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) newErrors.email = "Please enter a valid email address.";
+    if (!firstName.trim()) newErrors.firstName = "First name is required.";
+    if (!lastName.trim()) newErrors.lastName = "Last name is required.";
+    if (!address.trim()) newErrors.address = "Street address is required.";
+    if (!city.trim()) newErrors.city = "City is required.";
+    if (!/^\d{5}(-\d{4})?$/.test(zip)) newErrors.zip = "Enter a valid 5-digit ZIP code (e.g. 12345).";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Run our own validation first so we can render visible error messages.
+    // (The form also has native HTML5 constraints as a second line of defense.)
     if (!validate()) return;
     if (items.length === 0) return;
 
@@ -178,7 +180,7 @@ export default function CheckoutPage() {
               <div className="space-y-6">
                 <div className="grid w-full items-center gap-3">
                   <Label htmlFor="email" className="text-xs uppercase tracking-widest text-foreground/50 ml-1">Email Address</Label>
-                  <Input type="email" id="email" placeholder="client@drma.com" value={email} onChange={(e) => setEmail(e.target.value)} className={`h-12 bg-foreground/5 border-transparent focus-visible:ring-1 focus-visible:ring-foreground focus-visible:border-transparent rounded-xl px-4 font-light placeholder:text-foreground/30 transition-all ${errors.email ? 'ring-1 ring-destructive' : ''}`} />
+                  <Input type="email" id="email" required placeholder="client@drma.com" value={email} onChange={(e) => { setEmail(e.target.value); if (errors.email) setErrors(prev => { const n = { ...prev }; delete n.email; return n; }); }} className={`h-12 bg-foreground/5 border-transparent focus-visible:ring-1 focus-visible:ring-foreground focus-visible:border-transparent rounded-xl px-4 font-light placeholder:text-foreground/30 transition-all ${errors.email ? 'ring-1 ring-destructive' : ''}`} />
                   {errors.email && <p className="text-destructive text-xs ml-1">{errors.email}</p>}
                 </div>
               </div>
@@ -194,24 +196,24 @@ export default function CheckoutPage() {
                 <div className="grid grid-cols-2 gap-6">
                   <div className="grid w-full items-center gap-3">
                     <Label htmlFor="firstName" className="text-xs uppercase tracking-widest text-foreground/50 ml-1">First Name</Label>
-                    <Input type="text" id="firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} className={`h-12 bg-foreground/5 border-transparent focus-visible:ring-1 focus-visible:ring-foreground rounded-xl px-4 font-light transition-all ${errors.firstName ? 'ring-1 ring-destructive' : ''}`} />
+                    <Input type="text" id="firstName" required value={firstName} onChange={(e) => { setFirstName(e.target.value); if (errors.firstName) setErrors(prev => { const n = { ...prev }; delete n.firstName; return n; }); }} className={`h-12 bg-foreground/5 border-transparent focus-visible:ring-1 focus-visible:ring-foreground rounded-xl px-4 font-light transition-all ${errors.firstName ? 'ring-1 ring-destructive' : ''}`} />
                     {errors.firstName && <p className="text-destructive text-xs ml-1">{errors.firstName}</p>}
                   </div>
                   <div className="grid w-full items-center gap-3">
                     <Label htmlFor="lastName" className="text-xs uppercase tracking-widest text-foreground/50 ml-1">Last Name</Label>
-                    <Input type="text" id="lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} className={`h-12 bg-foreground/5 border-transparent focus-visible:ring-1 focus-visible:ring-foreground rounded-xl px-4 font-light transition-all ${errors.lastName ? 'ring-1 ring-destructive' : ''}`} />
+                    <Input type="text" id="lastName" required value={lastName} onChange={(e) => { setLastName(e.target.value); if (errors.lastName) setErrors(prev => { const n = { ...prev }; delete n.lastName; return n; }); }} className={`h-12 bg-foreground/5 border-transparent focus-visible:ring-1 focus-visible:ring-foreground rounded-xl px-4 font-light transition-all ${errors.lastName ? 'ring-1 ring-destructive' : ''}`} />
                     {errors.lastName && <p className="text-destructive text-xs ml-1">{errors.lastName}</p>}
                   </div>
                 </div>
                 <div className="grid w-full items-center gap-3">
                   <Label htmlFor="address" className="text-xs uppercase tracking-widest text-foreground/50 ml-1">Address</Label>
-                  <Input type="text" id="address" value={address} onChange={(e) => setAddress(e.target.value)} className={`h-12 bg-foreground/5 border-transparent focus-visible:ring-1 focus-visible:ring-foreground rounded-xl px-4 font-light transition-all ${errors.address ? 'ring-1 ring-destructive' : ''}`} />
+                  <Input type="text" id="address" required value={address} onChange={(e) => { setAddress(e.target.value); if (errors.address) setErrors(prev => { const n = { ...prev }; delete n.address; return n; }); }} className={`h-12 bg-foreground/5 border-transparent focus-visible:ring-1 focus-visible:ring-foreground rounded-xl px-4 font-light transition-all ${errors.address ? 'ring-1 ring-destructive' : ''}`} />
                   {errors.address && <p className="text-destructive text-xs ml-1">{errors.address}</p>}
                 </div>
                 <div className="grid grid-cols-6 gap-6">
                   <div className="col-span-3 grid w-full items-center gap-3">
                     <Label htmlFor="city" className="text-xs uppercase tracking-widest text-foreground/50 ml-1">City</Label>
-                    <Input type="text" id="city" value={city} onChange={(e) => setCity(e.target.value)} className={`h-12 bg-foreground/5 border-transparent focus-visible:ring-1 focus-visible:ring-foreground rounded-xl px-4 font-light transition-all ${errors.city ? 'ring-1 ring-destructive' : ''}`} />
+                    <Input type="text" id="city" required value={city} onChange={(e) => { setCity(e.target.value); if (errors.city) setErrors(prev => { const n = { ...prev }; delete n.city; return n; }); }} className={`h-12 bg-foreground/5 border-transparent focus-visible:ring-1 focus-visible:ring-foreground rounded-xl px-4 font-light transition-all ${errors.city ? 'ring-1 ring-destructive' : ''}`} />
                     {errors.city && <p className="text-destructive text-xs ml-1">{errors.city}</p>}
                   </div>
                   <div className="col-span-2 grid w-full items-center gap-3">
@@ -229,7 +231,7 @@ export default function CheckoutPage() {
                   </div>
                   <div className="col-span-1 grid w-full items-center gap-3">
                     <Label htmlFor="zip" className="text-xs uppercase tracking-widest text-foreground/50 ml-1">ZIP</Label>
-                    <Input type="text" id="zip" value={zip} onChange={(e) => setZip(e.target.value)} className={`h-12 bg-foreground/5 border-transparent focus-visible:ring-1 focus-visible:ring-foreground rounded-xl px-4 font-light transition-all ${errors.zip ? 'ring-1 ring-destructive' : ''}`} />
+                    <Input type="text" id="zip" inputMode="numeric" required pattern="^\d{5}(-\d{4})?$" title="Enter a 5-digit ZIP code (e.g. 12345) or ZIP+4 (e.g. 12345-6789)" value={zip} onChange={(e) => { setZip(e.target.value); if (errors.zip) setErrors(prev => { const n = { ...prev }; delete n.zip; return n; }); }} className={`h-12 bg-foreground/5 border-transparent focus-visible:ring-1 focus-visible:ring-foreground rounded-xl px-4 font-light transition-all ${errors.zip ? 'ring-1 ring-destructive' : ''}`} />
                     {errors.zip && <p className="text-destructive text-xs ml-1">{errors.zip}</p>}
                   </div>
                 </div>

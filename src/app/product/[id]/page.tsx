@@ -50,6 +50,75 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
       });
   }, [resolvedParams.id]);
 
+  // Default Variant Selection: pre-select the first AVAILABLE size+color
+  // combination on page load so the "Add to Cart" button is active
+  // immediately instead of showing "Select Options".
+  //
+  // Strategy:
+  //   1. Optimistically pick the first size + first color as soon as the
+  //      product is loaded (gives the user an active button in one tick).
+  //   2. In parallel, fetch all variant stock rows for this product and,
+  //      if the optimistic combination happens to be out of stock, swap
+  //      to the first combination that has stock > 0.
+  useEffect(() => {
+    if (!product) return;
+    const sizes = product.variations?.sizes ?? [];
+    const colors = product.variations?.colors ?? [];
+    if (sizes.length === 0 || colors.length === 0) return;
+
+    // (1) Optimistic pre-selection
+    setSelectedSize(prev => prev ?? sizes[0]);
+    setSelectedColor(prev => prev ?? colors[0]);
+
+    // (2) Smart pre-selection: pick first in-stock combination
+    let cancelled = false;
+    fetch('/api/cms/stock/variant', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ productId: product.id }),
+    })
+      .then(res => res.ok ? res.json() : { variants: [] })
+      .then((data: { variants?: Array<{ size: string; color: string; stock_quantity: number }> }) => {
+        if (cancelled) return;
+        const variants = data?.variants ?? [];
+        if (variants.length === 0) return;
+
+        // Build a lookup of stock by `${size}|${color}`
+        const stockMap = new Map<string, number>();
+        for (const v of variants) {
+          stockMap.set(`${v.size}|${v.color}`, v.stock_quantity);
+        }
+
+        // Check if the optimistic selection is out of stock
+        const optimisticKey = `${sizes[0]}|${colors[0]}`;
+        const optimisticStock = stockMap.get(optimisticKey);
+        if (optimisticStock !== undefined && optimisticStock > 0) {
+          // Optimistic pick is fine — nothing to change.
+          return;
+        }
+
+        // Otherwise: find the first combination with stock > 0
+        // Iterate sizes outer, colors inner — matches the visual order on the page.
+        for (const size of sizes) {
+          for (const color of colors) {
+            const stock = stockMap.get(`${size}|${color}`);
+            if (stock !== undefined && stock > 0) {
+              setSelectedSize(size);
+              setSelectedColor(color);
+              return;
+            }
+          }
+        }
+      })
+      .catch(() => {
+        // Silently ignore — the optimistic selection already gives the user
+        // an active "Add to Cart" button, and the existing per-variant
+        // stock fetch will surface "Out of Stock" if needed.
+      });
+
+    return () => { cancelled = true; };
+  }, [product]);
+
   // Fetch variant stock when product + selections are available
   useEffect(() => {
     if (!product || !selectedSize || !selectedColor) {

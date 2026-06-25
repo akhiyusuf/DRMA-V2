@@ -200,7 +200,7 @@ export default function Home() {
                   {homepageData.mission?.description || ""}
                 </p>
                 
-                <Link href={homepageData.mission?.ctaUrl || "#"} className="group inline-flex items-center text-primary font-medium tracking-wide uppercase text-xs w-max focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring focus-visible:rounded-full focus-visible:px-2 focus-visible:py-1">
+                <Link href={homepageData.mission?.ctaUrl || "/ethics"} className="group inline-flex items-center text-primary font-medium tracking-wide uppercase text-xs w-max focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring focus-visible:rounded-full focus-visible:px-2 focus-visible:py-1">
                   {homepageData.mission?.buttonLabel || "Learn More"}
                   <span className="relative ml-3 flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 transition-transform duration-300 ease-spring group-hover:translate-x-2">
                     <ArrowRight className="h-3 w-3" />

@@ -7,7 +7,10 @@ import { useCart } from "@/context/CartContext";
 import { useEffect, useState } from "react";
 
 interface StockInfo {
-  [productId: string]: {
+  // Keyed by `${productId}__${size}__${color}` so each cart line gets its
+  // own variant-level stock reading (single source of truth, shared with
+  // the product page which hits the same /api/cms/stock/variant endpoint).
+  [variantKey: string]: {
     stock_quantity: number | null;
     max_per_order: number | null;
     in_stock: boolean;
@@ -17,40 +20,78 @@ interface StockInfo {
 
 import { DEFAULT_MAX_PER_ORDER } from "@/types/product";
 
+const variantKey = (id: string, size: string, color: string) =>
+  `${id}__${size}__${color}`;
+
 export default function CartPage() {
   const { items, removeItem, updateQuantity, subtotal, itemCount } = useCart();
   const [stockInfo, setStockInfo] = useState<StockInfo>({});
   const [quantityErrors, setQuantityErrors] = useState<Record<string, string>>({});
 
-  // Fetch live stock data for all cart items
+  // Fetch live VARIANT-level stock data for every cart line.
+  // This is the same source of truth used by /product/[id]/page.tsx via
+  // /api/cms/stock/variant — so a variant that shows "Add to Cart" on the
+  // product page can never be flagged as "Out of Stock" once it lands in
+  // the cart. When the variant endpoint has no row (returns null), we fall
+  // back to product-level stock from /api/products so legacy products that
+  // don't track per-variant stock still work correctly.
   useEffect(() => {
-    if (items.length === 0) return;
+    if (items.length === 0) {
+      setStockInfo({});
+      return;
+    }
 
-    const productIds = [...new Set(items.map(i => i.id))];
-    if (productIds.length === 0) return;
+    let cancelled = false;
 
+    // Step 1: pull product-level stock (fallback when no variant row exists)
+    const productStockMap: Record<string, { stock_quantity: number | null; max_per_order: number | null; in_stock: boolean; name: string }> = {};
     fetch('/api/products')
       .then(res => res.json())
       .then((products: any[]) => {
-        const info: StockInfo = {};
+        if (cancelled) return;
         products.forEach(p => {
-          if (productIds.includes(p.id)) {
-            info[p.id] = {
-              stock_quantity: p.stock_quantity,
-              max_per_order: p.max_per_order,
-              in_stock: p.in_stock,
-              name: p.name,
-            };
-          }
+          productStockMap[p.id] = {
+            stock_quantity: p.stock_quantity,
+            max_per_order: p.max_per_order,
+            in_stock: p.in_stock,
+            name: p.name,
+          };
         });
-        setStockInfo(info);
+
+        // Step 2: for each cart line, prefer variant-level stock when available
+        Promise.all(
+          items.map(item =>
+            fetch(`/api/cms/stock/variant?productId=${encodeURIComponent(item.id)}&size=${encodeURIComponent(item.selectedSize)}&color=${encodeURIComponent(item.selectedColor)}`)
+              .then(res => res.ok ? res.json() : { stock: null, maxPerOrder: null })
+              .then(data => ({ item, data }))
+              .catch(() => ({ item, data: { stock: null, maxPerOrder: null } }))
+          )
+        ).then(results => {
+          if (cancelled) return;
+          const info: StockInfo = {};
+          results.forEach(({ item, data }) => {
+            const fallback = productStockMap[item.id];
+            const variantStock = (data?.stock !== null && data?.stock !== undefined) ? data.stock : (fallback?.stock_quantity ?? null);
+            const variantMax = data?.maxPerOrder ?? fallback?.max_per_order ?? null;
+            const key = variantKey(item.id, item.selectedSize, item.selectedColor);
+            info[key] = {
+              stock_quantity: variantStock,
+              max_per_order: variantMax,
+              in_stock: variantStock === null ? (fallback?.in_stock ?? true) : variantStock > 0,
+              name: fallback?.name ?? item.name,
+            };
+          });
+          setStockInfo(info);
+        });
       })
       .catch(() => {});
+
+    return () => { cancelled = true; };
   }, [items]);
 
-  // Check if any items have stock issues
+  // Check if any items have stock issues (variant-level, single source of truth)
   const hasStockIssues = items.some(item => {
-    const stock = stockInfo[item.id];
+    const stock = stockInfo[variantKey(item.id, item.selectedSize, item.selectedColor)];
     return stock && stock.stock_quantity !== null && stock.stock_quantity >= 0 && stock.stock_quantity === 0;
   });
 
@@ -87,7 +128,7 @@ export default function CartPage() {
             )}
             <div className="space-y-8">
               {items.map((item, index) => {
-                const stock = stockInfo[item.id];
+                const stock = stockInfo[variantKey(item.id, item.selectedSize, item.selectedColor)];
                 const isOutOfStock = stock && stock.stock_quantity !== null && stock.stock_quantity >= 0 && stock.stock_quantity === 0;
                 const isLowStock = stock && stock.stock_quantity !== null && stock.stock_quantity > 0 && stock.stock_quantity <= 5;
                 const maxPer = stock?.max_per_order ?? DEFAULT_MAX_PER_ORDER;

@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
+import { ProductRecommendations } from "@/components/layout/ProductRecommendations";
 
 export default function AboutPage() {
   return (
@@ -135,6 +136,14 @@ export default function AboutPage() {
 
         </div>
       </section>
+
+      {/* End-of-page conversion CTA: product recommendations + Shop Now.
+          Prevents the About page from being a conversion dead-end. */}
+      <ProductRecommendations
+        heading="Continue Your Journey."
+        subheading="Carry the story forward — explore pieces crafted with the same integrity you just read about."
+        variant="light"
+      />
     </div>
   );
 }

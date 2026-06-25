@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { ShieldCheck, HeartHandshake, Leaf, Users, ArrowUpRight } from "lucide-react";
+import { ProductRecommendations } from "@/components/layout/ProductRecommendations";
 
 export default function EthicsPage() {
   return (
@@ -168,6 +169,15 @@ export default function EthicsPage() {
           </div>
         </div>
       </section>
+
+      {/* End-of-page conversion CTA: product recommendations.
+          Sits between the Pillars section and the final "Shop with your Values"
+          CTA so users see real, shoppable products before being asked to convert. */}
+      <ProductRecommendations
+        heading="Wear Your Values."
+        subheading="Every piece below is produced in audited facilities by adults paid a living wage. Choose with intention."
+        variant="light"
+      />
 
       {/* CTA */}
       <section className="py-32 md:py-48 text-center px-4">

@@ -4,6 +4,7 @@ import { Cormorant_Garamond, Montserrat } from "next/font/google";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { CartProvider } from "@/context/CartContext";
+import { AddToCartToast } from "@/components/layout/AddToCartToast";
 
 const cormorant = Cormorant_Garamond({
   variable: "--font-heading",
@@ -32,6 +33,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
       <div className="fixed inset-0 z-50 pointer-events-none opacity-[0.025] mix-blend-multiply" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.65%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")' }}></div>
       <CartProvider>
         <Navbar />
+        <AddToCartToast />
         <main role="main" aria-label="Main content" id="main-content" tabIndex={-1} className="flex-grow focus:outline-none">
           {children}
         </main>
