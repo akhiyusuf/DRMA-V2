@@ -135,11 +135,11 @@ def test_checkout_validation(base_url, browser_ctx=None, verbose=False):
         page.wait_for_timeout(1500)  # let variant stock + default selection resolve
 
         # Click "Add to Cart"
-        add_btn = page.locator('button:has-text("Add to Cart")').first
+        add_btn = page.locator('button:has-text("Add to Cart")')
         if add_btn.count() == 0:
             fail("checkout_validation", "no Add to Cart button on product page")
             return
-        add_btn.click()
+        add_btn.first.click()
         page.wait_for_timeout(800)
 
         # Go to checkout
@@ -304,18 +304,21 @@ def test_add_to_cart_toast(base_url, browser_ctx=None, verbose=False):
         page.wait_for_load_state("networkidle")
         page.wait_for_timeout(1500)
 
-        add_btn = page.locator('button:has-text("Add to Cart")').first
+        add_btn = page.locator('button:has-text("Add to Cart")')
         if add_btn.count() == 0:
             fail("add_to_cart_toast", "no Add to Cart button")
             return
-        add_btn.click()
-        page.wait_for_timeout(800)
+        add_btn.first.click()
+        page.wait_for_timeout(1200)
 
-        # Look for a visible [role=status] element
+        # Look for a visible toast. Use getBoundingClientRect rather than
+        # offsetParent because the toast wrapper is position:fixed, which
+        # makes offsetParent return null even when the toast is fully visible.
         toast_text = page.evaluate("""() => {
             const els = document.querySelectorAll('[role="status"], [aria-live]');
             for (const el of els) {
-                if (el.offsetParent !== null && el.innerText.trim()) {
+                const r = el.getBoundingClientRect();
+                if (r.width > 0 && r.height > 0 && el.innerText.trim()) {
                     return { text: el.innerText.trim().slice(0, 200), role: el.getAttribute('role'), ariaLive: el.getAttribute('aria-live') };
                 }
             }
@@ -501,16 +504,22 @@ def test_toast_aria_assertive(base_url, browser_ctx=None, verbose=False):
         page.wait_for_load_state("networkidle")
         page.wait_for_timeout(1500)
         page.locator('button:has-text("Add to Cart")').first.click()
-        page.wait_for_timeout(800)
+        page.wait_for_timeout(1200)
 
-        # Find the toast container (should be aria-live=assertive now)
+        # Find the toast container (should be aria-live=assertive now).
+        # Use getBoundingClientRect rather than offsetParent because the
+        # toast wrapper is position:fixed, which makes offsetParent null
+        # even when the toast is fully visible.
         live = page.evaluate("""() => {
             const els = document.querySelectorAll('[aria-live]');
-            return Array.from(els).map(el => ({
-                ariaLive: el.getAttribute('aria-live'),
-                visible: el.offsetParent !== null,
-                text: el.innerText.trim().slice(0, 60),
-            }));
+            return Array.from(els).map(el => {
+                const r = el.getBoundingClientRect();
+                return {
+                    ariaLive: el.getAttribute('aria-live'),
+                    visible: r.width > 0 && r.height > 0,
+                    text: el.innerText.trim().slice(0, 60),
+                };
+            });
         }""")
         if not live:
             fail("toast_aria_assertive", "no [aria-live] elements found")
