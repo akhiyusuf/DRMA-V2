@@ -80,8 +80,11 @@ export function ProductRecommendations({
           </p>
         </motion.div>
 
-        {/* Product grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 mb-14 md:mb-20">
+        {/* Product grid
+            Breakpoint note: a custom 480px min-width variant transitions the
+            grid from one column (very small phones) to two columns on larger
+            mobile devices, before the standard sm/lg breakpoints take over. */}
+        <div className="grid grid-cols-1 min-[480px]:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 mb-14 md:mb-20">
           {loading ? (
             // Skeleton
             Array.from({ length: limit }).map((_, i) => (
@@ -104,15 +107,18 @@ export function ProductRecommendations({
                   className="absolute inset-0 z-30 block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                   aria-label={`View ${product.name}`}
                 />
-                <div className="relative flex-1 w-full bg-foreground/[0.03] rounded-[calc(1rem-0.25rem)] md:rounded-[calc(1.5rem-0.375rem)] overflow-hidden aspect-[3/4]">
+                {/* Image area — no forced aspect ratio so product images
+                    (e.g. the wide Nomad Hijab) keep their intended proportions
+                    instead of being aggressively cropped to 3:4. */}
+                <div className="relative flex-1 w-full bg-foreground/[0.03] rounded-[calc(1rem-0.25rem)] md:rounded-[calc(1.5rem-0.375rem)] overflow-hidden">
                   {product.images?.[0] ? (
                     <img
                       src={product.images[0]}
                       alt={product.name}
-                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-[2.5s] ease-[0.32,0.72,0,1] group-hover:scale-[1.04]"
+                      className="block w-full h-auto transition-transform duration-[2.5s] ease-[0.32,0.72,0,1] group-hover:scale-[1.04]"
                     />
                   ) : (
-                    <div className="absolute inset-0 flex items-center justify-center text-foreground/30 text-xs uppercase tracking-widest">
+                    <div className="w-full aspect-[3/4] flex items-center justify-center text-foreground/30 text-xs uppercase tracking-widest">
                       No Image
                     </div>
                   )}

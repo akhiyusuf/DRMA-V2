@@ -180,7 +180,7 @@ export default function CheckoutPage() {
               <div className="space-y-6">
                 <div className="grid w-full items-center gap-3">
                   <Label htmlFor="email" className="text-xs uppercase tracking-widest text-foreground/50 ml-1">Email Address</Label>
-                  <Input type="email" id="email" required placeholder="client@drma.com" value={email} onChange={(e) => { setEmail(e.target.value); if (errors.email) setErrors(prev => { const n = { ...prev }; delete n.email; return n; }); }} className={`h-12 bg-foreground/5 border-transparent focus-visible:ring-1 focus-visible:ring-foreground focus-visible:border-transparent rounded-xl px-4 font-light placeholder:text-foreground/30 transition-all ${errors.email ? 'ring-1 ring-destructive' : ''}`} />
+                  <Input type="email" id="email" required value={email} onChange={(e) => { setEmail(e.target.value); if (errors.email) setErrors(prev => { const n = { ...prev }; delete n.email; return n; }); }} className={`h-12 bg-foreground/5 border-transparent focus-visible:ring-1 focus-visible:ring-foreground focus-visible:border-transparent rounded-xl px-4 font-light transition-all ${errors.email ? 'ring-1 ring-destructive' : ''}`} />
                   {errors.email && <p className="text-destructive text-xs ml-1">{errors.email}</p>}
                 </div>
               </div>

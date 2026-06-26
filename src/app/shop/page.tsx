@@ -8,6 +8,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { ArrowUpRight, X, SlidersHorizontal } from "lucide-react";
 
+/**
+ * Custom breakpoint at 480px for transitioning the product grid from a
+ * single column (very small phones) to two columns (larger mobile devices).
+ * Tailwind v4 supports arbitrary min-[Npx] variants out of the box, so no
+ * theme config change is needed.
+ */
+
 function FilterContent({ 
   categories, 
   selectedCategory, 
@@ -126,6 +133,7 @@ export default function ShopPage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [fetching, setFetching] = useState(true);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [showFloatingFilter, setShowFloatingFilter] = useState(false);
 
   // Lock body scroll when drawer is open
   useEffect(() => {
@@ -136,6 +144,18 @@ export default function ShopPage() {
     }
     return () => { document.body.style.overflow = "unset"; };
   }, [filtersOpen]);
+
+  // Show a sticky floating Filter button on mobile once the user scrolls
+  // past the editorial header (so filters are always reachable while
+  // browsing the grid). The header button remains for the initial viewport.
+  useEffect(() => {
+    const onScroll = () => {
+      setShowFloatingFilter(window.scrollY > 280);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   useEffect(() => {
     fetch('/api/products')
@@ -222,7 +242,7 @@ export default function ShopPage() {
           {/* Product Grid: Pinterest Masonry */}
           <div className="flex-1 min-w-0">
             {fetching && products.length === 0 ? (
-              <div className="columns-2 sm:columns-2 md:columns-3 xl:columns-3 gap-3 md:gap-4 lg:gap-6 space-y-3 md:space-y-4 lg:space-y-6">
+              <div className="columns-1 min-[480px]:columns-2 md:columns-3 xl:columns-3 gap-3 md:gap-4 lg:gap-6 space-y-3 md:space-y-4 lg:space-y-6">
                 {Array.from({ length: 6 }).map((_, i) => (
                   <div key={i} className="break-inside-avoid mb-3 md:mb-4 lg:mb-6 animate-pulse">
                     <div className="p-1 md:p-1.5 rounded-xl md:rounded-[1.5rem] bg-foreground/5 ring-1 ring-foreground/5">
@@ -238,7 +258,7 @@ export default function ShopPage() {
             ) : (
             <motion.div 
               layout
-              className="columns-2 sm:columns-2 md:columns-3 xl:columns-3 gap-3 md:gap-4 lg:gap-6 space-y-3 md:space-y-4 lg:space-y-6"
+              className="columns-1 min-[480px]:columns-2 md:columns-3 xl:columns-3 gap-3 md:gap-4 lg:gap-6 space-y-3 md:space-y-4 lg:space-y-6"
             >
               <AnimatePresence mode="popLayout">
                 {filteredProducts.map((product, index) => (
@@ -259,7 +279,7 @@ export default function ShopPage() {
                             <img 
                                 src={product.images[0]} 
                                 alt={product.name} 
-                                className="w-full h-auto object-cover transition-transform duration-[1.5s] ease-[0.32,0.72,0,1] group-hover:scale-105"
+                                className="block w-full h-auto transition-transform duration-[1.5s] ease-[0.32,0.72,0,1] group-hover:scale-105"
                                 loading="lazy"
                             />
                           ) : (
@@ -319,6 +339,31 @@ export default function ShopPage() {
           </div>
         </div>
       </div>
+
+      {/* Sticky floating Filter button (mobile only) — appears after the user
+          scrolls past the editorial header so filters are always reachable
+          while browsing the product grid on small screens. */}
+      <AnimatePresence>
+        {showFloatingFilter && !filtersOpen && (
+          <motion.button
+            initial={{ opacity: 0, y: 24, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 24, scale: 0.9 }}
+            transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
+            onClick={() => setFiltersOpen(true)}
+            className="lg:hidden fixed bottom-6 right-6 z-50 flex items-center gap-2 px-5 py-3 rounded-full bg-foreground text-background shadow-[0_8px_30px_rgba(0,0,0,0.25)] text-xs uppercase tracking-widest font-medium hover:bg-foreground/90 active:scale-95 transition-all"
+            aria-label="Open filters"
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+            Filters
+            {activeFilterCount > 0 && (
+              <span className="min-w-[18px] h-[18px] bg-background text-foreground text-[11px] font-semibold rounded-full flex items-center justify-center px-1 leading-none">
+                {activeFilterCount}
+              </span>
+            )}
+          </motion.button>
+        )}
+      </AnimatePresence>
 
       {/* Mobile Filter Drawer */}
       <AnimatePresence>
