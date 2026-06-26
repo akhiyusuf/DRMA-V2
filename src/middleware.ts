@@ -125,13 +125,16 @@ export async function middleware(request: NextRequest) {
         statusText: upstream.statusText,
       });
 
-      // Copy upstream headers (skip CSP & length which we override)
+      // Copy upstream headers (skip CSP, CORS, length which we control)
       upstream.headers.forEach((value, key) => {
         const lower = key.toLowerCase();
         if (
           lower !== "content-security-policy" &&
           lower !== "content-length" &&
-          lower !== "transfer-encoding"
+          lower !== "transfer-encoding" &&
+          lower !== "access-control-allow-origin" &&
+          lower !== "access-control-allow-credentials" &&
+          lower !== "access-control-expose-headers"
         ) {
           newResponse.headers.set(key, value);
         }
