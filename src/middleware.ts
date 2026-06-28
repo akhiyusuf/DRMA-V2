@@ -1,4 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createHmac, timingSafeEqual } from "node:crypto";
+
+// Force Node.js runtime so the full node:crypto module and all env vars
+// are available. The Edge runtime doesn't support createHmac.
+export const runtime = "nodejs";
 
 /**
  * Middleware that:
@@ -80,6 +85,59 @@ function getClientIp(request: NextRequest): string {
   const xri = request.headers.get("x-real-ip");
   if (xri) return xri;
   return "unknown";
+}
+
+// ─── CMS Session Verification (SECURE) ────────────────────────────
+// CRITICAL FIX: The previous implementation checked for a cookie value
+// of "true" with httpOnly: false, which was trivially forgeable. This
+// implementation verifies an HMAC-signed session token that cannot be
+// forged without the server-side secret.
+const CMS_SESSION_COOKIE = "cms_session";
+
+function getCmsSigningSecret(): string {
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const cmsPassword = process.env.NEXT_PUBLIC_CMS_PASSWORD || "";
+  const base = serviceKey || cmsPassword;
+  if (!base) return "";
+  return `drma-cms-session-secret-v1:${base}`;
+}
+
+function verifyCmsSession(cookieValue: string | undefined): boolean {
+  if (!cookieValue) return false;
+
+  const parts = cookieValue.split(".");
+  if (parts.length !== 2) return false;
+
+  const [token, signature] = parts;
+  if (!token || !signature) return false;
+
+  try {
+    const secret = getCmsSigningSecret();
+    if (!secret) return false;
+
+    const expectedSignature = createHmac("sha256", secret).update(token).digest("base64url");
+    const sigBuffer = Buffer.from(signature);
+    const expectedBuffer = Buffer.from(expectedSignature);
+
+    if (sigBuffer.length !== expectedBuffer.length) {
+      return false;
+    }
+
+    return timingSafeEqual(sigBuffer, expectedBuffer);
+  } catch {
+    return false;
+  }
+}
+
+function isCmsAuthenticated(request: NextRequest): boolean {
+  // Check the new secure cookie
+  const sessionValue = request.cookies.get(CMS_SESSION_COOKIE)?.value;
+  if (verifyCmsSession(sessionValue)) return true;
+
+  // The legacy "cms_authenticated=true" cookie is NO LONGER accepted.
+  // It was forgeable (httpOnly: false, value "true"). We only check the
+  // new signed session cookie above.
+  return false;
 }
 
 function buildCSP(nonce: string): string {
@@ -179,13 +237,14 @@ export async function middleware(request: NextRequest) {
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
 
   // --- CMS auth check (must run before anything else) ---
+  // CRITICAL FIX: Use the secure HMAC-signed session verification instead
+  // of the forgeable "cms_authenticated=true" cookie check.
   if (
     request.nextUrl.pathname.startsWith("/cms") &&
     !request.nextUrl.pathname.startsWith("/cms/api") &&
     request.nextUrl.pathname !== "/cms"
   ) {
-    const cmsAuth = request.cookies.get("cms_authenticated")?.value;
-    if (cmsAuth !== "true") {
+    if (!isCmsAuthenticated(request)) {
       return NextResponse.redirect(new URL("/cms", request.url));
     }
   }
