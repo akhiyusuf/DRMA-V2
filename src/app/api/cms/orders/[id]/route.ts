@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/utils/supabase/admin";
+import { requireCmsAuth } from "@/utils/cms-auth";
 
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Auth required: order status updates are CMS-only operations
+  const authError = requireCmsAuth(request);
+  if (authError) return authError;
+
   const { id } = await params;
   try {
     const body = await request.json();

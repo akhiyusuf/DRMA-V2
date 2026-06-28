@@ -1,11 +1,16 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/utils/supabase/admin";
+import { requireCmsAuth } from "@/utils/cms-auth";
 
 // Self-migrating endpoint: creates product_variant_stock table if missing.
 // Uses Supabase JS client to probe the table; if it doesn't exist,
 // provides the SQL for the user to run in Supabase Dashboard > SQL Editor.
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  // Auth required: exposes database schema information
+  const authError = requireCmsAuth(request);
+  if (authError) return authError;
+
   try {
     // Test if the table exists
     const { error } = await supabaseAdmin

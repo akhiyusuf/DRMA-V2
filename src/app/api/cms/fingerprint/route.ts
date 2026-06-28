@@ -1,9 +1,14 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/utils/supabase/admin";
+import { requireCmsAuth } from "@/utils/cms-auth";
 
 // Lightweight endpoint that returns per-table timestamps for CMS change detection.
 // Returns separate fingerprints so the dashboard can show context-aware notifications.
-export async function GET() {
+export async function GET(request: NextRequest) {
+  // Auth required: exposes internal update timestamps (including orders)
+  const authError = requireCmsAuth(request);
+  if (authError) return authError;
+
   try {
     const { data: products } = await supabaseAdmin
       .from("products")

@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/utils/supabase/admin";
+import { requireCmsAuth } from "@/utils/cms-auth";
 
-// GET: Fetch stock levels for all products
-export async function GET() {
+// GET: Fetch stock levels for all products (CMS only — exposes internal stock data)
+export async function GET(request: NextRequest) {
+  // Auth required: exposes internal stock quantities, thresholds, and SKUs
+  const authError = requireCmsAuth(request);
+  if (authError) return authError;
+
   try {
     const { data: products, error } = await supabaseAdmin
       .from("products")
@@ -25,6 +30,10 @@ export async function GET() {
 
 // PATCH: Update stock for a single product
 export async function PATCH(request: NextRequest) {
+  // Auth required: stock updates are CMS-only operations
+  const authError = requireCmsAuth(request);
+  if (authError) return authError;
+
   try {
     const { productId, stockQuantity, lowStockThreshold, maxPerOrder, sku, inStock } = await request.json();
 

@@ -7,7 +7,80 @@ import { NextRequest, NextResponse } from "next/server";
  * 3. Sets hardened security headers (CSP, X-Frame-Options, X-XSS-Protection, etc.)
  * 4. Handles restrictive CORS for /api/* routes
  * 5. Enforces CMS authentication
+ * 6. Rate-limits /api/* routes (LOW-04 fix)
  */
+
+// ─── Rate Limiter (LOW-04 fix) ────────────────────────────────────
+// Simple in-memory sliding-window rate limiter. Each IP gets a bucket of
+// timestamps; requests older than the window are pruned. When the bucket
+// exceeds the limit, the request is rejected with HTTP 429.
+//
+// Limits (per IP, per 60-second window):
+//   - /api/cms/* write routes (POST/PUT/PATCH/DELETE):  10 req/min
+//   - /api/* read routes (GET/POST):                   120 req/min
+//
+// Note: This is per-server-instance (in-memory). On Vercel serverless,
+// each instance has its own counter, so the effective limit is
+// (limit × instance_count). This is intentionally permissive — the goal
+// is to block obvious abuse (bulk scraping, brute-force), not to enforce
+// strict per-user quotas. For stricter limits, use Upstash Redis ratelimit.
+const RATE_WINDOW_MS = 60_000;
+const READ_LIMIT = 120;
+const WRITE_LIMIT = 10;
+
+interface RateBucket {
+  timestamps: number[];
+}
+
+const rateLimitMap = new Map<string, RateBucket>();
+
+// Prune expired entries periodically to prevent memory growth
+let lastPrune = Date.now();
+function pruneExpired(now: number) {
+  if (now - lastPrune < 60_000) return; // prune at most once per minute
+  lastPrune = now;
+  for (const [key, bucket] of rateLimitMap) {
+    bucket.timestamps = bucket.timestamps.filter((t) => now - t < RATE_WINDOW_MS);
+    if (bucket.timestamps.length === 0) {
+      rateLimitMap.delete(key);
+    }
+  }
+}
+
+function checkRateLimit(ip: string, isWrite: boolean): { allowed: boolean; remaining: number } {
+  const now = Date.now();
+  pruneExpired(now);
+
+  const key = `${ip}:${isWrite ? "w" : "r"}`;
+  const limit = isWrite ? WRITE_LIMIT : READ_LIMIT;
+
+  let bucket = rateLimitMap.get(key);
+  if (!bucket) {
+    bucket = { timestamps: [] };
+    rateLimitMap.set(key, bucket);
+  }
+
+  // Prune old timestamps for this bucket
+  bucket.timestamps = bucket.timestamps.filter((t) => now - t < RATE_WINDOW_MS);
+
+  if (bucket.timestamps.length >= limit) {
+    return { allowed: false, remaining: 0 };
+  }
+
+  bucket.timestamps.push(now);
+  return { allowed: true, remaining: limit - bucket.timestamps.length };
+}
+
+function getClientIp(request: NextRequest): string {
+  // Vercel sets x-forwarded-for and x-real-ip
+  const xff = request.headers.get("x-forwarded-for");
+  if (xff) {
+    return xff.split(",")[0].trim();
+  }
+  const xri = request.headers.get("x-real-ip");
+  if (xri) return xri;
+  return "unknown";
+}
 
 function buildCSP(nonce: string): string {
   return [
@@ -31,7 +104,11 @@ function setSecurityHeaders(response: Response | NextResponse, nonce: string) {
   response.headers.set("X-Frame-Options", "DENY");
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
-  response.headers.set("X-XSS-Protection", "1; mode=block");
+  // MED-01 fix: Set X-XSS-Protection to "0" to explicitly disable the
+  // deprecated IE/Edge XSS Auditor. Modern browsers ignore this header,
+  // and on legacy browsers the auditor has been shown to INTRODUCE XSS
+  // vulnerabilities. We rely on the strong CSP above for XSS mitigation.
+  response.headers.set("X-XSS-Protection", "0");
   response.headers.set("Cross-Origin-Resource-Policy", "same-origin");
   response.headers.set("Cross-Origin-Opener-Policy", "same-origin");
   response.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
@@ -107,7 +184,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // --- API routes: security headers + strict same-origin CORS ---
+  // --- API routes: security headers + strict same-origin CORS + rate limiting ---
   if (request.nextUrl.pathname.startsWith("/api/")) {
     const origin = request.headers.get("origin");
     const siteOrigin = request.nextUrl.origin;
@@ -116,7 +193,34 @@ export async function middleware(request: NextRequest) {
       return new NextResponse("Forbidden", { status: 403 });
     }
 
-    if (request.method === "OPTIONS") {
+    // LOW-04 fix: Rate limit all API routes
+    const method = request.method.toUpperCase();
+    const isWriteMethod = ["POST", "PUT", "PATCH", "DELETE"].includes(method);
+    // CMS write routes (including login, which is a brute-force target)
+    // get a stricter limit of 10 req/min.
+    const isCmsWrite = isWriteMethod
+      && request.nextUrl.pathname.startsWith("/api/cms/");
+
+    const ip = getClientIp(request);
+    const rateCheck = checkRateLimit(ip, isCmsWrite);
+    if (!rateCheck.allowed) {
+      const response = new NextResponse(
+        JSON.stringify({ error: "Too many requests. Please try again later." }),
+        {
+          status: 429,
+          headers: {
+            "Content-Type": "application/json",
+            "Retry-After": "60",
+            "X-RateLimit-Limit": String(isCmsWrite ? WRITE_LIMIT : READ_LIMIT),
+            "X-RateLimit-Remaining": "0",
+          },
+        }
+      );
+      setSecurityHeaders(response, nonce);
+      return response;
+    }
+
+    if (method === "OPTIONS") {
       const response = new NextResponse(null, { status: 204 });
       response.headers.set("Access-Control-Allow-Origin", siteOrigin);
       response.headers.set(
@@ -128,11 +232,13 @@ export async function middleware(request: NextRequest) {
         "Content-Type, Authorization, x-cms-auth"
       );
       response.headers.set("Access-Control-Max-Age", "86400");
+      response.headers.set("X-RateLimit-Remaining", String(rateCheck.remaining));
       setSecurityHeaders(response, nonce);
       return response;
     }
 
     const response = NextResponse.next();
+    response.headers.set("X-RateLimit-Remaining", String(rateCheck.remaining));
     setSecurityHeaders(response, nonce);
     return response;
   }

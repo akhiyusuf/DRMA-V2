@@ -1,0 +1,23 @@
+# DRMA — robots.txt
+# MED-03 fix: Explicitly allow public pages, disallow API and CMS routes.
+
+# Allow all crawlers
+User-agent: *
+Allow: /
+Allow: /shop
+Allow: /product/
+Allow: /about
+Allow: /ethics
+Allow: /privacy
+Allow: /terms
+Allow: /cart
+Allow: /checkout
+
+# Disallow API and CMS routes
+Disallow: /api/
+Disallow: /cms
+Disallow: /cms/
+Disallow: /order-confirmation
+
+# Sitemap
+Sitemap: https://drma-v2.vercel.app/sitemap.xml

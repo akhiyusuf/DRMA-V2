@@ -1,7 +1,12 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/utils/supabase/admin';
+import { requireCmsAuth } from '@/utils/cms-auth';
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  // Auth required: image uploads are CMS-only operations
+  const authError = requireCmsAuth(request);
+  if (authError) return authError;
+
   const data = await request.formData();
   const file: File | null = data.get('file') as unknown as File;
 

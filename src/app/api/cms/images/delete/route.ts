@@ -1,7 +1,12 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/utils/supabase/admin';
+import { requireCmsAuth } from '@/utils/cms-auth';
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  // Auth required: image deletion is a CMS-only operation
+  const authError = requireCmsAuth(request);
+  if (authError) return authError;
+
   const { imageUrl } = await request.json();
   if (!imageUrl) {
     return NextResponse.json({ success: false, error: 'No image URL provided' }, { status: 400 });

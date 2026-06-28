@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/utils/supabase/admin";
+import { requireCmsAuth } from "@/utils/cms-auth";
 
 // GET: Fetch variant stock for a specific product+size+color (public, used by product page)
 // Query params: productId, size, color
@@ -39,6 +40,10 @@ export async function GET(request: NextRequest) {
 // PATCH: Update variant stock
 // Body: { productId, size, color, stockQuantity, maxPerOrder }
 export async function PATCH(request: NextRequest) {
+  // Auth required: variant stock updates are CMS-only operations
+  const authError = requireCmsAuth(request);
+  if (authError) return authError;
+
   try {
     const { productId, size, color, stockQuantity, maxPerOrder } = await request.json();
 

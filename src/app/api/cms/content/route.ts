@@ -1,13 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/utils/supabase/admin";
 import { revalidatePath } from "next/cache";
+import { requireCmsAuth } from "@/utils/cms-auth";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const type = searchParams.get("type");
 
+  // LOW-01 fix: Validate the type parameter. Previously, ANY value (including
+  // invalid strings and injection attempts) silently returned homepage content,
+  // masking bugs and making it harder to detect attacks via log analysis.
+  // Now we accept only known types and return 404 for anything else.
+  const VALID_TYPES = ["homepage", "products"];
+  if (type && !VALID_TYPES.includes(type)) {
+    return NextResponse.json(
+      { error: `Invalid type. Must be one of: ${VALID_TYPES.join(", ")}` },
+      { status: 404 }
+    );
+  }
+
   try {
     if (type === "products") {
+      // type=products returns FULL product data (including stock_quantity,
+      // low_stock_threshold, sku, etc.) which is CMS-only. Require auth.
+      // The public storefront uses /api/products which strips internal fields.
+      const authError = requireCmsAuth(request);
+      if (authError) return authError;
+
       const { data: products, error } = await supabaseAdmin
         .from("products")
         .select("*")
@@ -62,6 +81,12 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  // CRIT-01 fix: Require CMS authentication for all content writes.
+  // Without this, any anonymous internet user could overwrite the live
+  // homepage content via a simple POST request.
+  const authError = requireCmsAuth(request);
+  if (authError) return authError;
+
   try {
     const { type, data } = await request.json();
 

@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/utils/supabase/admin";
+import { requireCmsAuth } from "@/utils/cms-auth";
 
 export async function GET(request: NextRequest) {
+  // Auth required: orders contain customer PII (email, name, shipping address)
+  const authError = requireCmsAuth(request);
+  if (authError) return authError;
+
   const { searchParams } = new URL(request.url);
   const status = searchParams.get("status");
   const search = searchParams.get("search");
@@ -62,6 +67,10 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  // Auth required: order creation from CMS dashboard
+  const authError = requireCmsAuth(request);
+  if (authError) return authError;
+
   try {
     const body = await request.json();
     const { orderData, items } = body;

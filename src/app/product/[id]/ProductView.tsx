@@ -169,7 +169,11 @@ export default function ProductView({ id }: { id: string }) {
   const effectiveStock = variantStock !== null ? variantStock : (productStockTracked ? product.stock_quantity! : -1);
   const stockTracked = effectiveStock >= 0;
   const isOutOfStock = effectiveStock === 0;
-  const isLowStock = stockTracked && effectiveStock > 0 && effectiveStock <= (product.low_stock_threshold ?? 3);
+  // HIGH-01 fix: use server-computed is_low_stock when falling back to product-level
+  // stock; for variant-level stock, derive from the effective count vs. default threshold.
+  const isLowStock = variantStock !== null
+    ? (stockTracked && effectiveStock > 0 && effectiveStock <= DEFAULT_MAX_PER_ORDER)
+    : (product.is_low_stock ?? (stockTracked && effectiveStock > 0 && effectiveStock <= 3));
   const effectiveMax = stockTracked ? Math.min(maxPerOrder, effectiveStock) : maxPerOrder;
 
   const showFeedback = (type: 'error' | 'success', message: string) => {

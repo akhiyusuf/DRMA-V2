@@ -13,7 +13,13 @@ export interface Product {
   };
   inStock: boolean;
   stock_quantity?: number | null;
-  low_stock_threshold?: number;
+  /**
+   * Server-computed boolean: true when stock is tracked and the current
+   * quantity is above zero but at or below the internal low-stock threshold.
+   * The raw low_stock_threshold is NOT exposed to anonymous callers
+   * (HIGH-01 fix). This field is present on /api/products responses.
+   */
+  is_low_stock?: boolean;
   max_per_order?: number | null;
   sku?: string;
   /**
