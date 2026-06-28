@@ -11,12 +11,13 @@ import { supabaseAdmin } from "@/utils/supabase/admin";
  * This is the Next.js 16 native approach (MetadataRoute.Sitemap),
  * which replaces the static public/sitemap.xml file. No external
  * dependencies (next-sitemap) required.
- *
- * The static public/sitemap.xml is kept as a fallback for crawlers
- * that don't execute dynamic routes; Next.js serves the dynamic
- * version at /sitemap.xml with higher priority.
  */
 const BASE_URL = "https://drma-v2.vercel.app";
+
+// Force dynamic rendering so the sitemap is generated on every request,
+// not cached at build time (when DB access may be unavailable).
+export const dynamic = "force-dynamic";
+export const revalidate = 3600; // cache for 1 hour
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const entries: MetadataRoute.Sitemap = [];
@@ -69,7 +70,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       .select("id, updated_at")
       .order("updated_at", { ascending: false });
 
-    if (!error && products) {
+    if (error) {
+      console.error("sitemap.ts: supabase error:", error.message);
+    } else if (products && products.length > 0) {
       for (const product of products) {
         entries.push({
           url: `${BASE_URL}/product/${product.id}`,
