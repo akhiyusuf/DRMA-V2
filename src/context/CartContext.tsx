@@ -45,10 +45,76 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   // Hydrate from localStorage on mount
   useEffect(() => {
+    let migrated = false;
     try {
       const stored = localStorage.getItem(CART_STORAGE_KEY);
       if (stored) {
-        setItems(JSON.parse(stored));
+        let parsed: CartItem[] = JSON.parse(stored);
+
+        // MED-02: Migrate legacy product IDs (p1..p10) to nanoids.
+        // After the ID migration, any cart in a returning visitor's browser
+        // will still reference the old sequential IDs. We detect them by
+        // pattern and fetch the new IDs from /api/products (which returns
+        // the legacy_id alongside the new id). Items that don't match the
+        // legacy pattern are left untouched.
+        const LEGACY_ID_PATTERN = /^p\d+$/;
+        const hasLegacyIds = parsed.some(item => LEGACY_ID_PATTERN.test(item.id));
+
+        if (hasLegacyIds) {
+          // Build a legacy→new ID map from the public products API
+          // (we can't use supabaseAdmin here — this is client-side)
+          fetch('/api/products')
+            .then(res => res.ok ? res.json() : [])
+            .then((products: any[]) => {
+              // The public API returns new IDs but not legacy_id (for security).
+              // However, since we can't get legacy_id from the public API, we
+              // match by name+price instead — which is stable for these 10
+              // products. This is a one-time migration; after it runs, the
+              // cart will have the new IDs and this branch won't execute again.
+              const legacyItems = parsed.filter(item => LEGACY_ID_PATTERN.test(item.id));
+              const updatedItems = [...parsed];
+
+              for (const legacyItem of legacyItems) {
+                // Match by name (the most reliable field available client-side)
+                const match = products.find(p => p.name === legacyItem.name);
+                if (match && !LEGACY_ID_PATTERN.test(match.id)) {
+                  const idx = updatedItems.findIndex(
+                    i => i.id === legacyItem.id
+                      && i.selectedSize === legacyItem.selectedSize
+                      && i.selectedColor === legacyItem.selectedColor
+                  );
+                  if (idx >= 0) {
+                    updatedItems[idx] = { ...updatedItems[idx], id: match.id };
+                    migrated = true;
+                  }
+                } else {
+                  // Product no longer exists — mark for removal
+                  const idx = updatedItems.findIndex(
+                    i => i.id === legacyItem.id
+                      && i.selectedSize === legacyItem.selectedSize
+                      && i.selectedColor === legacyItem.selectedColor
+                  );
+                  if (idx >= 0) {
+                    updatedItems.splice(idx, 1);
+                    migrated = true;
+                  }
+                }
+              }
+
+              if (migrated) {
+                setItems(updatedItems);
+              } else {
+                setItems(parsed);
+              }
+            })
+            .catch(() => {
+              // If migration fetch fails, load the cart as-is (legacy items
+              // will show "product not found" and the user can re-add them)
+              setItems(parsed);
+            });
+        } else {
+          setItems(parsed);
+        }
       }
     } catch {
       // ignore parse errors

@@ -269,7 +269,29 @@ export async function middleware(request: NextRequest) {
     fetchHeaders.delete("keep-alive");
     fetchHeaders.delete("transfer-encoding");
 
-    const upstream = await fetch(request.url, { headers: fetchHeaders });
+    // MED-02: Use redirect: "manual" so that Next.js redirect() calls from
+    // page components (e.g., legacy ID redirects) are passed through to the
+    // client as 3xx responses, not followed internally by fetch().
+    const upstream = await fetch(request.url, {
+      headers: fetchHeaders,
+      redirect: "manual",
+    });
+
+    // If the upstream returned a redirect (3xx), pass it through with
+    // security headers attached. This preserves the redirect status code
+    // and Location header that the page component set via redirect().
+    if (upstream.status >= 300 && upstream.status < 400) {
+      const location = upstream.headers.get("location");
+      if (location) {
+        const redirectResponse = NextResponse.redirect(
+          new URL(location, request.url),
+          upstream.status as 301 | 302 | 307 | 308
+        );
+        setSecurityHeaders(redirectResponse, nonce);
+        return redirectResponse;
+      }
+    }
+
     const contentType = upstream.headers.get("content-type") || "";
 
     if (contentType.includes("text/html")) {
