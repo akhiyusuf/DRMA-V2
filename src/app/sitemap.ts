@@ -65,10 +65,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // ── Dynamic product pages ──
   try {
+    // Note: products table has created_at but not updated_at
     const { data: products, error } = await supabaseAdmin
       .from("products")
-      .select("id, updated_at")
-      .order("updated_at", { ascending: false });
+      .select("id, created_at")
+      .order("created_at", { ascending: false });
 
     if (error) {
       console.error("sitemap.ts: supabase error:", error.message);
@@ -76,8 +77,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       for (const product of products) {
         entries.push({
           url: `${BASE_URL}/product/${product.id}`,
-          lastModified: product.updated_at
-            ? new Date(product.updated_at)
+          lastModified: product.created_at
+            ? new Date(product.created_at)
             : new Date(),
           changeFrequency: "weekly",
           priority: 0.7,
