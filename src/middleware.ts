@@ -89,7 +89,13 @@ function buildCSP(nonce: string): string {
     `style-src 'self' 'nonce-${nonce}'`,
     "img-src 'self' https: data: blob:",
     "font-src 'self' https://fonts.gstatic.com data:",
-    "connect-src 'self' https://qeyfzpbbukhnuiabrkef.supabase.co https://fonts.googleapis.com",
+    // MED-04 fix: Removed https://qeyfzpbbukhnuiabrkef.supabase.co from
+    // connect-src. All Supabase data access now goes through Next.js API
+    // routes (server-side), so the browser never needs to call Supabase
+    // directly. Product images are loaded via <img> tags (covered by
+    // img-src 'https:'). This prevents leaking the Supabase project
+    // reference in every response header.
+    "connect-src 'self' https://fonts.googleapis.com",
     "frame-ancestors 'none'",
     "frame-src 'none'",
     "base-uri 'self'",
