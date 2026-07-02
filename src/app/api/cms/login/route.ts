@@ -9,10 +9,10 @@ import {
 
 export async function POST(request: NextRequest) {
   const { password } = await request.json();
-  const cmsPassword = process.env.NEXT_PUBLIC_CMS_PASSWORD;
+  const cmsPassword = process.env.CMS_PASSWORD;
 
   if (!cmsPassword) {
-    console.error("POST /api/cms/login: NEXT_PUBLIC_CMS_PASSWORD is not set");
+    console.error("POST /api/cms/login: CMS_PASSWORD is not set");
     return NextResponse.json(
       { error: "CMS authentication is not configured" },
       { status: 500 }

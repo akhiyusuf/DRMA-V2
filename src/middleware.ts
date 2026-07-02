@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { createClient } from "@supabase/supabase-js";
 
 // Force Node.js runtime so the full node:crypto module and all env vars
 // are available. The Edge runtime doesn't support createHmac.
@@ -12,68 +13,72 @@ export const runtime = "nodejs";
  * 3. Sets hardened security headers (CSP, X-Frame-Options, X-XSS-Protection, etc.)
  * 4. Handles restrictive CORS for /api/* routes
  * 5. Enforces CMS authentication
- * 6. Rate-limits /api/* routes (LOW-04 fix)
+ * 6. Rate-limits /api/* routes via Supabase-backed counters (LOW-04 fix)
  */
 
-// ─── Rate Limiter (LOW-04 fix) ────────────────────────────────────
-// Simple in-memory sliding-window rate limiter. Each IP gets a bucket of
-// timestamps; requests older than the window are pruned. When the bucket
-// exceeds the limit, the request is rejected with HTTP 429.
+// ─── Supabase client for rate limiting ─────────────────────────────
+// Lazy-initialized to avoid constructing on every cold start if not needed.
+// Uses the service role key to call the check_rate_limit RPC.
+let _supabaseForRateLimit: ReturnType<typeof createClient> | null = null;
+function getRateLimitClient() {
+  if (_supabaseForRateLimit) return _supabaseForRateLimit;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) return null;
+  _supabaseForRateLimit = createClient(url, key, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  return _supabaseForRateLimit;
+}
+
+// ─── Rate Limiter (Supabase-backed, works across all instances) ────
+// FIXED: The previous in-memory Map didn't work on Vercel serverless
+// because each invocation is a fresh instance. This version calls the
+// check_rate_limit RPC in Postgres, which is shared across all instances.
 //
 // Limits (per IP, per 60-second window):
 //   - /api/cms/* write routes (POST/PUT/PATCH/DELETE):  10 req/min
 //   - /api/* read routes (GET/POST):                   120 req/min
-//
-// Note: This is per-server-instance (in-memory). On Vercel serverless,
-// each instance has its own counter, so the effective limit is
-// (limit × instance_count). This is intentionally permissive — the goal
-// is to block obvious abuse (bulk scraping, brute-force), not to enforce
-// strict per-user quotas. For stricter limits, use Upstash Redis ratelimit.
-const RATE_WINDOW_MS = 60_000;
 const READ_LIMIT = 120;
 const WRITE_LIMIT = 10;
 
-interface RateBucket {
-  timestamps: number[];
-}
-
-const rateLimitMap = new Map<string, RateBucket>();
-
-// Prune expired entries periodically to prevent memory growth
-let lastPrune = Date.now();
-function pruneExpired(now: number) {
-  if (now - lastPrune < 60_000) return; // prune at most once per minute
-  lastPrune = now;
-  for (const [key, bucket] of rateLimitMap) {
-    bucket.timestamps = bucket.timestamps.filter((t) => now - t < RATE_WINDOW_MS);
-    if (bucket.timestamps.length === 0) {
-      rateLimitMap.delete(key);
-    }
+async function checkRateLimit(ip: string, isWrite: boolean): Promise<{ allowed: boolean; remaining: number }> {
+  const client = getRateLimitClient();
+  if (!client) {
+    // If Supabase isn't configured (e.g., during build), allow the request.
+    // This is a fail-open for build-time, not runtime — at runtime the env
+    // vars will always be set on Vercel.
+    return { allowed: true, remaining: 999 };
   }
-}
 
-function checkRateLimit(ip: string, isWrite: boolean): { allowed: boolean; remaining: number } {
-  const now = Date.now();
-  pruneExpired(now);
-
-  const key = `${ip}:${isWrite ? "w" : "r"}`;
+  const bucket = isWrite ? "cms_write" : "read";
   const limit = isWrite ? WRITE_LIMIT : READ_LIMIT;
 
-  let bucket = rateLimitMap.get(key);
-  if (!bucket) {
-    bucket = { timestamps: [] };
-    rateLimitMap.set(key, bucket);
+  try {
+    // Call the RPC with a 3-second timeout (don't let rate-limiting
+    // failures block legitimate traffic for too long).
+    const { data, error } = await client
+      .rpc("check_rate_limit", {
+        p_ip: ip,
+        p_bucket: bucket,
+        p_limit: limit,
+        p_window_seconds: 60,
+      } as never)
+      .abortSignal(AbortSignal.timeout(3000));
+
+    if (error) {
+      console.error("Rate limit RPC error:", error.message);
+      // Fail-open on DB errors — don't block legitimate traffic
+      return { allowed: true, remaining: 999 };
+    }
+
+    const allowed = data === true;
+    return { allowed, remaining: allowed ? limit - 1 : 0 };
+  } catch (error) {
+    console.error("Rate limit check failed (timeout or network):", error);
+    // Fail-open — don't block traffic if the DB is unreachable
+    return { allowed: true, remaining: 999 };
   }
-
-  // Prune old timestamps for this bucket
-  bucket.timestamps = bucket.timestamps.filter((t) => now - t < RATE_WINDOW_MS);
-
-  if (bucket.timestamps.length >= limit) {
-    return { allowed: false, remaining: 0 };
-  }
-
-  bucket.timestamps.push(now);
-  return { allowed: true, remaining: limit - bucket.timestamps.length };
 }
 
 function getClientIp(request: NextRequest): string {
@@ -96,7 +101,7 @@ const CMS_SESSION_COOKIE = "cms_session";
 
 function getCmsSigningSecret(): string {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const cmsPassword = process.env.NEXT_PUBLIC_CMS_PASSWORD || "";
+  const cmsPassword = process.env.CMS_PASSWORD || "";
   const base = serviceKey || cmsPassword;
   if (!base) return "";
   return `drma-cms-session-secret-v1:${base}`;
@@ -267,7 +272,7 @@ export async function middleware(request: NextRequest) {
       && request.nextUrl.pathname.startsWith("/api/cms/");
 
     const ip = getClientIp(request);
-    const rateCheck = checkRateLimit(ip, isCmsWrite);
+    const rateCheck = await checkRateLimit(ip, isCmsWrite);
     if (!rateCheck.allowed) {
       const response = new NextResponse(
         JSON.stringify({ error: "Too many requests. Please try again later." }),

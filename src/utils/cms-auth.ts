@@ -42,16 +42,16 @@ const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24; // 24 hours
 /**
  * Derive the HMAC signing secret from the Supabase service role key.
  * We use a fixed prefix to ensure the secret is distinct from the raw key.
- * Falls back to NEXT_PUBLIC_CMS_PASSWORD if service key is unavailable
+ * Falls back to CMS_PASSWORD if service key is unavailable
  * (e.g., during build), but auth will fail gracefully in that case.
  */
 function getSigningSecret(): string {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const cmsPassword = process.env.NEXT_PUBLIC_CMS_PASSWORD || "";
+  const cmsPassword = process.env.CMS_PASSWORD || "";
   // Use whichever is available; prefer the service key (longer, more entropic)
   const base = serviceKey || cmsPassword;
   if (!base) {
-    throw new Error("No signing secret available — SUPABASE_SERVICE_ROLE_KEY and NEXT_PUBLIC_CMS_PASSWORD are both unset");
+    throw new Error("No signing secret available — SUPABASE_SERVICE_ROLE_KEY and CMS_PASSWORD are both unset");
   }
   return `drma-cms-session-secret-v1:${base}`;
 }
