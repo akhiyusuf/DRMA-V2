@@ -367,11 +367,17 @@ export async function middleware(request: NextRequest) {
         statusText: upstream.statusText,
       });
 
+      // Copy upstream headers, EXCLUDING headers that would conflict with
+      // the rewritten body. content-encoding/content-length MUST be dropped
+      // because we decompressed (upstream.text()) and re-encoded the body,
+      // so the original gzip/length values are wrong. Keeping them causes
+      // ERR_CONTENT_DECODING_FAILED in the browser.
       upstream.headers.forEach((value, key) => {
         const lower = key.toLowerCase();
         if (
           lower !== "content-security-policy" &&
           lower !== "content-length" &&
+          lower !== "content-encoding" &&      // FIX: body is now decompressed
           lower !== "transfer-encoding" &&
           lower !== "access-control-allow-origin" &&
           lower !== "access-control-allow-credentials" &&
@@ -386,6 +392,8 @@ export async function middleware(request: NextRequest) {
       return newResponse;
     }
 
+    // For non-HTML responses, pass the body through untouched (still compressed)
+    // so content-encoding stays valid.
     const newResponse = new Response(upstream.body, {
       status: upstream.status,
       statusText: upstream.statusText,
