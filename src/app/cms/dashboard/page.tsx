@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 
 const POLL_INTERVAL = 8000; // Check every 8 seconds
 
@@ -82,6 +83,7 @@ function TagInput({ label, values, onChange, listId, placeholder }: TagInputProp
 
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<Tab>('stock');
+  const router = useRouter();
 
   // --- Shared State ---
   const [homepageData, setHomepageData] = useState<any>(null);
@@ -98,12 +100,21 @@ export default function DashboardPage() {
   const [ordersFilter, setOrdersFilter] = useState('all');
   const [ordersSearch, setOrdersSearch] = useState('');
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
-  const [statusNote, setStatusNote] = useState('');
+  // Status notes are keyed per order so a note typed for one order can
+  // never silently attach to a different one.
+  const [statusNotes, setStatusNotes] = useState<Record<string, string>>({});
+  // Orders sitting in "paid" = awaiting fulfillment. Surfaced as a nudge.
+  const [paidTotal, setPaidTotal] = useState(0);
 
   // --- Stock Tab State ---
   const [stockData, setStockData] = useState<any[]>([]);
   const [expandedStockProduct, setExpandedStockProduct] = useState<string | null>(null);
   const [variantData, setVariantData] = useState<Record<string, any[]>>({});
+  // New products stay local-only (never published) until Save All.
+  const [unsavedProductIds, setUnsavedProductIds] = useState<Set<string>>(new Set());
+  // Two-click delete confirmation: first click arms, second click deletes.
+  const [deleteArmedId, setDeleteArmedId] = useState<string | null>(null);
+  const deleteArmTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // --- Auto-Refresh State ---
   const [lastFingerprint, setLastFingerprint] = useState('');
@@ -120,14 +131,6 @@ export default function DashboardPage() {
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     setToast({ message, type });
     toastTimerRef.current = setTimeout(() => setToast(null), 3000);
-  }, []);
-
-  const showConfirm = useCallback((message: string): Promise<boolean> => {
-    return new Promise((resolve) => {
-      setToast({ message, type: 'info' });
-      // Resolve false immediately — for delete, we'll use a two-click pattern instead
-      resolve(false);
-    });
   }, []);
 
   useEffect(() => () => { if (toastTimerRef.current) clearTimeout(toastTimerRef.current); }, []);
@@ -167,6 +170,12 @@ export default function DashboardPage() {
       .then(res => res.json())
       .then(data => { setOrders(data.orders || []); setOrdersTotal(data.total || 0); })
       .catch(() => { setOrders([]); setOrdersTotal(0); });
+    // Count of orders awaiting fulfillment (status = paid), independent of
+    // the current filter/page, for the "to ship" nudge.
+    fetch('/api/cms/orders?status=paid&limit=1')
+      .then(res => res.json())
+      .then(data => setPaidTotal(data.total || 0))
+      .catch(() => {});
   };
 
   const fetchStock = () => {
@@ -178,12 +187,33 @@ export default function DashboardPage() {
 
   useEffect(() => { fetchContentData(); }, []);
   useEffect(() => { fetchOrders(); }, []);
+  // Stock is fetched on mount (not just on tab entry) so the Homepage tab
+  // can warn about featuring sold-out products.
+  useEffect(() => { fetchStock(); }, []);
   useEffect(() => { if (activeTab === 'orders') fetchOrders(); }, [activeTab, ordersPage, ordersFilter]);
   useEffect(() => { if (activeTab === 'stock') { fetchStock(); } }, [activeTab]);
 
   // ======== Auto-Refresh Polling ========
 
+  // Sync-sound mute preference, persisted per browser.
+  const [soundMuted, setSoundMuted] = useState(false);
+  const soundMutedRef = useRef(false);
+  useEffect(() => {
+    const stored = localStorage.getItem('cms_sound_muted') === '1';
+    setSoundMuted(stored);
+    soundMutedRef.current = stored;
+  }, []);
+  const toggleSoundMuted = () => {
+    setSoundMuted(prev => {
+      const next = !prev;
+      soundMutedRef.current = next;
+      localStorage.setItem('cms_sound_muted', next ? '1' : '0');
+      return next;
+    });
+  };
+
   const playCmsSound = useCallback(() => {
+    if (soundMutedRef.current) return;
     if (!cmsSoundRef.current) {
       cmsSoundRef.current = new Audio('/sounds/cms-refresh.wav');
       cmsSoundRef.current.volume = 0.3;
@@ -213,7 +243,16 @@ export default function DashboardPage() {
             message = 'Homepage content updated';
           }
 
-          fetchContentData();
+          // Guard against clobbering in-progress edits: while a product
+          // editor is expanded or the Homepage tab is open, refreshing
+          // productsData/homepageData would overwrite whatever the owner
+          // is typing. Keep orders/stock fresh, but hold content and say so.
+          const editingContent = expandedStockProduct !== null || activeTab === 'homepage';
+          if (editingContent && (products !== prev.products || homepage !== prev.homepage)) {
+            message = 'Remote edits detected — save or close the editor to sync';
+          } else {
+            fetchContentData();
+          }
           if (activeTab === 'orders') fetchOrders();
           if (activeTab === 'stock') fetchStock();
           const countRes = await fetch('/api/cms/orders?limit=1');
@@ -245,7 +284,7 @@ export default function DashboardPage() {
       clearInterval(interval);
       clearTimeout(initTimeout);
     };
-  }, [lastFingerprint, lastFingerprints, activeTab, playCmsSound]);
+  }, [lastFingerprint, lastFingerprints, activeTab, expandedStockProduct, playCmsSound]);
 
   // ======== Helpers ========
 
@@ -253,7 +292,12 @@ export default function DashboardPage() {
     let payload = data;
     if (type === 'products' && id) {
       const currentData = await fetch('/api/cms/content?type=products').then(res => res.json());
-      payload = currentData.map((p: any) => p.id === id ? data : p);
+      // A brand-new (locally created) product won't exist on the server
+      // yet — map() alone would silently drop it, so append in that case.
+      const exists = Array.isArray(currentData) && currentData.some((p: any) => p.id === id);
+      payload = exists
+        ? currentData.map((p: any) => p.id === id ? data : p)
+        : [...(Array.isArray(currentData) ? currentData : []), data];
     }
     isSavingRef.current = true;
     try {
@@ -264,6 +308,10 @@ export default function DashboardPage() {
           const fpData = await fpRes.json();
           setLastFingerprint(fpData.fingerprint);
           setLastFingerprints({ products: fpData.products || '', homepage: fpData.homepage || '', orders: fpData.orders || '' });
+        }
+        // Once persisted, the product is no longer a local draft.
+        if (type === 'products' && id && unsavedProductIds.has(id)) {
+          setUnsavedProductIds(prev => { const next = new Set(prev); next.delete(id); return next; });
         }
         showToast('Saved successfully', 'success');
       }
@@ -297,11 +345,11 @@ export default function DashboardPage() {
       const res = await fetch(`/api/cms/orders/${orderId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus, note: statusNote || undefined }),
+        body: JSON.stringify({ status: newStatus, note: statusNotes[orderId] || undefined }),
       });
       if (res.ok) {
         fetchOrders();
-        setStatusNote('');
+        setStatusNotes(prev => { const next = { ...prev }; delete next[orderId]; return next; });
         setExpandedOrder(null);
         const fpRes = await fetch('/api/cms/fingerprint');
         if (fpRes.ok) {
@@ -395,12 +443,18 @@ export default function DashboardPage() {
   // Find product content data by id (merge stockData with productsData)
   const getProductContent = (id: string) => productsData?.find((p: any) => p.id === id);
 
-  const filteredProducts = stockData?.filter((p: any) => {
+  // The stock endpoint only knows persisted products, so local drafts
+  // (created via + Add Product, not yet saved) are merged in from
+  // productsData to stay visible and editable.
+  const localDrafts = (productsData || [])
+    .filter((p: any) => unsavedProductIds.has(p.id) && !stockData.some((s: any) => s.id === p.id));
+  const allProducts = [...stockData, ...localDrafts];
+  const filteredProducts = allProducts.filter((p: any) => {
     const content = getProductContent(p.id);
-    const name = content?.name || p.name;
+    const name = content?.name || p.name || '';
     const category = content?.category || p.category || '';
     return name.toLowerCase().includes(filter.toLowerCase()) || category.toLowerCase().includes(filter.toLowerCase());
-  }) || [];
+  });
   const uniqueCategories = Array.from(new Set(productsData?.map(p => p.category).filter(Boolean)));
   const uniqueTags = Array.from(new Set(productsData?.flatMap(p => p.tags || []).filter(Boolean)));
   const uniqueSizes = Array.from(new Set(productsData?.flatMap(p => p.variations?.sizes || []).filter(Boolean)));
@@ -419,6 +473,15 @@ export default function DashboardPage() {
 
   const renderOrders = () => (
     <div className="space-y-6">
+      {/* Fulfillment nudge: paid orders are waiting to be shipped. */}
+      {paidTotal > 0 && (
+        <button
+          onClick={() => { setOrdersFilter('paid'); setOrdersPage(1); }}
+          className="w-full text-left px-4 py-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-sm hover:bg-amber-100 transition-colors"
+        >
+          <span className="font-semibold">{paidTotal} paid {paidTotal === 1 ? 'order' : 'orders'}</span> awaiting shipment — click to review.
+        </button>
+      )}
       <div className="flex flex-wrap gap-4 items-center">
         <div className="flex gap-2 flex-wrap">
           {['all', 'pending', 'paid', 'shipped', 'delivered', 'cancelled', 'refunded'].map(s => (
@@ -445,6 +508,17 @@ export default function DashboardPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3 mb-1">
                     <span className="font-mono text-xs text-foreground/50">{order.id?.substring(0, 20)}...</span>
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigator.clipboard?.writeText(order.id).then(() => showToast('Order ID copied', 'success')).catch(() => {});
+                      }}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); navigator.clipboard?.writeText(order.id).then(() => showToast('Order ID copied', 'success')).catch(() => {}); } }}
+                      className="text-[9px] uppercase tracking-widest text-foreground/30 hover:text-foreground/70 border border-foreground/10 hover:border-foreground/30 rounded-full px-2 py-0.5 transition-colors cursor-pointer"
+                      aria-label="Copy full order ID"
+                    >Copy ID</span>
                     <span className={`px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider font-medium border ${STATUS_STYLES[order.status] || STATUS_STYLES.pending}`}>
                       {order.status}
                     </span>
@@ -495,7 +569,7 @@ export default function DashboardPage() {
                     </div>
                     <div className="flex-1 min-w-[200px]">
                       <label className="text-xs uppercase tracking-widest text-foreground/40 block mb-2">Note (optional)</label>
-                      <input className="w-full border border-foreground/10 bg-background/5 p-2 rounded-lg text-sm" placeholder="Tracking number, note..." value={statusNote} onChange={e => setStatusNote(e.target.value)} />
+                      <input className="w-full border border-foreground/10 bg-background/5 p-2 rounded-lg text-sm" placeholder="Tracking number, note..." value={statusNotes[order.id] || ''} onChange={e => setStatusNotes(prev => ({ ...prev, [order.id]: e.target.value }))} />
                     </div>
                   </div>
                 </div>
@@ -529,16 +603,17 @@ export default function DashboardPage() {
         <p className="text-sm text-foreground/50">Manage products, content, and inventory. Click a product to edit details, images, and per-variant stock.</p>
         <div className="flex items-center gap-3">
           <input className="bg-foreground/[0.03] border border-foreground/10 rounded-full px-4 py-2 text-xs focus:outline-none focus:border-foreground/30 transition-colors w-40 placeholder:text-foreground/25" placeholder="Filter..." value={filter} onChange={e => setFilter(e.target.value)} />
-          <button onClick={async () => {
+          <button onClick={() => {
             const newId = Date.now().toString();
             const newProduct = { id: newId, name: 'New Product', price: 0, images: [], tags: [], category: '', variations: { sizes: [], colors: [], materials: [] }, description: '', in_stock: true, stock_quantity: -1, low_stock_threshold: 3, max_per_order: 3, page_title: null, meta_description: null };
-            // Append to local state immediately so it appears
+            // Local draft only: nothing is persisted (or published to the
+            // live shop) until the owner fills it in and hits Save All.
             if (productsData) {
               setProductsData([...productsData, newProduct]);
             }
+            setUnsavedProductIds(prev => new Set(prev).add(newId));
             setExpandedStockProduct(newId);
-            await save('products', newProduct, newId);
-            fetchStock();
+            showToast('Draft created — Save All to publish', 'info');
           }} className="bg-foreground text-background rounded-full px-4 py-2 text-[11px] uppercase tracking-widest font-medium hover:bg-foreground/90 transition-all active:scale-[0.98]">
             + Add Product
           </button>
@@ -556,14 +631,19 @@ export default function DashboardPage() {
       <datalist id="colors">{uniqueColors.map((c, i) => <option key={`${c}-${i}`} value={c} />)}</datalist>
       <datalist id="materials">{uniqueMaterials.map((m, i) => <option key={`${m}-${i}`} value={m} />)}</datalist>
 
-      {stockData.length === 0 ? (
+      {allProducts.length === 0 ? (
         <div className="text-center py-20 text-foreground/40">
           <p className="text-lg mb-2">No products found</p>
           <p className="text-sm">Products will appear here once they exist in the database.</p>
         </div>
+      ) : filteredProducts.length === 0 ? (
+        <div className="text-center py-20 text-foreground/40">
+          <p className="text-lg mb-2">No products match &ldquo;{filter}&rdquo;</p>
+          <p className="text-sm">Try a different name or category.</p>
+        </div>
       ) : (
         <div className="space-y-3">
-          {stockData.map((product: any) => {
+          {filteredProducts.map((product: any) => {
             const content = getProductContent(product.id);
             const stock = product.stock_quantity ?? -1;
             const lowThreshold = product.low_stock_threshold ?? 5;
@@ -591,8 +671,13 @@ export default function DashboardPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3">
                       <p className="font-medium text-sm truncate">{content?.name || product.name}</p>
+                      {unsavedProductIds.has(product.id) && (
+                        <span className="px-2 py-0.5 rounded-full text-[9px] uppercase tracking-widest bg-amber-100 text-amber-800 border border-amber-200 font-semibold">Unsaved draft</span>
+                      )}
                       {hasVariants && (
-                        <span className="text-[9px] uppercase tracking-widest text-foreground/30">{sizes.length} sizes x {colors.length} colors</span>
+                        <span className="text-[9px] uppercase tracking-widest text-foreground/30">
+                          {sizes.length} {sizes.length === 1 ? 'size' : 'sizes'} × {colors.length} {colors.length === 1 ? 'color' : 'colors'}
+                        </span>
                       )}
                       {content?.category && (
                         <span className="text-[9px] uppercase tracking-widest text-foreground/20">{content.category}</span>
@@ -799,14 +884,48 @@ export default function DashboardPage() {
                       )}
                     </div>
 
-                    {/* Save / Delete */}
+    {/* Save / Delete */}
                     <div className="px-5 py-4 flex items-center justify-between border-t border-foreground/10">
                       <button onClick={() => {
-                          setProductsData(productsData.filter(p => p.id !== product.id));
-                          save('products', productsData.filter(p => p.id !== product.id));
+                          // Two-click confirmation: the first click arms the
+                          // button (it turns red and asks to confirm), a second
+                          // click within 4s actually deletes. Prevents a single
+                          // misclick from destroying a live product.
+                          if (deleteArmedId !== product.id) {
+                            setDeleteArmedId(product.id);
+                            if (deleteArmTimerRef.current) clearTimeout(deleteArmTimerRef.current);
+                            deleteArmTimerRef.current = setTimeout(() => setDeleteArmedId(null), 4000);
+                            return;
+                          }
+                          if (deleteArmTimerRef.current) clearTimeout(deleteArmTimerRef.current);
+                          setDeleteArmedId(null);
+                          const remaining = productsData.filter(p => p.id !== product.id);
+                          setProductsData(remaining);
                           setExpandedStockProduct(null);
-                          showToast('Product deleted', 'info');
-                      }} className="text-[10px] uppercase tracking-widest text-foreground/30 hover:text-foreground/60 transition-colors px-3 py-1 rounded-full border border-foreground/10 hover:border-foreground/30">Delete Product</button>
+                          if (unsavedProductIds.has(product.id)) {
+                            // Local draft — nothing on the server to delete.
+                            setUnsavedProductIds(prev => { const next = new Set(prev); next.delete(product.id); return next; });
+                            showToast('Draft discarded', 'info');
+                          } else {
+                            // Real server-side delete. (The old flow re-saved the
+                            // remaining list, but saves are upserts — the product
+                            // was never actually removed from the database.)
+                            fetch('/api/cms/content', {
+                              method: 'DELETE',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ type: 'products', id: product.id }),
+                            }).then(res => {
+                              if (res.ok) { showToast('Product deleted', 'info'); fetchStock(); fetchContentData(); }
+                              else { showToast('Failed to delete product', 'error'); fetchContentData(); }
+                            }).catch(() => { showToast('Failed to delete product', 'error'); fetchContentData(); });
+                          }
+                      }} className={`text-[10px] uppercase tracking-widest transition-colors px-3 py-1 rounded-full border ${
+                        deleteArmedId === product.id
+                          ? 'bg-red-600 text-white border-red-600 font-semibold'
+                          : 'text-foreground/30 hover:text-foreground/60 border-foreground/10 hover:border-foreground/30'
+                      }`}>
+                        {deleteArmedId === product.id ? 'Click again to confirm' : (unsavedProductIds.has(product.id) ? 'Discard Draft' : 'Delete Product')}
+                      </button>
                       <button onClick={() => { save('products', content, product.id); fetchStock(); }} className="group relative bg-foreground text-background rounded-full pl-6 pr-1.5 py-1.5 text-[11px] uppercase tracking-widest font-medium hover:bg-foreground/90 transition-all active:scale-[0.98]">
                         <span className="py-1.5">Save All</span>
                         <span className="inline-flex w-7 h-7 items-center justify-center rounded-full bg-background/20 ml-2">
@@ -886,7 +1005,10 @@ export default function DashboardPage() {
               <div>
                 <p className="text-[10px] uppercase tracking-[0.25em] text-foreground/40 mb-4">Hero</p>
                 <div className="space-y-4">
-                  <input className="w-full bg-transparent border-b border-foreground/10 pb-2 text-xl font-heading font-light focus:border-foreground/30 focus:outline-none transition-colors placeholder:text-foreground/20" value={homepageData.hero.title} onChange={e => setHomepageData({...homepageData, hero: {...homepageData.hero, title: e.target.value}})} placeholder="Title" />
+                  <div>
+                    <input className="w-full bg-transparent border-b border-foreground/10 pb-2 text-xl font-heading font-light focus:border-foreground/30 focus:outline-none transition-colors placeholder:text-foreground/20" value={homepageData.hero.title} onChange={e => setHomepageData({...homepageData, hero: {...homepageData.hero, title: e.target.value}})} placeholder="Title" />
+                    <p className="text-[10px] text-foreground/30 mt-1">Tip: text after the first comma renders as the italic second line — e.g. &ldquo;Modesty, Elevated&rdquo;.</p>
+                  </div>
                   <textarea className="w-full bg-transparent border-b border-foreground/10 pb-2 text-sm text-foreground/70 font-light leading-relaxed focus:border-foreground/30 focus:outline-none transition-colors resize-none placeholder:text-foreground/20" rows={3} value={homepageData.hero.description || ''} onChange={e => setHomepageData({...homepageData, hero: {...homepageData.hero, description: e.target.value}})} placeholder="Description" />
                   <div className="border border-dashed border-foreground/15 p-4 rounded-2xl" onDragOver={e => e.preventDefault()} onDrop={e => { const img = e.dataTransfer.getData('text/plain'); setHomepageData({...homepageData, hero: {...homepageData.hero, image: img}}); }}>
                     <p className="text-[10px] uppercase tracking-widest text-foreground/30 mb-3">Hero Image <span className="normal-case tracking-normal">(drag from library)</span></p>
@@ -909,8 +1031,12 @@ export default function DashboardPage() {
               {/* Mission */}
               <div>
                 <p className="text-[10px] uppercase tracking-[0.25em] text-foreground/40 mb-4">Mission</p>
+                <p className="text-[10px] text-foreground/30 -mt-2 mb-4">Left empty, this section is hidden on the homepage.</p>
                 <div className="space-y-4">
-                  <input className="w-full bg-transparent border-b border-foreground/10 pb-2 text-xl font-heading font-light focus:border-foreground/30 focus:outline-none transition-colors placeholder:text-foreground/20" value={homepageData.mission.title} onChange={e => setHomepageData({...homepageData, mission: {...homepageData.mission, title: e.target.value}})} placeholder="Title" />
+                  <div>
+                    <input className="w-full bg-transparent border-b border-foreground/10 pb-2 text-xl font-heading font-light focus:border-foreground/30 focus:outline-none transition-colors placeholder:text-foreground/20" value={homepageData.mission.title} onChange={e => setHomepageData({...homepageData, mission: {...homepageData.mission, title: e.target.value}})} placeholder="Title" />
+                    <p className="text-[10px] text-foreground/30 mt-1">Tip: put &ldquo; &lt;br/&gt; &rdquo; (with spaces) where the heading should break — the second line renders italic.</p>
+                  </div>
                   <textarea className="w-full bg-transparent border-b border-foreground/10 pb-2 text-sm text-foreground/70 font-light leading-relaxed focus:border-foreground/30 focus:outline-none transition-colors resize-none placeholder:text-foreground/20" rows={3} value={homepageData.mission.description || ''} onChange={e => setHomepageData({...homepageData, mission: {...homepageData.mission, description: e.target.value}})} placeholder="Description" />
                   <div className="border border-dashed border-foreground/15 p-4 rounded-2xl" onDragOver={e => e.preventDefault()} onDrop={e => { const img = e.dataTransfer.getData('text/plain'); setHomepageData({...homepageData, mission: {...homepageData.mission, image: img}}); }}>
                     <p className="text-[10px] uppercase tracking-widest text-foreground/30 mb-3">Mission Image <span className="normal-case tracking-normal">(drag from library)</span></p>
@@ -932,7 +1058,21 @@ export default function DashboardPage() {
 
               {/* Differentiation Points */}
               <div>
-                <p className="text-[10px] uppercase tracking-[0.25em] text-foreground/40 mb-4">Differentiation</p>
+                <p className="text-[10px] uppercase tracking-[0.25em] text-foreground/40 mb-4">Differentiation (&ldquo;Why Us&rdquo; section)</p>
+                {/* Section label + heading — these render above the numbered
+                    cards on the homepage and were previously not editable
+                    anywhere, leaving a permanent blank heading gap. */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-foreground/40 mb-2">Label</p>
+                    <input className="w-full bg-transparent border-b border-foreground/10 pb-1 text-sm focus:border-foreground/30 focus:outline-none transition-colors placeholder:text-foreground/20" value={homepageData.differentiation?.label || ''} onChange={e => setHomepageData({...homepageData, differentiation: {...homepageData.differentiation, label: e.target.value}})} placeholder='Defaults to "Why Us"' />
+                  </div>
+                  <div className="md:col-span-2">
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-foreground/40 mb-2">Section Title</p>
+                    <input className="w-full bg-transparent border-b border-foreground/10 pb-1 text-sm font-heading focus:border-foreground/30 focus:outline-none transition-colors placeholder:text-foreground/20" value={homepageData.differentiation?.title || ''} onChange={e => setHomepageData({...homepageData, differentiation: {...homepageData.differentiation, title: e.target.value}})} placeholder="Big heading above the cards (hidden if empty)" />
+                    <p className="text-[10px] text-foreground/30 mt-1">Tip: put &ldquo; &lt;br/&gt; &rdquo; (with spaces) where the heading should break — the second line renders italic gold.</p>
+                  </div>
+                </div>
                 <div className="space-y-3">
                   {(homepageData.differentiation?.points || []).map((point: any, index: number) => (
                     <div key={index} className="p-4 bg-foreground/[0.02] rounded-2xl space-y-2">
@@ -963,10 +1103,15 @@ export default function DashboardPage() {
                   ) : (homepageData.featuredProductIds || []).map((id: string) => {
                     const product = productsData.find(p => p.id === id);
                     if (!product) return null;
+                    // Warn when a featured slot points at a sold-out product —
+                    // shoppers land on a flagship tile they can't buy.
+                    const stockRow = stockData.find((s: any) => s.id === id);
+                    const featuredSoldOut = stockRow?.stock_quantity === 0;
                     return (
-                      <span key={id} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-foreground text-background text-xs">
+                      <span key={id} className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs ${featuredSoldOut ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-foreground text-background'}`}>
                         {product.name}
-                        <button onClick={() => setHomepageData({...homepageData, featuredProductIds: homepageData.featuredProductIds.filter((fid: string) => fid !== id)})} className="hover:bg-background/20 rounded-full w-4 h-4 flex items-center justify-center transition-colors text-[10px]">&times;</button>
+                        {featuredSoldOut && <span className="text-[9px] uppercase tracking-widest font-bold">· Sold out</span>}
+                        <button onClick={() => setHomepageData({...homepageData, featuredProductIds: homepageData.featuredProductIds.filter((fid: string) => fid !== id)})} className={`rounded-full w-4 h-4 flex items-center justify-center transition-colors text-[10px] ${featuredSoldOut ? 'hover:bg-amber-200' : 'hover:bg-background/20'}`}>&times;</button>
                       </span>
                     );
                   })}
@@ -1005,11 +1150,11 @@ export default function DashboardPage() {
           link and the <main role="main" id="main-content"> landmark. This
           dashboard renders into that shared main as a labelled region to
           avoid duplicate IDs and nested <main> elements (invalid HTML5). */}
-      <section role="region" aria-label="CMS dashboard" className="max-w-[1400px] mx-auto px-4 md:px-8 pt-32 pb-24 relative focus:outline-none">
+      <section role="region" aria-label="CMS dashboard" className="max-w-[1400px] mx-auto px-4 md:px-8 pt-10 md:pt-14 pb-24 relative focus:outline-none">
 
         {/* Toast Notifications */}
         {toast && (
-          <div className={`fixed top-24 right-6 z-50 px-5 py-3 rounded-full text-xs uppercase tracking-widest font-medium shadow-lg transition-all duration-300 ${
+          <div className={`fixed top-6 right-6 z-50 px-5 py-3 rounded-full text-xs uppercase tracking-widest font-medium shadow-lg transition-all duration-300 ${
             toast.type === 'success'
               ? 'bg-foreground text-background'
               : toast.type === 'error'
@@ -1021,24 +1166,52 @@ export default function DashboardPage() {
         )}
         {/* Auto-refresh notification */}
         {refreshNotification && !toast && (
-          <div className="fixed top-24 right-6 z-40 bg-foreground/80 text-background px-5 py-3 rounded-full text-xs uppercase tracking-widest font-medium shadow-lg backdrop-blur-sm">
+          <div className="fixed top-6 right-6 z-40 bg-foreground/80 text-background px-5 py-3 rounded-full text-xs uppercase tracking-widest font-medium shadow-lg backdrop-blur-sm">
             {refreshNotification}
           </div>
         )}
 
-        {/* Auto-refresh indicator */}
-        <div className="absolute top-32 right-6 flex items-center gap-2 text-[10px] uppercase tracking-widest text-foreground/25">
-          <span className="w-1.5 h-1.5 rounded-full bg-foreground/40 animate-pulse"></span>
-          Live Sync
-        </div>
-
         {/* Header */}
         <header role="banner" aria-label="CMS dashboard header" className="mb-16">
-          <div className="flex items-center gap-3 mb-4">
-            <span className="h-[1px] w-8 bg-foreground/20"></span>
-            <span className="text-[10px] uppercase tracking-[0.25em] text-foreground/50 font-medium">Dashboard</span>
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+              <div className="flex items-center gap-3 mb-4">
+                <span className="h-[1px] w-8 bg-foreground/20"></span>
+                <span className="text-[10px] uppercase tracking-[0.25em] text-foreground/50 font-medium">DRMA · Dashboard</span>
+              </div>
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-heading font-light tracking-tight leading-[0.9]">Content <span className="italic text-foreground/50">Management</span></h1>
+            </div>
+
+            <div className="flex items-center gap-3 pt-1">
+              {/* Live sync indicator + sound toggle */}
+              <button
+                onClick={toggleSoundMuted}
+                className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-foreground/40 hover:text-foreground/70 border border-foreground/10 hover:border-foreground/30 rounded-full px-3 py-1.5 transition-colors"
+                aria-label={soundMuted ? 'Unmute sync sound' : 'Mute sync sound'}
+                title={soundMuted ? 'Sync sound is off' : 'Sync sound is on'}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${soundMuted ? 'bg-foreground/20' : 'bg-foreground/40 animate-pulse'}`}></span>
+                Live Sync {soundMuted ? '· muted' : ''}
+              </button>
+              <a
+                href="/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[10px] uppercase tracking-widest text-foreground/40 hover:text-foreground/70 border border-foreground/10 hover:border-foreground/30 rounded-full px-3 py-1.5 transition-colors"
+              >
+                View Site ↗
+              </a>
+              <button
+                onClick={async () => {
+                  try { await fetch('/api/cms/logout', { method: 'POST' }); } catch {}
+                  router.push('/cms');
+                }}
+                className="text-[10px] uppercase tracking-widest bg-foreground text-background rounded-full px-4 py-1.5 hover:bg-foreground/90 transition-colors"
+              >
+                Log Out
+              </button>
+            </div>
           </div>
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-heading font-light tracking-tight leading-[0.9]">Content <span className="italic text-foreground/50">Management</span></h1>
         </header>
 
         {/* Tab Navigation */}

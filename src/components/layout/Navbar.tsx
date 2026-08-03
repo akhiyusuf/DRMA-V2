@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ShoppingBag, User, Menu, X } from "lucide-react";
+import { ShoppingBag, Menu, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCart } from "@/context/CartContext";
@@ -15,7 +15,7 @@ const badgeBounce = {
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { itemCount, cartBounceKey, lastAddedInfo } = useCart();
+  const { itemCount, cartBounceKey } = useCart();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -77,9 +77,9 @@ export function Navbar() {
             <Link href="/about" className="hidden md:block text-[14px] font-medium tracking-[0.25em] hover:text-primary transition-colors uppercase">
               About
             </Link>
-            <button className="p-2 hover:text-primary transition-colors relative" aria-label="User Account">
-              <User className="w-5 h-5 stroke-[1.5]" />
-            </button>
+            {/* The account icon was removed: it was a dead control (no
+                click handler, no destination). Reintroduce it only when
+                customer accounts actually exist. */}
             <div className="relative">
               <Link href="/cart" className="p-2 hover:text-primary transition-colors relative block" aria-label="Shopping Cart">
                 <motion.div
@@ -102,27 +102,9 @@ export function Navbar() {
                   </motion.span>
                 )}
               </Link>
-
-              {/* "Added" notification that drops below the cart icon */}
-              <AnimatePresence>
-                {lastAddedInfo && (
-                  <motion.div
-                    key={lastAddedInfo.timestamp}
-                    initial={{ opacity: 0, y: -4, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -4, scale: 0.95 }}
-                    transition={{ duration: 0.25, ease: "easeOut" as const }}
-                    className="absolute top-full left-1/2 -translate-x-1/2 mt-2 whitespace-nowrap pointer-events-none z-[70]"
-                  >
-                    <div className="bg-foreground text-background text-[11px] uppercase tracking-widest font-medium px-3 py-1.5 rounded-full shadow-lg">
-                      {lastAddedInfo.quantity > 1
-                        ? `${lastAddedInfo.quantity}x Added`
-                        : "Added"}
-                    </div>
-                    <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-foreground rotate-45 rounded-sm" />
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              {/* The old "Added" pill under the cart icon was removed —
+                  AddToCartToast + the badge bounce already confirm the add,
+                  and three simultaneous confirmations read as noise. */}
             </div>
           </div>
         </div>

@@ -1,12 +1,23 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import type { Product } from "@/types/product";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowUpRight, X, SlidersHorizontal } from "lucide-react";
+
+type SortOption = "featured" | "price-asc" | "price-desc" | "name";
+
+const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+  { value: "featured", label: "Featured" },
+  { value: "price-asc", label: "Price: Low to High" },
+  { value: "price-desc", label: "Price: High to Low" },
+  { value: "name", label: "Name: A–Z" },
+];
 
 /**
  * Custom breakpoint at 480px for transitioning the product grid from a
@@ -127,13 +138,31 @@ function FilterContent({
   );
 }
 
-export default function ShopPage() {
+function ShopPageInner() {
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<SortOption>("featured");
   const [fetching, setFetching] = useState(true);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [showFloatingFilter, setShowFloatingFilter] = useState(false);
+
+  // ?category=hijabs deep links (footer columns, external links). The param
+  // is matched case-insensitively against real product categories once the
+  // list loads, and only applied on arrival so it never fights the user.
+  const searchParams = useSearchParams();
+  const categoryParam = searchParams.get("category");
+  const categoryParamApplied = useRef(false);
+
+  useEffect(() => {
+    if (categoryParamApplied.current || !categoryParam || products.length === 0) return;
+    categoryParamApplied.current = true;
+    const match = products
+      .map(p => p.category)
+      .filter(Boolean)
+      .find(c => c!.toLowerCase() === categoryParam.toLowerCase());
+    if (match) setSelectedCategory(match);
+  }, [categoryParam, products]);
 
   // Lock body scroll when drawer is open
   useEffect(() => {
@@ -183,6 +212,15 @@ export default function ShopPage() {
     if (selectedCategory && product.category !== selectedCategory) return false;
     if (selectedTags.length === 0) return true;
     return selectedTags.some(tag => (product.tags as string[]).includes(tag));
+  });
+
+  const sortedProducts = [...filteredProducts].sort((a, b) => {
+    switch (sortBy) {
+      case "price-asc": return a.price - b.price;
+      case "price-desc": return b.price - a.price;
+      case "name": return a.name.localeCompare(b.name);
+      default: return 0; // "featured" keeps the API order (newest first)
+    }
   });
 
   return (
@@ -241,6 +279,31 @@ export default function ShopPage() {
 
           {/* Product Grid: Pinterest Masonry */}
           <div className="flex-1 min-w-0">
+            {/* Result count + sort — gives the grid a sense of scale and a
+                way to reorder without digging into filters. */}
+            {!fetching && products.length > 0 && (
+              <div className="flex items-center justify-between gap-4 mb-5 md:mb-8">
+                <p className="text-[11px] md:text-xs uppercase tracking-[0.2em] text-foreground/40">
+                  {sortedProducts.length} {sortedProducts.length === 1 ? "piece" : "pieces"}
+                  {selectedCategory ? ` · ${selectedCategory}` : ""}
+                </p>
+                <Select value={sortBy} onValueChange={(val) => val && setSortBy(val as SortOption)}>
+                  <SelectTrigger
+                    aria-label="Sort products"
+                    className="h-9 w-auto gap-2 rounded-full border border-foreground/10 bg-background px-4 text-[11px] uppercase tracking-widest text-foreground/70 hover:border-foreground/30 focus:ring-1 focus:ring-foreground transition-colors"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background border-foreground/10 rounded-xl">
+                    {SORT_OPTIONS.map(o => (
+                      <SelectItem key={o.value} value={o.value} className="text-xs uppercase tracking-wider">
+                        {o.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             {fetching && products.length === 0 ? (
               <div className="columns-1 min-[480px]:columns-2 md:columns-3 xl:columns-3 gap-3 md:gap-4 lg:gap-6 space-y-3 md:space-y-4 lg:space-y-6">
                 {Array.from({ length: 6 }).map((_, i) => (
@@ -261,7 +324,7 @@ export default function ShopPage() {
               className="columns-1 min-[480px]:columns-2 md:columns-3 xl:columns-3 gap-3 md:gap-4 lg:gap-6 space-y-3 md:space-y-4 lg:space-y-6"
             >
               <AnimatePresence mode="popLayout">
-                {filteredProducts.map((product, index) => (
+                {sortedProducts.map((product, index) => (
                   <motion.div 
                     layout
                     initial={{ opacity: 0, scale: 0.97, y: 15 }}
@@ -304,7 +367,7 @@ export default function ShopPage() {
                     {/* Typography */}
                     <div className="flex justify-between items-start px-1.5 md:px-2">
                       <div className="min-w-0">
-                        <h3 className="font-heading font-normal text-sm md:text-lg lg:text-xl text-foreground mb-0.5 md:mb-1 group-hover:underline underline-offset-4 decoration-foreground/30 transition-all truncate">{product.name}</h3>
+                        <h3 className="font-heading font-normal text-sm md:text-lg lg:text-xl text-foreground mb-0.5 md:mb-1 group-hover:underline underline-offset-4 decoration-foreground/30 transition-all line-clamp-2">{product.name}</h3>
                         <p className="text-foreground/50 text-[11px] md:text-xs lg:text-sm font-light uppercase tracking-widest">${product.price.toFixed(2)}</p>
                       </div>
                       <div className="w-7 h-7 md:w-8 md:h-8 rounded-full border border-foreground/10 flex items-center justify-center text-foreground/50 group-hover:bg-foreground group-hover:text-background transition-all duration-300 shrink-0 ml-2">
@@ -402,5 +465,18 @@ export default function ShopPage() {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+/**
+ * useSearchParams must run inside a Suspense boundary (see the Next.js
+ * useSearchParams API reference), so the actual page lives in
+ * ShopPageInner and this wrapper provides the boundary.
+ */
+export default function ShopPage() {
+  return (
+    <Suspense fallback={null}>
+      <ShopPageInner />
+    </Suspense>
   );
 }

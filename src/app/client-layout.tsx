@@ -1,6 +1,7 @@
 "use client";
 
 import { Cormorant_Garamond, Montserrat } from "next/font/google";
+import { usePathname } from "next/navigation";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { CartProvider } from "@/context/CartContext";
@@ -19,6 +20,29 @@ const montserrat = Montserrat({
 });
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
+  // Admin pages (/cms/*) get a clean shell: the storefront navbar (with
+  // its cart icon), marquee spacing, and footer are shopper chrome and
+  // only add confusion inside the dashboard. The CMS renders its own
+  // minimal header instead.
+  const pathname = usePathname();
+  const isCms = pathname?.startsWith("/cms");
+
+  if (isCms) {
+    return (
+      <>
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:px-4 focus:py-2 focus:bg-foreground focus:text-background focus:text-xs focus:uppercase focus:tracking-widest focus:font-medium focus:rounded-full focus:shadow-lg focus:outline-2 focus:outline-offset-2 focus:outline-ring"
+        >
+          Skip to Content
+        </a>
+        <main role="main" aria-label="Main content" id="main-content" tabIndex={-1} className="flex-grow focus:outline-none">
+          {children}
+        </main>
+      </>
+    );
+  }
+
   return (
     <>
       {/* Skip-to-content link — first focusable element on every page that

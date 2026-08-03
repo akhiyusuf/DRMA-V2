@@ -239,6 +239,29 @@ export default function CartPage() {
                 <div className="rounded-[calc(2rem-0.375rem)] bg-background p-8 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]">
                   <h2 className="text-sm font-medium uppercase tracking-[0.2em] mb-8 text-foreground/50 border-b border-foreground/10 pb-4">Order Summary</h2>
                   
+                  {/* Free-shipping progress nudge (threshold shared with checkout) */}
+                  {items.length > 0 && subtotal < 150 && (
+                    <div className="mb-8 p-4 rounded-xl bg-foreground/[0.03] border border-foreground/10">
+                      <p className="text-xs text-foreground/60 mb-3">
+                        You&apos;re <span className="font-medium text-foreground">${(150 - subtotal).toFixed(2)}</span> away from free ground shipping.
+                      </p>
+                      <div className="h-1 w-full rounded-full bg-foreground/10 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-primary transition-all duration-500"
+                          style={{ width: `${Math.min(100, (subtotal / 150) * 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {items.length > 0 && subtotal >= 150 && (
+                    <div className="mb-8 p-4 rounded-xl bg-foreground/[0.03] border border-foreground/10">
+                      <p className="text-xs text-foreground/70 flex items-center">
+                        <Truck className="w-3.5 h-3.5 mr-2 text-primary" />
+                        This order qualifies for free ground shipping.
+                      </p>
+                    </div>
+                  )}
+
                   <div className="space-y-4 font-light text-sm mb-8">
                     <div className="flex justify-between">
                       <span className="text-foreground/70">Subtotal</span>
@@ -246,7 +269,7 @@ export default function CartPage() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-foreground/70 flex items-center">Shipping <Truck className="w-3 h-3 ml-2 text-foreground/40" /></span>
-                      <span className="text-foreground/40 italic">Calculated next</span>
+                      <span className="text-foreground/40 italic">{subtotal >= 150 ? "Free (Ground)" : "Calculated next"}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-foreground/70">Taxes</span>

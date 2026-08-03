@@ -47,7 +47,12 @@ export default function CheckoutPage() {
   const isTexas = state === "TX";
   const taxRate = isTexas ? 0.0825 : 0;
   const taxAmount = subtotal * taxRate;
-  const shippingCost = shippingMethod === "ups_ground" ? 9.95 : 24.95;
+  // Free ground shipping over $150 — this is the storefront's advertised
+  // promise ("Free Shipping over $150" on product pages), now actually
+  // honoured at checkout. Express (Next Day Air) stays paid.
+  const FREE_SHIPPING_THRESHOLD = 150;
+  const freeGroundShipping = subtotal >= FREE_SHIPPING_THRESHOLD;
+  const shippingCost = shippingMethod === "ups_ground" ? (freeGroundShipping ? 0 : 9.95) : 24.95;
   const total = subtotal + taxAmount + shippingCost;
 
   const validate = () => {
@@ -251,7 +256,11 @@ export default function CheckoutPage() {
                     <RadioGroupItem value="ups_ground" id="ups_ground" className="border-foreground/30 text-foreground" />
                     <Label htmlFor="ups_ground" className="cursor-pointer font-light text-foreground/80">UPS Ground (5-7 Days)</Label>
                   </div>
-                  <span className="text-sm font-medium tracking-widest">$9.95</span>
+                  {freeGroundShipping ? (
+                    <span className="text-sm font-medium tracking-widest text-primary uppercase">Free</span>
+                  ) : (
+                    <span className="text-sm font-medium tracking-widest">$9.95</span>
+                  )}
                 </div>
                 <div className="flex items-center justify-between border border-foreground/10 p-5 rounded-2xl bg-foreground/5 cursor-pointer hover:border-foreground/30 transition-colors relative overflow-hidden group">
                   <div className="absolute inset-y-0 left-0 w-1 bg-foreground transform -translate-x-full transition-transform group-has-[[data-state=checked]]:translate-x-0"></div>
@@ -336,7 +345,7 @@ export default function CheckoutPage() {
                       <span className="text-foreground/70 flex items-center">
                         Shipping <Truck className="w-3 h-3 ml-2 text-foreground/40" />
                       </span>
-                      <span className="tracking-widest">${shippingCost.toFixed(2)}</span>
+                      <span className="tracking-widest">{shippingCost === 0 ? "Free" : `$${shippingCost.toFixed(2)}`}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-foreground/70">Taxes {isTexas && <span className="text-[11px] uppercase ml-2 text-foreground/40">(TX 8.25%)</span>}</span>

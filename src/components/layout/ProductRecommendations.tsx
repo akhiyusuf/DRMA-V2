@@ -15,6 +15,8 @@ interface Props {
   limit?: number;
   /** Visual variant — "light" for cream/white pages, "dark" for footer-style dark sections. */
   variant?: "light" | "dark";
+  /** Product ID to exclude (e.g. the product currently being viewed). */
+  excludeId?: string;
 }
 
 /**
@@ -28,6 +30,7 @@ export function ProductRecommendations({
   subheading = "Carry the mission forward — explore pieces crafted with the same integrity you just read about.",
   limit = 3,
   variant = "light",
+  excludeId,
 }: Props) {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,14 +40,19 @@ export function ProductRecommendations({
       .then(res => res.json())
       .then((data: Product[]) => {
         if (Array.isArray(data)) {
-          // Prefer in-stock items, take first `limit`
-          const inStock = data.filter(p => p.inStock !== false).slice(0, limit);
-          setProducts(inStock.length > 0 ? inStock : data.slice(0, limit));
+          const candidates = data.filter(p => p.id !== excludeId);
+          // Prefer in-stock items, take first `limit`. The API returns
+          // snake_case fields: `in_stock` (merchandising flag) and
+          // `stock_quantity` (0 = sold out, -1/null = untracked).
+          const inStock = candidates
+            .filter((p: Product & { in_stock?: boolean }) => p.in_stock !== false && p.stock_quantity !== 0)
+            .slice(0, limit);
+          setProducts(inStock.length > 0 ? inStock : candidates.slice(0, limit));
         }
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, [limit]);
+  }, [limit, excludeId]);
 
   const isDark = variant === "dark";
   const surfaceBg = isDark ? "bg-background/5" : "bg-foreground/5";
@@ -84,7 +92,10 @@ export function ProductRecommendations({
             Breakpoint note: a custom 480px min-width variant transitions the
             grid from one column (very small phones) to two columns on larger
             mobile devices, before the standard sm/lg breakpoints take over. */}
-        <div className="grid grid-cols-1 min-[480px]:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 mb-14 md:mb-20">
+        {/* items-start keeps each card hugging its own content — without it,
+            grid rows stretch every card to the tallest one and shorter
+            product images leave a large white gap inside the card. */}
+        <div className="grid grid-cols-1 min-[480px]:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 mb-14 md:mb-20 items-start">
           {loading ? (
             // Skeleton
             Array.from({ length: limit }).map((_, i) => (
