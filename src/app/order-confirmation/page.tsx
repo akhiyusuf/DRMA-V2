@@ -2,10 +2,11 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { motion } from "framer-motion";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Check, Package, ArrowRight, Loader2 } from "lucide-react";
+import { Check, Package, Loader2 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
+import { PillButton } from "@/components/brand/PillButton";
+import { BezelCard } from "@/components/brand/BezelCard";
 
 interface OrderData {
   firstName: string;
@@ -108,15 +109,7 @@ function OrderConfirmationContent() {
             <p className="text-foreground/60 font-light text-lg mb-10">
               Your payment was not completed. Your cart has been preserved.
             </p>
-            <Link
-              href="/checkout"
-              className="group relative inline-flex items-center gap-4 rounded-full bg-foreground pl-8 pr-2 py-2 text-sm font-medium tracking-wide text-background transition-all"
-            >
-              <span className="uppercase tracking-widest text-xs py-3">Return to Checkout</span>
-              <div className="absolute right-2 flex h-10 w-10 items-center justify-center rounded-full bg-background/20">
-                <ArrowRight className="h-4 w-4 stroke-[1.5]" />
-              </div>
-            </Link>
+            <PillButton href="/checkout" icon="right">Return to Checkout</PillButton>
           </motion.div>
         </div>
       </div>
@@ -127,8 +120,8 @@ function OrderConfirmationContent() {
     return (
       <div className="w-full bg-background min-h-screen pt-24 md:pt-32 pb-16 md:pb-24">
         <div className="container mx-auto px-4 md:px-8 max-w-2xl text-center">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-heading font-light tracking-tight mb-6">No order found.</h1>
-          <Link href="/shop" className="text-primary underline">Continue shopping</Link>
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-heading font-light tracking-tight mb-10">No order <span className="italic text-foreground/60">found.</span></h1>
+          <PillButton href="/shop">Continue Shopping</PillButton>
         </div>
       </div>
     );
@@ -182,9 +175,9 @@ function OrderConfirmationContent() {
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.8, ease: [0.32, 0.72, 0, 1] }}
-          className="p-1.5 rounded-[2rem] bg-foreground/5 ring-1 ring-foreground/10 mb-12"
+          className="mb-12"
         >
-          <div className="rounded-[calc(2rem-0.375rem)] bg-background p-8 md:p-10">
+          <BezelCard innerClassName="p-8 md:p-10">
             <div className="flex items-center gap-3 mb-8 pb-4 border-b border-foreground/10">
               <Package className="w-5 h-5 text-foreground/50" />
               <h2 className="text-sm font-medium uppercase tracking-[0.2em] text-foreground/50">Order Details</h2>
@@ -211,7 +204,7 @@ function OrderConfirmationContent() {
               </div>
               <div className="flex justify-between">
                 <span className="text-foreground/70">Shipping</span>
-                <span>${order.shippingCost.toFixed(2)}</span>
+                <span>{order.shippingCost === 0 ? "Free" : `$${order.shippingCost.toFixed(2)}`}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-foreground/70">Tax</span>
@@ -231,19 +224,11 @@ function OrderConfirmationContent() {
                 Shipping to {order.address}, {order.city}, {order.state} {order.zip}
               </p>
             </div>
-          </div>
+          </BezelCard>
         </motion.div>
 
         <div className="text-center">
-          <Link
-            href="/shop"
-            className="group relative inline-flex items-center gap-4 rounded-full bg-foreground pl-8 pr-2 py-2 text-sm font-medium tracking-wide text-background transition-all active:scale-[0.98] hover:bg-foreground/90"
-          >
-            <span className="uppercase tracking-widest text-xs py-3">Continue Shopping</span>
-            <div className="absolute right-2 flex h-10 w-10 items-center justify-center rounded-full bg-background/20 transition-transform duration-300 ease-spring group-hover:scale-105">
-              <ArrowRight className="h-4 w-4 stroke-[1.5]" />
-            </div>
-          </Link>
+          <PillButton href="/shop">Continue Shopping</PillButton>
         </div>
       </div>
     </div>

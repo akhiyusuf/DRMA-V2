@@ -2,9 +2,11 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { ArrowUpRight, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { Product } from "@/types/product";
+import { PillButton } from "@/components/brand/PillButton";
+import { SectionLabel } from "@/components/brand/SectionLabel";
 
 interface Props {
   /** Optional heading override. Defaults to "Continue Your Journey." */
@@ -62,8 +64,6 @@ export function ProductRecommendations({
   const mutedText = isDark ? "text-background/50" : "text-foreground/50";
   const accentBg = isDark ? "bg-background" : "bg-foreground";
   const accentText = isDark ? "text-foreground" : "text-background";
-  const buttonBg = isDark ? "bg-background" : "bg-foreground";
-  const buttonText = isDark ? "text-foreground" : "text-background";
   const borderColor = isDark ? "border-background/10" : "border-foreground/10";
 
   return (
@@ -76,12 +76,12 @@ export function ProductRecommendations({
           transition={{ duration: 1, ease: [0.32, 0.72, 0, 1] }}
           className="flex flex-col items-center text-center max-w-3xl mx-auto mb-14 md:mb-20"
         >
-          <span className={`rounded-full px-3 py-1 text-[11px] uppercase tracking-[0.2em] font-medium ${surfaceBg} ${subtleText} mb-6 border ${borderColor}`}>
+          <SectionLabel tone={isDark ? "dark" : "light"} className="mb-6">
             The Collection
-          </span>
+          </SectionLabel>
           <h2 className={`text-4xl md:text-6xl font-heading font-light leading-tight ${headingColor}`}>
             {heading.split(" ").slice(0, -1).join(" ")}{" "}
-            <span className="italic text-foreground/60">{heading.split(" ").slice(-1)[0]}</span>
+            <span className={`italic ${isDark ? "text-background/60" : "text-foreground/60"}`}>{heading.split(" ").slice(-1)[0]}</span>
           </h2>
           <p className={`mt-6 text-base md:text-lg ${subtleText} font-light max-w-xl leading-relaxed`}>
             {subheading}
@@ -92,10 +92,7 @@ export function ProductRecommendations({
             Breakpoint note: a custom 480px min-width variant transitions the
             grid from one column (very small phones) to two columns on larger
             mobile devices, before the standard sm/lg breakpoints take over. */}
-        {/* items-start keeps each card hugging its own content — without it,
-            grid rows stretch every card to the tallest one and shorter
-            product images leave a large white gap inside the card. */}
-        <div className="grid grid-cols-1 min-[480px]:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 mb-14 md:mb-20 items-start">
+        <div className="grid grid-cols-1 min-[480px]:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 mb-14 md:mb-20">
           {loading ? (
             // Skeleton
             Array.from({ length: limit }).map((_, i) => (
@@ -118,18 +115,20 @@ export function ProductRecommendations({
                   className="absolute inset-0 z-30 block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                   aria-label={`View ${product.name}`}
                 />
-                {/* Image area — no forced aspect ratio so product images
-                    (e.g. the wide Nomad Hijab) keep their intended proportions
-                    instead of being aggressively cropped to 3:4. */}
-                <div className="relative flex-1 w-full bg-foreground/[0.03] rounded-[calc(1rem-0.25rem)] md:rounded-[calc(1.5rem-0.375rem)] overflow-hidden">
+                {/* Uniform 3:4 cards — matching the shop grid and product
+                    page framing. object-cover crops rather than letterboxes,
+                    which keeps every card in the row the same height (the
+                    old natural-height version left large white gaps when
+                    one image in a row was shorter than the others). */}
+                <div className="relative w-full aspect-[3/4] bg-foreground/[0.03] rounded-[calc(1rem-0.25rem)] md:rounded-[calc(1.5rem-0.375rem)] overflow-hidden">
                   {product.images?.[0] ? (
                     <img
                       src={product.images[0]}
                       alt={product.name}
-                      className="block w-full h-auto transition-transform duration-[2.5s] ease-[0.32,0.72,0,1] group-hover:scale-[1.04]"
+                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-[2.5s] ease-[0.32,0.72,0,1] group-hover:scale-[1.04]"
                     />
                   ) : (
-                    <div className="w-full aspect-[3/4] flex items-center justify-center text-foreground/30 text-xs uppercase tracking-widest">
+                    <div className="w-full h-full flex items-center justify-center text-foreground/30 text-xs uppercase tracking-widest">
                       No Image
                     </div>
                   )}
@@ -163,15 +162,7 @@ export function ProductRecommendations({
           transition={{ duration: 0.8, ease: [0.32, 0.72, 0, 1] }}
           className="flex justify-center"
         >
-          <Link
-            href="/shop"
-            className={`group relative inline-flex items-center gap-4 rounded-full ${buttonBg} ${buttonText} pl-8 pr-2 py-2 text-sm font-medium tracking-wide transition-all active:scale-[0.98] hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring`}
-          >
-            <span className="uppercase tracking-widest text-xs">Shop Now</span>
-            <div className={`flex h-10 w-10 items-center justify-center rounded-full ${isDark ? 'bg-foreground/10' : 'bg-background/20'} transition-transform duration-300 ease-spring group-hover:translate-x-1 group-hover:scale-105`}>
-              <ArrowUpRight className="h-4 w-4 stroke-[1.5]" />
-            </div>
-          </Link>
+          <PillButton href="/shop" variant={isDark ? "light" : "dark"}>Shop Now</PillButton>
         </motion.div>
       </div>
     </section>

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SectionLabel } from "@/components/brand/SectionLabel";
 
 export const metadata: Metadata = {
   title: "Terms of Service",
@@ -8,7 +9,8 @@ export const metadata: Metadata = {
 export default function TermsPage() {
   return (
     <div className="min-h-screen pt-24 md:pt-32 pb-16 md:pb-24 container mx-auto px-6 max-w-3xl">
-      <h1 className="text-4xl font-heading font-light mb-8 md:text-5xl lg:text-6xl">Terms of Service</h1>
+      <SectionLabel className="mb-8">Legal</SectionLabel>
+      <h1 className="text-4xl font-heading font-light mb-8 md:text-5xl lg:text-6xl tracking-tight">Terms of <span className="italic text-foreground/60">Service.</span></h1>
       <div className="prose prose-neutral dark:prose-invert max-w-none space-y-4 text-foreground/70">
         <p>By accessing and using the DRMA website, you agree to comply with and be bound by the following terms and conditions.</p>
         <h2 className="text-xl font-heading text-foreground mt-8 mb-4">Use of the Site</h2>

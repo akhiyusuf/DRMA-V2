@@ -2,8 +2,9 @@
 
 import { motion, useReducedMotion } from "framer-motion";
 import Link from "next/link";
-import { ArrowUpRight, Plus, ArrowRight } from "lucide-react";
+import { Plus, ArrowRight } from "lucide-react";
 import type { Product } from "@/types/product";
+import { PillButton } from "@/components/brand/PillButton";
 
 interface HomeClientProps {
   homepage: any | null;
@@ -51,10 +52,10 @@ export default function HomeClient({ homepage, products }: HomeClientProps) {
       {/*
         HERO: Clean & Editorial Luxury
       */}
-      <section className="relative min-h-[100dvh] w-full grid grid-cols-1 overflow-hidden bg-[#FAFAF9]">
+      <section className="relative min-h-[100dvh] w-full grid grid-cols-1 overflow-hidden bg-background">
         {/* Animated background blurs for liquid effect */}
-        <div className="absolute top-1/4 left-1/4 w-[40vw] h-[40vw] bg-[#9A6B04]/10 rounded-full blur-[100px] animate-pulse duration-10000 pointer-events-none mix-blend-multiply"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-[50vw] h-[50vw] bg-[#1C1917]/5 rounded-full blur-[120px] animate-pulse duration-[12000ms] pointer-events-none mix-blend-multiply delay-1000"></div>
+        <div className="absolute top-1/4 left-1/4 w-[40vw] h-[40vw] bg-gold/10 rounded-full blur-[100px] animate-pulse duration-10000 pointer-events-none mix-blend-multiply"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-[50vw] h-[50vw] bg-foreground/5 rounded-full blur-[120px] animate-pulse duration-[12000ms] pointer-events-none mix-blend-multiply delay-1000"></div>
 
         <div className="container mx-auto px-4 md:px-8 relative z-10 w-full h-full flex flex-col justify-start pt-24 md:pt-32 lg:pt-56">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start relative">
@@ -68,12 +69,12 @@ export default function HomeClient({ homepage, products }: HomeClientProps) {
                 // Was `lg:text-[10rem]` (160px) — too large vs the rest of
                 // the site's H1 scale (text-4xl → text-6xl). Capped at 128px
                 // via clamp so ultra-wide viewports don't blow it up further.
-                className="text-4xl sm:text-6xl md:text-8xl lg:text-[clamp(64px,8vw,128px)] font-heading font-normal tracking-tighter text-[#0C0A09] leading-[0.85] lg:leading-[0.85] lg:-ml-2 z-10"
+                className="text-4xl sm:text-6xl md:text-8xl lg:text-[clamp(64px,8vw,128px)] font-heading font-normal tracking-tighter text-foreground leading-[0.85] lg:leading-[0.85] lg:-ml-2 z-10"
               >
                 {heroLine1}{heroLine2 && ","} {heroLine2 && <br className="hidden sm:block" />}
                 {heroLine2 && (
-                  <span className="italic font-medium text-[#1C1917]/80 flex flex-col lg:flex-row items-center gap-2 md:gap-8 mt-1 md:mt-4">
-                    <span className="hidden lg:block w-32 h-[1px] bg-[#9A6B04]/40 mt-4"></span>
+                  <span className="italic font-medium text-foreground/80 flex flex-col lg:flex-row items-center gap-2 md:gap-8 mt-1 md:mt-4">
+                    <span className="hidden lg:block w-32 h-[1px] bg-gold/40 mt-4"></span>
                     {heroLine2}
                   </span>
                 )}
@@ -85,17 +86,11 @@ export default function HomeClient({ homepage, products }: HomeClientProps) {
                 transition={{ duration: 1, delay: 0.3, ease: [0.32, 0.72, 0, 1] }}
                 className="mt-6 md:mt-12 flex flex-col items-center lg:items-start gap-4 md:gap-6"
               >
-                <Link
-                  href={homepageData.hero?.ctaUrl || "/shop"}
-                  className="group relative inline-flex items-center gap-3 rounded-full bg-[#9A6B04] pl-6 md:pl-8 pr-2 py-2 text-sm font-medium tracking-wide text-white transition-colors duration-300 hover:bg-[#9A6B04]/90"
-                >
-                  <span className="uppercase tracking-widest text-xs md:text-sm">{homepageData.hero?.buttonLabel || "Shop Now"}</span>
-                  <div className="flex h-8 w-8 md:h-10 md:w-10 items-center justify-center rounded-full bg-white/20 transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-1 group-hover:scale-110">
-                    <ArrowUpRight className="h-3.5 w-3.5 md:h-4 md:w-4 stroke-[1.5]" />
-                  </div>
-                </Link>
+                <PillButton href={homepageData.hero?.ctaUrl || "/shop"} variant="gold">
+                  {homepageData.hero?.buttonLabel || "Shop Now"}
+                </PillButton>
 
-                <p className="text-xs md:text-sm text-[#44403C] max-w-xs md:max-w-sm font-light leading-relaxed">
+                <p className="text-xs md:text-sm text-foreground/70 max-w-xs md:max-w-sm font-light leading-relaxed">
                   {homepageData.hero?.description || ""}
                 </p>
               </motion.div>
@@ -113,7 +108,7 @@ export default function HomeClient({ homepage, products }: HomeClientProps) {
                   <img
                     src={homepageData.hero.image}
                     alt="Modest Fashion Model"
-                    className="w-full h-auto object-contain transition-transform duration-[4s] hover:scale-[1.01] shadow-[12px_12px_0px_rgba(154,107,4,0.2)] md:shadow-[20px_20px_0px_rgba(154,107,4,0.25)] shadow-2xl"
+                    className="w-full h-auto object-contain transition-transform duration-[4s] hover:scale-[1.01] shadow-[12px_12px_0px_theme(colors.gold/20%)] md:shadow-[20px_20px_0px_theme(colors.gold/25%)] shadow-2xl"
                   />
                 )}
 
@@ -127,7 +122,7 @@ export default function HomeClient({ homepage, products }: HomeClientProps) {
       {/*
         SECTION BREAKER: Scrolling Editorial Statement
       */}
-      <div className="-mt-8 md:-mt-16 lg:-mt-24 relative w-full py-6 md:py-10 bg-[#1C1917] overflow-hidden border-y border-[#9A6B04]/20 z-20">
+      <div className="-mt-8 md:-mt-16 lg:-mt-24 relative w-full py-6 md:py-10 bg-foreground overflow-hidden border-y border-gold/20 z-20">
         <div className="flex whitespace-nowrap">
           <motion.div
             animate={{ x: prefersReducedMotion ? "0%" : ["0%", "-50%"] }}
@@ -141,16 +136,16 @@ export default function HomeClient({ homepage, products }: HomeClientProps) {
           >
             {[1, 2].map((i) => (
               <div key={i} className="flex items-center gap-10 md:gap-20 lg:gap-24">
-                <span className="text-white/80 text-sm md:text-base font-medium uppercase tracking-[0.25em]">Conscious Design</span>
-                <div className="w-2 h-2 rotate-45 border border-[#9A6B04]/50"></div>
-                <span className="text-white/80 text-sm md:text-base font-medium uppercase tracking-[0.25em]">Ethical Production</span>
-                <div className="w-2 h-2 rotate-45 border border-[#9A6B04]/50"></div>
-                <span className="text-white/80 text-sm md:text-base font-medium uppercase tracking-[0.25em]">Timeless Elegance</span>
-                <div className="w-2 h-2 rotate-45 border border-[#9A6B04]/50"></div>
-                <span className="text-white/80 text-sm md:text-base font-medium uppercase tracking-[0.25em]">Modern Heritage</span>
-                <div className="w-2 h-2 rotate-45 border border-[#9A6B04]/50"></div>
-                <span className="text-white/80 text-sm md:text-base font-medium uppercase tracking-[0.25em]">Unapologetically Modest</span>
-                <div className="w-2 h-2 rotate-45 border border-[#9A6B04]/50"></div>
+                <span className="text-background/80 text-sm md:text-base font-medium uppercase tracking-[0.25em]">Conscious Design</span>
+                <div className="w-2 h-2 rotate-45 border border-gold/50"></div>
+                <span className="text-background/80 text-sm md:text-base font-medium uppercase tracking-[0.25em]">Ethical Production</span>
+                <div className="w-2 h-2 rotate-45 border border-gold/50"></div>
+                <span className="text-background/80 text-sm md:text-base font-medium uppercase tracking-[0.25em]">Timeless Elegance</span>
+                <div className="w-2 h-2 rotate-45 border border-gold/50"></div>
+                <span className="text-background/80 text-sm md:text-base font-medium uppercase tracking-[0.25em]">Modern Heritage</span>
+                <div className="w-2 h-2 rotate-45 border border-gold/50"></div>
+                <span className="text-background/80 text-sm md:text-base font-medium uppercase tracking-[0.25em]">Unapologetically Modest</span>
+                <div className="w-2 h-2 rotate-45 border border-gold/50"></div>
               </div>
             ))}
           </motion.div>
@@ -235,7 +230,7 @@ export default function HomeClient({ homepage, products }: HomeClientProps) {
         5 products arranged in the specific layout requested.
       */}
       {featuredProducts.length > 0 && (
-      <section className="py-16 md:py-28 lg:py-40 relative z-10 bg-[#FAFAF9]">
+      <section className="py-16 md:py-28 lg:py-40 relative z-10 bg-background">
         <div className="container mx-auto px-4 md:px-8">
 
           <motion.div
@@ -269,12 +264,12 @@ export default function HomeClient({ homepage, products }: HomeClientProps) {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: "-50px" }}
                   transition={{ duration: 0.8, delay: index * 0.1, ease: [0.32, 0.72, 0, 1] }}
-                  className={`group relative flex flex-col bg-white rounded-[1rem] md:rounded-[1.5rem] lg:rounded-[2rem] border border-[#E5E5E1] p-1 md:p-1.5 overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 ${bentoClasses[index]}`}
+                  className={`group relative flex flex-col bg-card rounded-[1rem] md:rounded-[1.5rem] lg:rounded-[2rem] border border-border p-1 md:p-1.5 overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 ${bentoClasses[index]}`}
                 >
                   <Link href={`/product/${product.id}`} className="absolute inset-0 z-30 block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring" aria-label={`View ${product.name}`} />
 
                   {/* Image Area */}
-                  <div className="relative flex-1 w-full bg-[#F3F3F1] rounded-[calc(1rem-0.25rem)] md:rounded-[calc(1.5rem-0.375rem)] lg:rounded-[calc(2rem-0.375rem)] overflow-hidden">
+                  <div className="relative flex-1 w-full bg-foreground/5 rounded-[calc(1rem-0.25rem)] md:rounded-[calc(1.5rem-0.375rem)] lg:rounded-[calc(2rem-0.375rem)] overflow-hidden">
                     <img
                       src={product.images[0]}
                       alt={product.name}
@@ -283,7 +278,7 @@ export default function HomeClient({ homepage, products }: HomeClientProps) {
 
                     {/* Badge */}
                     <div className="absolute top-3 left-3 md:top-4 md:left-4 z-10">
-                      <span className="bg-white/90 backdrop-blur-md text-[#1C1917] text-[11px] md:text-xs font-semibold tracking-wider uppercase px-2.5 py-1 md:px-3 md:py-1.5 rounded-full shadow-sm">
+                      <span className="bg-background/90 backdrop-blur-md text-foreground text-[11px] md:text-xs font-semibold tracking-wider uppercase px-2.5 py-1 md:px-3 md:py-1.5 rounded-full shadow-sm">
                         {product.tags[0]}
                       </span>
                     </div>
@@ -292,7 +287,7 @@ export default function HomeClient({ homepage, products }: HomeClientProps) {
                         flagship tile they can't actually buy without warning. */}
                     {soldOut && (
                       <div className="absolute top-3 right-3 md:top-4 md:right-4 z-10">
-                        <span className="bg-[#1C1917]/90 backdrop-blur-md text-white text-[11px] md:text-xs font-semibold tracking-wider uppercase px-2.5 py-1 md:px-3 md:py-1.5 rounded-full shadow-sm">
+                        <span className="bg-foreground/90 backdrop-blur-md text-background text-[11px] md:text-xs font-semibold tracking-wider uppercase px-2.5 py-1 md:px-3 md:py-1.5 rounded-full shadow-sm">
                           Sold Out
                         </span>
                       </div>
@@ -300,13 +295,13 @@ export default function HomeClient({ homepage, products }: HomeClientProps) {
                   </div>
 
                   {/* Content Section */}
-                  <div className="flex justify-between items-end p-3 md:p-4 lg:p-6 bg-white">
+                  <div className="flex justify-between items-end p-3 md:p-4 lg:p-6 bg-card">
                     <div>
-                      <h3 className="font-medium text-xs md:text-sm lg:text-base text-[#1C1917] mb-0.5 md:mb-1">{product.name}</h3>
-                      <p className="text-[11px] md:text-xs lg:text-sm text-[#44403C]/70">${product.price.toFixed(2)}</p>
+                      <h3 className="font-medium text-xs md:text-sm lg:text-base text-foreground mb-0.5 md:mb-1">{product.name}</h3>
+                      <p className="text-[11px] md:text-xs lg:text-sm text-foreground/60">${product.price.toFixed(2)}</p>
                     </div>
 
-                    <div className="flex h-7 w-7 md:h-8 md:w-8 lg:h-10 lg:w-10 items-center justify-center rounded-full bg-[#1C1917] text-white shrink-0 shadow-md transition-all duration-300 group-hover:scale-110">
+                    <div className="flex h-7 w-7 md:h-8 md:w-8 lg:h-10 lg:w-10 items-center justify-center rounded-full bg-foreground text-background shrink-0 shadow-md transition-all duration-300 group-hover:scale-110">
                       <Plus className="h-3.5 w-3.5 md:h-4 md:w-4 lg:h-5 lg:w-5 stroke-[2.5]" />
                     </div>
                   </div>
@@ -324,8 +319,8 @@ export default function HomeClient({ homepage, products }: HomeClientProps) {
       {(diffPoints.length > 0 || hasDiffTitle) && (
       <section className="py-16 md:py-28 lg:py-40 bg-gradient-to-b from-[#1a1614] via-[#14100E] to-[#0D0B0A] text-[#FAFAF9] relative rounded-t-[2rem] md:rounded-t-[3rem] -mt-6 md:-mt-10 shadow-2xl overflow-hidden">
         {/* Background accents */}
-        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-[#9A6B04]/[0.03] rounded-full blur-[120px] pointer-events-none" />
-        <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-[#9A6B04]/[0.02] rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-gold/[0.03] rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-gold/[0.02] rounded-full blur-[100px] pointer-events-none" />
 
         <div className="container mx-auto px-4 md:px-8 relative z-10">
           <motion.div
@@ -336,15 +331,15 @@ export default function HomeClient({ homepage, products }: HomeClientProps) {
             className={`flex flex-col items-center text-center max-w-3xl mx-auto ${hasDiffTitle ? "mb-14 md:mb-20 lg:mb-24" : "mb-10 md:mb-14"}`}
           >
             <div className={`flex items-center gap-3 md:gap-5 ${hasDiffTitle ? "mb-8 md:mb-12" : "mb-0"}`}>
-              <span className="h-px w-8 md:w-14 bg-[#9A6B04]/50" />
-              <span className="text-sm md:text-xl lg:text-2xl uppercase tracking-[0.2em] md:tracking-[0.25em] font-heading font-light text-[#9A6B04]">
+              <span className="h-px w-8 md:w-14 bg-gold/50" />
+              <span className="text-sm md:text-xl lg:text-2xl uppercase tracking-[0.2em] md:tracking-[0.25em] font-heading font-light text-gold">
                 {diff.label || "Why Us"}
               </span>
-              <span className="h-px w-8 md:w-14 bg-[#9A6B04]/50" />
+              <span className="h-px w-8 md:w-14 bg-gold/50" />
             </div>
             {hasDiffTitle && (
             <h2 className="text-3xl md:text-5xl lg:text-7xl font-heading font-light leading-[1.05] text-white">
-              {diffLine1}{diffLine2 && <><br/> <span className="italic text-[#9A6B04]">{diffLine2}</span></>}
+              {diffLine1}{diffLine2 && <><br/> <span className="italic text-gold">{diffLine2}</span></>}
             </h2>
             )}
           </motion.div>
@@ -359,11 +354,11 @@ export default function HomeClient({ homepage, products }: HomeClientProps) {
                 transition={{ duration: 0.8, delay: index * 0.1, ease: [0.32, 0.72, 0, 1] }}
                 whileHover={{ y: -4 }}
                 className={index === 2
-                  ? "md:col-span-12 rounded-[1.25rem] md:rounded-[2rem] bg-gradient-to-br from-[#262220] to-[#1a1614] border border-[#9A6B04]/20 shadow-[0_8px_40px_rgba(154,107,4,0.06)]"
-                  : "md:col-span-6 rounded-[1.25rem] md:rounded-[2rem] bg-gradient-to-br from-[#262220] to-[#1a1614] border border-white/[0.06] hover:border-[#9A6B04]/20 transition-colors duration-500"}
+                  ? "md:col-span-12 rounded-[1.25rem] md:rounded-[2rem] bg-gradient-to-br from-[#262220] to-[#1a1614] border border-gold/20 shadow-[0_8px_40px_theme(colors.gold/6%)]"
+                  : "md:col-span-6 rounded-[1.25rem] md:rounded-[2rem] bg-gradient-to-br from-[#262220] to-[#1a1614] border border-white/[0.06] hover:border-gold/20 transition-colors duration-500"}
               >
                 <div className="h-full p-5 md:p-8 lg:p-12 flex flex-col justify-between">
-                  <div className="text-4xl md:text-5xl lg:text-6xl font-heading font-semibold text-[#9A6B04] mb-4 md:mb-6 lg:mb-8 tracking-tight">{point.number}</div>
+                  <div className="text-4xl md:text-5xl lg:text-6xl font-heading font-semibold text-gold mb-4 md:mb-6 lg:mb-8 tracking-tight">{point.number}</div>
                   <div>
                     <h3 className="text-lg md:text-xl lg:text-2xl font-heading mb-3 md:mb-4 text-white font-medium">
                       {point.title}

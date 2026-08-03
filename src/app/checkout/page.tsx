@@ -2,7 +2,8 @@
 
 import { motion } from "framer-motion";
 import { useState } from "react";
-import { Truck, ShieldCheck, ArrowLeft, ArrowUpRight } from "lucide-react";
+import { Truck, ShieldCheck, ArrowLeft, ArrowUpRight, Loader2 } from "lucide-react";
+import { BezelCard } from "@/components/brand/BezelCard";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -279,8 +280,7 @@ export default function CheckoutPage() {
                 <span className="w-6 h-6 rounded-full bg-foreground/10 text-foreground flex items-center justify-center text-[11px] mr-4">4</span>
                 <h2 className="text-xs uppercase tracking-[0.2em] font-medium text-foreground/70">Payment</h2>
               </div>
-              <div className="p-1 rounded-[1.5rem] bg-foreground/5 ring-1 ring-foreground/10">
-                <div className="bg-background rounded-[calc(1.5rem-0.25rem)] p-8">
+              <BezelCard radius="1.5rem" innerClassName="p-8">
                   <div className="flex items-center justify-between mb-8">
                      <div className="flex items-center text-foreground/60">
                         <ShieldCheck className="w-5 h-5 mr-3" />
@@ -299,8 +299,7 @@ export default function CheckoutPage() {
                       {errors.form}
                     </div>
                   )}
-                </div>
-              </div>
+              </BezelCard>
             </motion.div>
             
           </div>
@@ -313,8 +312,7 @@ export default function CheckoutPage() {
               transition={{ delay: 0.3, duration: 1, ease: [0.32, 0.72, 0, 1] }}
               className="sticky top-32"
             >
-              <div className="p-1.5 rounded-[2rem] bg-foreground/5 ring-1 ring-foreground/10">
-                <div className="rounded-[calc(2rem-0.375rem)] bg-background p-8 md:p-10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]">
+              <BezelCard innerClassName="p-8 md:p-10">
                   <h2 className="text-sm font-medium uppercase tracking-[0.2em] mb-8 text-foreground/50 border-b border-foreground/10 pb-4">Order Summary</h2>
                   
                   <div className="space-y-6 mb-8">
@@ -359,20 +357,22 @@ export default function CheckoutPage() {
                   </div>
                   
                   {/* PayPal Yellow but elevated */}
-                  <button 
-                    type="submit" 
+                  <button
+                    type="submit"
                     disabled={submitting}
-                    className="group relative w-full inline-flex items-center justify-center gap-4 rounded-full bg-[#FFC439] pl-8 pr-2 py-2 text-sm font-bold tracking-wide text-[#003087] transition-all active:scale-[0.98] hover:bg-[#F4BB33] hover:shadow-[0_0_20px_rgba(255,196,57,0.3)] disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="group relative w-full inline-flex items-center justify-center gap-4 rounded-full bg-[#FFC439] pl-8 pr-2 py-2 text-sm font-bold tracking-wide text-[#003087] transition-all active:scale-[0.98] hover:bg-[#F4BB33] hover:shadow-[0_0_20px_rgba(255,196,57,0.3)] disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                   >
-                    <span className="py-3">{submitting ? 'Processing...' : 'Pay with PayPal'}</span>
+                    <span className="py-3 flex items-center gap-2">
+                      {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                      {submitting ? 'Processing...' : 'Pay with PayPal'}
+                    </span>
                     {!submitting && (
                       <div className="absolute right-2 flex h-10 w-10 items-center justify-center rounded-full bg-white/30 transition-transform duration-300 ease-spring group-hover:scale-105">
                         <ArrowUpRight className="h-4 w-4 stroke-[2]" />
                       </div>
                     )}
                   </button>
-                </div>
-              </div>
+              </BezelCard>
             </motion.div>
           </div>
 

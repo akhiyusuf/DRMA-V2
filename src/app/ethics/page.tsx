@@ -1,9 +1,10 @@
 "use client";
 
 import { motion } from "framer-motion";
-import Link from "next/link";
-import { ShieldCheck, HeartHandshake, Leaf, Users, ArrowUpRight } from "lucide-react";
+import { ShieldCheck, HeartHandshake, Leaf, Users } from "lucide-react";
 import { ProductRecommendations } from "@/components/layout/ProductRecommendations";
+import { PillButton } from "@/components/brand/PillButton";
+import { SectionLabel } from "@/components/brand/SectionLabel";
 
 export default function EthicsPage() {
   return (
@@ -16,9 +17,9 @@ export default function EthicsPage() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: [0.32, 0.72, 0, 1] }}
-            className="inline-flex rounded-full px-3 py-1 text-[11px] uppercase tracking-[0.2em] font-medium bg-foreground/5 text-foreground/70 mb-8 border border-foreground/10"
+            className="mb-8"
           >
-            The Manifesto
+            <SectionLabel>The Manifesto</SectionLabel>
           </motion.div>
           
           <motion.h1 
@@ -130,7 +131,7 @@ export default function EthicsPage() {
             viewport={{ once: true }}
             className="flex flex-col items-center mb-24"
           >
-            <span className="rounded-full px-3 py-1 text-[11px] uppercase tracking-[0.2em] font-medium bg-foreground/5 text-foreground/70 mb-6 border border-foreground/10">Foundation</span>
+            <SectionLabel className="mb-6">Foundation</SectionLabel>
             <h2 className="text-4xl md:text-6xl font-heading font-light text-center">Our Core <span className="italic text-foreground/60">Pillars</span></h2>
           </motion.div>
 
@@ -193,15 +194,7 @@ export default function EthicsPage() {
             Every purchase is a vote for the kind of world you want to live in. Choose ethical. Choose DRMA.
           </p>
           
-          <Link 
-            href="/shop" 
-            className="group relative inline-flex items-center gap-4 rounded-full bg-foreground pl-8 pr-2 py-2 text-sm font-medium tracking-wide text-background transition-all active:scale-[0.98] hover:bg-foreground/90"
-          >
-            <span className="uppercase tracking-widest text-xs">Explore Our Collection</span>
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-background/20 transition-transform duration-300 ease-spring group-hover:translate-x-1 group-hover:scale-105">
-              <ArrowUpRight className="h-4 w-4 stroke-[1.5]" />
-            </div>
-          </Link>
+          <PillButton href="/shop">Explore Our Collection</PillButton>
         </div>
       </section>
     </div>

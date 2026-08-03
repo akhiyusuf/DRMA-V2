@@ -34,6 +34,7 @@
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary: var(--primary);
+  --color-gold: var(--gold);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
@@ -50,6 +51,7 @@
 :root {
   --background: oklch(0.99 0.005 85); /* FDFBF7 Warm cream */
   --foreground: oklch(0.20 0.01 45); /* Deep espresso */
+  --gold: #9A6B04; /* Brand gold — accents, hero CTA, marquee diamonds */
   --card: oklch(0.99 0.005 85);
   --card-foreground: oklch(0.20 0.01 45);
   --popover: oklch(0.99 0.005 85);

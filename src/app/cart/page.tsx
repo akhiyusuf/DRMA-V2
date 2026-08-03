@@ -2,9 +2,12 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { ArrowRight, Trash2, ArrowUpRight, ShieldCheck, Truck, AlertTriangle } from "lucide-react";
+import { Trash2, ShieldCheck, Truck, AlertTriangle } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useEffect, useState } from "react";
+import { PillButton } from "@/components/brand/PillButton";
+import { BezelCard } from "@/components/brand/BezelCard";
+import { SectionLabel } from "@/components/brand/SectionLabel";
 
 interface StockInfo {
   // Keyed by `${productId}__${size}__${color}` so each cart line gets its
@@ -107,9 +110,7 @@ export default function CartPage() {
           className="flex flex-col mb-16 border-b border-foreground/5 pb-8"
         >
           <div className="flex items-center gap-4 mb-6">
-            <span className="rounded-full px-3 py-1 text-[11px] uppercase tracking-[0.2em] font-medium bg-foreground/5 text-foreground/70 border border-foreground/10">
-              The Vault
-            </span>
+            <SectionLabel>The Vault</SectionLabel>
             <span className="text-xs font-medium tracking-widest text-foreground/40 uppercase">
               {itemCount} {itemCount === 1 ? 'Piece' : 'Pieces'}
             </span>
@@ -121,9 +122,9 @@ export default function CartPage() {
           {/* Cart Items */}
           <div className="w-full lg:w-2/3">
             {items.length === 0 && (
-              <div className="py-32 text-center">
-                <p className="text-foreground/50 text-lg mb-4">Your cart is empty</p>
-                <Link href="/shop" className="text-primary underline">Browse the collection</Link>
+              <div className="py-32 flex flex-col items-center text-center">
+                <p className="text-foreground/50 text-lg mb-8">Your cart is empty</p>
+                <PillButton href="/shop">Browse the Collection</PillButton>
               </div>
             )}
             <div className="space-y-8">
@@ -235,8 +236,7 @@ export default function CartPage() {
               transition={{ delay: 0.2, duration: 1, ease: [0.32, 0.72, 0, 1] }}
               className="sticky top-32"
             >
-              <div className="p-1.5 rounded-[2rem] bg-foreground/5 ring-1 ring-foreground/10">
-                <div className="rounded-[calc(2rem-0.375rem)] bg-background p-8 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]">
+              <BezelCard innerClassName="p-8">
                   <h2 className="text-sm font-medium uppercase tracking-[0.2em] mb-8 text-foreground/50 border-b border-foreground/10 pb-4">Order Summary</h2>
                   
                   {/* Free-shipping progress nudge (threshold shared with checkout) */}
@@ -284,24 +284,12 @@ export default function CartPage() {
                   
                   {items.length > 0 ? (
                     hasStockIssues ? (
-                      <div className="w-full inline-flex items-center justify-center gap-4 rounded-full bg-foreground/10 pl-8 pr-2 py-2 text-sm font-medium tracking-wide text-foreground/40 cursor-not-allowed">
-                        <span className="uppercase tracking-widest text-xs py-3">Remove out-of-stock items</span>
-                      </div>
+                      <PillButton fullWidth disabled icon="none">Remove out-of-stock items</PillButton>
                     ) : (
-                      <Link 
-                        href="/checkout" 
-                        className="group relative w-full inline-flex items-center justify-center gap-4 rounded-full bg-foreground pl-8 pr-2 py-2 text-sm font-medium tracking-wide text-background transition-all active:scale-[0.98] hover:bg-foreground/90"
-                      >
-                        <span className="uppercase tracking-widest text-xs py-3">Secure Checkout</span>
-                        <div className="absolute right-2 flex h-10 w-10 items-center justify-center rounded-full bg-background/20 transition-transform duration-300 ease-spring group-hover:scale-105">
-                          <ArrowRight className="h-4 w-4 stroke-[1.5]" />
-                        </div>
-                      </Link>
+                      <PillButton href="/checkout" fullWidth icon="right">Secure Checkout</PillButton>
                     )
                   ) : (
-                    <div className="w-full inline-flex items-center justify-center gap-4 rounded-full bg-foreground/20 pl-8 pr-2 py-2 text-sm font-medium tracking-wide text-foreground/40 cursor-not-allowed">
-                      <span className="uppercase tracking-widest text-xs py-3">Secure Checkout</span>
-                    </div>
+                    <PillButton fullWidth disabled icon="none">Secure Checkout</PillButton>
                   )}
                   
                   <div className="mt-6 flex flex-col items-center gap-3">
@@ -315,8 +303,7 @@ export default function CartPage() {
                       <span className="text-xs font-bold border rounded px-2 py-0.5">AMEX</span>
                     </div>
                   </div>
-                </div>
-              </div>
+              </BezelCard>
             </motion.div>
           </div>
         </div>

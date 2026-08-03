@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowUpRight, X, SlidersHorizontal } from "lucide-react";
+import { SectionLabel } from "@/components/brand/SectionLabel";
 
 type SortOption = "featured" | "price-asc" | "price-desc" | "name";
 
@@ -230,7 +231,15 @@ function ShopPageInner() {
       <section className="pt-24 md:pt-32 pb-6 md:pb-10 px-4 md:px-8 border-b border-foreground/5">
         <div className="container mx-auto flex items-end justify-between gap-4">
           <div>
-            <motion.h1 
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: [0.32, 0.72, 0, 1] }}
+              className="mb-6"
+            >
+              <SectionLabel>The Archive</SectionLabel>
+            </motion.div>
+            <motion.h1
               initial={{ opacity: 0, y: 30, filter: "blur(8px)" }}
               animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
               transition={{ duration: 1.2, delay: 0.1, ease: [0.32, 0.72, 0, 1] }}

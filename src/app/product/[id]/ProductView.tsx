@@ -3,12 +3,13 @@
 import { notFound } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, ArrowUpRight, Info, Minus, Plus } from "lucide-react";
+import { ArrowLeft, Info, Minus, Plus } from "lucide-react";
 import Link from "next/link";
 import type { Product } from "@/types/product";
 import { DEFAULT_MAX_PER_ORDER } from "@/types/product";
 import { useCart } from "@/context/CartContext";
 import { ProductRecommendations } from "@/components/layout/ProductRecommendations";
+import { PillButton } from "@/components/brand/PillButton";
 
 /**
  * Client view for a single product. Receives the resolved `id` as a prop
@@ -26,7 +27,6 @@ export default function ProductView({ id }: { id: string }) {
   const [pulseKey, setPulseKey] = useState(0);
   const [variantStock, setVariantStock] = useState<number | null>(null);
   const { addItem } = useCart();
-  const buttonRef = useRef<HTMLButtonElement>(null);
   const soundRef = useRef<HTMLAudioElement | null>(null);
   const feedbackTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -292,7 +292,9 @@ export default function ProductView({ id }: { id: string }) {
               <div className="mb-6 md:mb-10">
                 <div className="flex items-center justify-between mb-3 md:mb-4">
                   <h3 className="text-xs font-medium uppercase tracking-[0.2em] text-foreground/50">Size</h3>
-                  <button className="text-[10px] uppercase tracking-widest text-foreground/40 hover:text-foreground underline underline-offset-4 transition-colors">Size Guide</button>
+                  {/* "Size Guide" removed — it was a dead button with no
+                      handler or content. Restore as a real modal/page when
+                      size-guide content exists. */}
                 </div>
                 <div className="flex flex-wrap gap-2 md:gap-3">
                   {product.variations?.sizes?.map(size => (
@@ -379,25 +381,14 @@ export default function ProductView({ id }: { id: string }) {
                   />
                 </div>
 
-                <button 
-                  ref={buttonRef}
-                  onClick={addToCart} 
+                <PillButton
+                  onClick={addToCart}
                   disabled={isOutOfStock}
-                  className={`group relative w-full inline-flex items-center justify-center gap-4 rounded-full pl-8 pr-2 py-2 text-sm font-medium tracking-wide transition-all active:scale-[0.98] ${
-                    isOutOfStock
-                      ? 'bg-foreground/10 text-foreground/30 cursor-not-allowed'
-                      : 'bg-foreground text-background hover:bg-foreground/90'
-                  }`}
+                  fullWidth
+                  icon={!isOutOfStock && selectedSize && selectedColor ? "up-right" : "none"}
                 >
-                  <span className="uppercase tracking-widest text-xs py-3">
-                    {!selectedSize || !selectedColor ? 'Select Options' : isOutOfStock ? 'Sold Out' : 'Add to Cart'}
-                  </span>
-                  {!isOutOfStock && (selectedSize && selectedColor) && (
-                    <div className="absolute right-2 flex h-10 w-10 items-center justify-center rounded-full bg-background/20 transition-transform duration-300 ease-spring group-hover:scale-105">
-                      <ArrowUpRight className="h-4 w-4 stroke-[1.5]" />
-                    </div>
-                  )}
-                </button>
+                  {!selectedSize || !selectedColor ? 'Select Options' : isOutOfStock ? 'Sold Out' : 'Add to Cart'}
+                </PillButton>
               </div>
               
               <div className="flex items-center justify-center text-[10px] uppercase tracking-[0.1em] text-foreground/40 gap-4">

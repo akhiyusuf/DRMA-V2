@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { PillButton } from '@/components/brand/PillButton';
 
 const POLL_INTERVAL = 8000; // Check every 8 seconds
 
@@ -603,7 +604,7 @@ export default function DashboardPage() {
         <p className="text-sm text-foreground/50">Manage products, content, and inventory. Click a product to edit details, images, and per-variant stock.</p>
         <div className="flex items-center gap-3">
           <input className="bg-foreground/[0.03] border border-foreground/10 rounded-full px-4 py-2 text-xs focus:outline-none focus:border-foreground/30 transition-colors w-40 placeholder:text-foreground/25" placeholder="Filter..." value={filter} onChange={e => setFilter(e.target.value)} />
-          <button onClick={() => {
+          <PillButton size="sm" icon="none" onClick={() => {
             const newId = Date.now().toString();
             const newProduct = { id: newId, name: 'New Product', price: 0, images: [], tags: [], category: '', variations: { sizes: [], colors: [], materials: [] }, description: '', in_stock: true, stock_quantity: -1, low_stock_threshold: 3, max_per_order: 3, page_title: null, meta_description: null };
             // Local draft only: nothing is persisted (or published to the
@@ -614,9 +615,9 @@ export default function DashboardPage() {
             setUnsavedProductIds(prev => new Set(prev).add(newId));
             setExpandedStockProduct(newId);
             showToast('Draft created — Save All to publish', 'info');
-          }} className="bg-foreground text-background rounded-full px-4 py-2 text-[11px] uppercase tracking-widest font-medium hover:bg-foreground/90 transition-all active:scale-[0.98]">
+          }}>
             + Add Product
-          </button>
+          </PillButton>
           <label className={`cursor-pointer bg-foreground text-background w-9 h-9 rounded-full flex items-center justify-center hover:bg-foreground/90 transition-all active:scale-95 ${uploading ? 'opacity-40 cursor-not-allowed' : ''}`}>
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
             <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileUpload} disabled={uploading} accept="image/*" />
@@ -926,12 +927,9 @@ export default function DashboardPage() {
                       }`}>
                         {deleteArmedId === product.id ? 'Click again to confirm' : (unsavedProductIds.has(product.id) ? 'Discard Draft' : 'Delete Product')}
                       </button>
-                      <button onClick={() => { save('products', content, product.id); fetchStock(); }} className="group relative bg-foreground text-background rounded-full pl-6 pr-1.5 py-1.5 text-[11px] uppercase tracking-widest font-medium hover:bg-foreground/90 transition-all active:scale-[0.98]">
-                        <span className="py-1.5">Save All</span>
-                        <span className="inline-flex w-7 h-7 items-center justify-center rounded-full bg-background/20 ml-2">
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                        </span>
-                      </button>
+                      <PillButton size="sm" icon="check" onClick={() => { save('products', content, product.id); fetchStock(); }}>
+                        Save All
+                      </PillButton>
                     </div>
                   </div>
                 )}
@@ -993,12 +991,7 @@ export default function DashboardPage() {
             <div className="rounded-[calc(2rem-0.375rem)] bg-background p-8 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)] space-y-8">
               <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-heading font-light">Homepage</h2>
-                <button onClick={() => save('homepage', homepageData)} className="group relative bg-foreground text-background rounded-full pl-6 pr-1.5 py-1.5 text-[11px] uppercase tracking-widest font-medium hover:bg-foreground/90 transition-all active:scale-[0.98]">
-                  <span className="py-1.5">Save</span>
-                  <span className="inline-flex w-7 h-7 items-center justify-center rounded-full bg-background/20 ml-2">
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                  </span>
-                </button>
+                <PillButton size="sm" icon="check" onClick={() => save('homepage', homepageData)}>Save</PillButton>
               </div>
 
               {/* Hero */}
@@ -1128,12 +1121,7 @@ export default function DashboardPage() {
                     </select>
                   </div>
                 </div>
-                <button onClick={() => save('homepage', homepageData)} className="group relative bg-foreground text-background rounded-full pl-6 pr-1.5 py-1.5 text-[11px] uppercase tracking-widest font-medium hover:bg-foreground/90 transition-all active:scale-[0.98]">
-                  <span className="py-1.5">Save</span>
-                  <span className="inline-flex w-7 h-7 items-center justify-center rounded-full bg-background/20 ml-2">
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                  </span>
-                </button>
+                <PillButton size="sm" icon="check" onClick={() => save('homepage', homepageData)}>Save</PillButton>
               </div>
             </div>
           </div>
