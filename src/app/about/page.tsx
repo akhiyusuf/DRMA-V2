@@ -1,9 +1,9 @@
 "use client";
 
 import { motion } from "framer-motion";
-import Link from "next/link";
-import { ArrowUpRight } from "lucide-react";
 import { ProductRecommendations } from "@/components/layout/ProductRecommendations";
+import { PillButton } from "@/components/brand/PillButton";
+import { SectionLabel } from "@/components/brand/SectionLabel";
 
 export default function AboutPage() {
   return (
@@ -20,9 +20,9 @@ export default function AboutPage() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, ease: [0.32, 0.72, 0, 1] }}
-                className="rounded-full px-3 py-1 text-[11px] uppercase tracking-[0.2em] font-medium bg-foreground/5 text-foreground/70 mb-8 border border-foreground/10"
+                className="mb-8"
               >
-                The Origin
+                <SectionLabel>The Origin</SectionLabel>
               </motion.div>
               
               <motion.h1 
@@ -120,15 +120,7 @@ export default function AboutPage() {
 
                 {/* Button-in-Button Architecture */}
                 <div className="mt-16">
-                  <Link 
-                    href="/ethics" 
-                    className="group relative inline-flex items-center gap-4 rounded-full bg-background pl-8 pr-2 py-2 text-sm font-medium tracking-wide text-foreground transition-all active:scale-[0.98] hover:bg-background/90"
-                  >
-                    <span className="uppercase tracking-widest text-xs">Read The Manifesto</span>
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-foreground/10 transition-transform duration-300 ease-spring group-hover:translate-x-1 group-hover:scale-105">
-                      <ArrowUpRight className="h-4 w-4 stroke-[1.5]" />
-                    </div>
-                  </Link>
+                  <PillButton href="/ethics" variant="light">Read The Manifesto</PillButton>
                 </div>
               </div>
             </div>

@@ -2,9 +2,11 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { ArrowUpRight, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { Product } from "@/types/product";
+import { PillButton } from "@/components/brand/PillButton";
+import { SectionLabel } from "@/components/brand/SectionLabel";
 
 interface Props {
   /** Optional heading override. Defaults to "Continue Your Journey." */
@@ -15,6 +17,8 @@ interface Props {
   limit?: number;
   /** Visual variant — "light" for cream/white pages, "dark" for footer-style dark sections. */
   variant?: "light" | "dark";
+  /** Product ID to exclude (e.g. the product currently being viewed). */
+  excludeId?: string;
 }
 
 /**
@@ -28,6 +32,7 @@ export function ProductRecommendations({
   subheading = "Carry the mission forward — explore pieces crafted with the same integrity you just read about.",
   limit = 3,
   variant = "light",
+  excludeId,
 }: Props) {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,14 +42,19 @@ export function ProductRecommendations({
       .then(res => res.json())
       .then((data: Product[]) => {
         if (Array.isArray(data)) {
-          // Prefer in-stock items, take first `limit`
-          const inStock = data.filter(p => p.inStock !== false).slice(0, limit);
-          setProducts(inStock.length > 0 ? inStock : data.slice(0, limit));
+          const candidates = data.filter(p => p.id !== excludeId);
+          // Prefer in-stock items, take first `limit`. The API returns
+          // snake_case fields: `in_stock` (merchandising flag) and
+          // `stock_quantity` (0 = sold out, -1/null = untracked).
+          const inStock = candidates
+            .filter((p: Product & { in_stock?: boolean }) => p.in_stock !== false && p.stock_quantity !== 0)
+            .slice(0, limit);
+          setProducts(inStock.length > 0 ? inStock : candidates.slice(0, limit));
         }
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, [limit]);
+  }, [limit, excludeId]);
 
   const isDark = variant === "dark";
   const surfaceBg = isDark ? "bg-background/5" : "bg-foreground/5";
@@ -54,8 +64,6 @@ export function ProductRecommendations({
   const mutedText = isDark ? "text-background/50" : "text-foreground/50";
   const accentBg = isDark ? "bg-background" : "bg-foreground";
   const accentText = isDark ? "text-foreground" : "text-background";
-  const buttonBg = isDark ? "bg-background" : "bg-foreground";
-  const buttonText = isDark ? "text-foreground" : "text-background";
   const borderColor = isDark ? "border-background/10" : "border-foreground/10";
 
   return (
@@ -68,12 +76,12 @@ export function ProductRecommendations({
           transition={{ duration: 1, ease: [0.32, 0.72, 0, 1] }}
           className="flex flex-col items-center text-center max-w-3xl mx-auto mb-14 md:mb-20"
         >
-          <span className={`rounded-full px-3 py-1 text-[11px] uppercase tracking-[0.2em] font-medium ${surfaceBg} ${subtleText} mb-6 border ${borderColor}`}>
+          <SectionLabel tone={isDark ? "dark" : "light"} className="mb-6">
             The Collection
-          </span>
+          </SectionLabel>
           <h2 className={`text-4xl md:text-6xl font-heading font-light leading-tight ${headingColor}`}>
             {heading.split(" ").slice(0, -1).join(" ")}{" "}
-            <span className="italic text-foreground/60">{heading.split(" ").slice(-1)[0]}</span>
+            <span className={`italic ${isDark ? "text-background/60" : "text-foreground/60"}`}>{heading.split(" ").slice(-1)[0]}</span>
           </h2>
           <p className={`mt-6 text-base md:text-lg ${subtleText} font-light max-w-xl leading-relaxed`}>
             {subheading}
@@ -107,18 +115,20 @@ export function ProductRecommendations({
                   className="absolute inset-0 z-30 block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                   aria-label={`View ${product.name}`}
                 />
-                {/* Image area — no forced aspect ratio so product images
-                    (e.g. the wide Nomad Hijab) keep their intended proportions
-                    instead of being aggressively cropped to 3:4. */}
-                <div className="relative flex-1 w-full bg-foreground/[0.03] rounded-[calc(1rem-0.25rem)] md:rounded-[calc(1.5rem-0.375rem)] overflow-hidden">
+                {/* Uniform 3:4 cards — matching the shop grid and product
+                    page framing. object-cover crops rather than letterboxes,
+                    which keeps every card in the row the same height (the
+                    old natural-height version left large white gaps when
+                    one image in a row was shorter than the others). */}
+                <div className="relative w-full aspect-[3/4] bg-foreground/[0.03] rounded-[calc(1rem-0.25rem)] md:rounded-[calc(1.5rem-0.375rem)] overflow-hidden">
                   {product.images?.[0] ? (
                     <img
                       src={product.images[0]}
                       alt={product.name}
-                      className="block w-full h-auto transition-transform duration-[2.5s] ease-[0.32,0.72,0,1] group-hover:scale-[1.04]"
+                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-[2.5s] ease-[0.32,0.72,0,1] group-hover:scale-[1.04]"
                     />
                   ) : (
-                    <div className="w-full aspect-[3/4] flex items-center justify-center text-foreground/30 text-xs uppercase tracking-widest">
+                    <div className="w-full h-full flex items-center justify-center text-foreground/30 text-xs uppercase tracking-widest">
                       No Image
                     </div>
                   )}
@@ -152,15 +162,7 @@ export function ProductRecommendations({
           transition={{ duration: 0.8, ease: [0.32, 0.72, 0, 1] }}
           className="flex justify-center"
         >
-          <Link
-            href="/shop"
-            className={`group relative inline-flex items-center gap-4 rounded-full ${buttonBg} ${buttonText} pl-8 pr-2 py-2 text-sm font-medium tracking-wide transition-all active:scale-[0.98] hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring`}
-          >
-            <span className="uppercase tracking-widest text-xs">Shop Now</span>
-            <div className={`flex h-10 w-10 items-center justify-center rounded-full ${isDark ? 'bg-foreground/10' : 'bg-background/20'} transition-transform duration-300 ease-spring group-hover:translate-x-1 group-hover:scale-105`}>
-              <ArrowUpRight className="h-4 w-4 stroke-[1.5]" />
-            </div>
-          </Link>
+          <PillButton href="/shop" variant={isDark ? "light" : "dark"}>Shop Now</PillButton>
         </motion.div>
       </div>
     </section>

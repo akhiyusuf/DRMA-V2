@@ -3,11 +3,13 @@
 import { notFound } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, ArrowUpRight, Info, Check, Minus, Plus } from "lucide-react";
+import { ArrowLeft, Info, Minus, Plus } from "lucide-react";
 import Link from "next/link";
 import type { Product } from "@/types/product";
 import { DEFAULT_MAX_PER_ORDER } from "@/types/product";
 import { useCart } from "@/context/CartContext";
+import { ProductRecommendations } from "@/components/layout/ProductRecommendations";
+import { PillButton } from "@/components/brand/PillButton";
 
 /**
  * Client view for a single product. Receives the resolved `id` as a prop
@@ -25,7 +27,6 @@ export default function ProductView({ id }: { id: string }) {
   const [pulseKey, setPulseKey] = useState(0);
   const [variantStock, setVariantStock] = useState<number | null>(null);
   const { addItem } = useCart();
-  const buttonRef = useRef<HTMLButtonElement>(null);
   const soundRef = useRef<HTMLAudioElement | null>(null);
   const feedbackTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -208,7 +209,9 @@ export default function ProductView({ id }: { id: string }) {
     if (success) {
       playCartSound();
       setPulseKey(k => k + 1);
-      showFeedback('success', `${quantity}x ${product.name} (${selectedSize}, ${selectedColor}) added to cart!`);
+      // Success is confirmed by the AddToCartToast (top-right, with a
+      // "View Cart" CTA) + the cart badge bounce. A third inline banner
+      // here was redundant, so only errors render inline now.
     } else {
       showFeedback('error', `Maximum ${effectiveMax} per order reached for this item.`);
     }
@@ -232,7 +235,7 @@ export default function ProductView({ id }: { id: string }) {
             <span className="flex items-center justify-center w-6 h-6 rounded-full bg-foreground/5 mr-3 transition-transform group-hover:-translate-x-1">
               <ArrowLeft className="w-3 h-3" />
             </span>
-            Back to Archive
+            Back to Shop
           </Link>
         </motion.div>
 
@@ -289,7 +292,9 @@ export default function ProductView({ id }: { id: string }) {
               <div className="mb-6 md:mb-10">
                 <div className="flex items-center justify-between mb-3 md:mb-4">
                   <h3 className="text-xs font-medium uppercase tracking-[0.2em] text-foreground/50">Size</h3>
-                  <button className="text-[10px] uppercase tracking-widest text-foreground/40 hover:text-foreground underline underline-offset-4 transition-colors">Size Guide</button>
+                  {/* "Size Guide" removed — it was a dead button with no
+                      handler or content. Restore as a real modal/page when
+                      size-guide content exists. */}
                 </div>
                 <div className="flex flex-wrap gap-2 md:gap-3">
                   {product.variations?.sizes?.map(size => (
@@ -339,18 +344,13 @@ export default function ProductView({ id }: { id: string }) {
                 )}
               </div>
 
-              {/* Inline Feedback */}
+              {/* Inline Feedback — errors only (successes surface via the toast) */}
               {feedback && (
                 <motion.div
                   initial={{ opacity: 0, y: -8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className={`text-sm px-4 py-2.5 md:px-5 md:py-3 rounded-xl mb-4 md:mb-6 flex items-center gap-2 ${
-                    feedback.type === 'success'
-                      ? 'bg-green-50 text-green-800 border border-green-200'
-                      : 'bg-amber-50 text-amber-800 border border-amber-200'
-                  }`}
+                  className="text-sm px-4 py-2.5 md:px-5 md:py-3 rounded-xl mb-4 md:mb-6 flex items-center gap-2 bg-amber-50 text-amber-800 border border-amber-200"
                 >
-                  {feedback.type === 'success' && <Check className="w-4 h-4 shrink-0" />}
                   {feedback.message}
                 </motion.div>
               )}
@@ -381,35 +381,34 @@ export default function ProductView({ id }: { id: string }) {
                   />
                 </div>
 
-                <button 
-                  ref={buttonRef}
-                  onClick={addToCart} 
+                <PillButton
+                  onClick={addToCart}
                   disabled={isOutOfStock}
-                  className={`group relative w-full inline-flex items-center justify-center gap-4 rounded-full pl-8 pr-2 py-2 text-sm font-medium tracking-wide transition-all active:scale-[0.98] ${
-                    isOutOfStock
-                      ? 'bg-foreground/10 text-foreground/30 cursor-not-allowed'
-                      : 'bg-foreground text-background hover:bg-foreground/90'
-                  }`}
+                  fullWidth
+                  icon={!isOutOfStock && selectedSize && selectedColor ? "up-right" : "none"}
                 >
-                  <span className="uppercase tracking-widest text-xs py-3">
-                    {!selectedSize || !selectedColor ? 'Select Options' : isOutOfStock ? 'Sold Out' : 'Add to Cart'}
-                  </span>
-                  {!isOutOfStock && (selectedSize && selectedColor) && (
-                    <div className="absolute right-2 flex h-10 w-10 items-center justify-center rounded-full bg-background/20 transition-transform duration-300 ease-spring group-hover:scale-105">
-                      <ArrowUpRight className="h-4 w-4 stroke-[1.5]" />
-                    </div>
-                  )}
-                </button>
+                  {!selectedSize || !selectedColor ? 'Select Options' : isOutOfStock ? 'Sold Out' : 'Add to Cart'}
+                </PillButton>
               </div>
               
               <div className="flex items-center justify-center text-[10px] uppercase tracking-[0.1em] text-foreground/40 gap-4">
-                <span className="flex items-center"><Info className="w-3 h-3 mr-1.5" /> Free Global Shipping over $150</span>
+                <span className="flex items-center"><Info className="w-3 h-3 mr-1.5" /> Free Shipping over $150</span>
                 <span className="hidden sm:inline">•</span>
                 <span className="hidden sm:inline">Ethical Returns</span>
               </div>
             </motion.div>
           </div>
         </div>
+      </div>
+
+      {/* Cross-sell: this component already powers the About/Ethics pages;
+          the product page is where it earns the most. */}
+      <div className="mt-16 md:mt-24">
+        <ProductRecommendations
+          heading="You May Also Like."
+          subheading="More pieces crafted with the same care and the same standards."
+          excludeId={product.id}
+        />
       </div>
     </div>
   );

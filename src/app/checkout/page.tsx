@@ -2,7 +2,8 @@
 
 import { motion } from "framer-motion";
 import { useState } from "react";
-import { Truck, ShieldCheck, ArrowLeft, ArrowUpRight } from "lucide-react";
+import { Truck, ShieldCheck, ArrowLeft, ArrowUpRight, Loader2 } from "lucide-react";
+import { BezelCard } from "@/components/brand/BezelCard";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -47,7 +48,12 @@ export default function CheckoutPage() {
   const isTexas = state === "TX";
   const taxRate = isTexas ? 0.0825 : 0;
   const taxAmount = subtotal * taxRate;
-  const shippingCost = shippingMethod === "ups_ground" ? 9.95 : 24.95;
+  // Free ground shipping over $150 — this is the storefront's advertised
+  // promise ("Free Shipping over $150" on product pages), now actually
+  // honoured at checkout. Express (Next Day Air) stays paid.
+  const FREE_SHIPPING_THRESHOLD = 150;
+  const freeGroundShipping = subtotal >= FREE_SHIPPING_THRESHOLD;
+  const shippingCost = shippingMethod === "ups_ground" ? (freeGroundShipping ? 0 : 9.95) : 24.95;
   const total = subtotal + taxAmount + shippingCost;
 
   const validate = () => {
@@ -251,7 +257,11 @@ export default function CheckoutPage() {
                     <RadioGroupItem value="ups_ground" id="ups_ground" className="border-foreground/30 text-foreground" />
                     <Label htmlFor="ups_ground" className="cursor-pointer font-light text-foreground/80">UPS Ground (5-7 Days)</Label>
                   </div>
-                  <span className="text-sm font-medium tracking-widest">$9.95</span>
+                  {freeGroundShipping ? (
+                    <span className="text-sm font-medium tracking-widest text-primary uppercase">Free</span>
+                  ) : (
+                    <span className="text-sm font-medium tracking-widest">$9.95</span>
+                  )}
                 </div>
                 <div className="flex items-center justify-between border border-foreground/10 p-5 rounded-2xl bg-foreground/5 cursor-pointer hover:border-foreground/30 transition-colors relative overflow-hidden group">
                   <div className="absolute inset-y-0 left-0 w-1 bg-foreground transform -translate-x-full transition-transform group-has-[[data-state=checked]]:translate-x-0"></div>
@@ -270,8 +280,7 @@ export default function CheckoutPage() {
                 <span className="w-6 h-6 rounded-full bg-foreground/10 text-foreground flex items-center justify-center text-[11px] mr-4">4</span>
                 <h2 className="text-xs uppercase tracking-[0.2em] font-medium text-foreground/70">Payment</h2>
               </div>
-              <div className="p-1 rounded-[1.5rem] bg-foreground/5 ring-1 ring-foreground/10">
-                <div className="bg-background rounded-[calc(1.5rem-0.25rem)] p-8">
+              <BezelCard radius="1.5rem" innerClassName="p-8">
                   <div className="flex items-center justify-between mb-8">
                      <div className="flex items-center text-foreground/60">
                         <ShieldCheck className="w-5 h-5 mr-3" />
@@ -290,8 +299,7 @@ export default function CheckoutPage() {
                       {errors.form}
                     </div>
                   )}
-                </div>
-              </div>
+              </BezelCard>
             </motion.div>
             
           </div>
@@ -304,8 +312,7 @@ export default function CheckoutPage() {
               transition={{ delay: 0.3, duration: 1, ease: [0.32, 0.72, 0, 1] }}
               className="sticky top-32"
             >
-              <div className="p-1.5 rounded-[2rem] bg-foreground/5 ring-1 ring-foreground/10">
-                <div className="rounded-[calc(2rem-0.375rem)] bg-background p-8 md:p-10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]">
+              <BezelCard innerClassName="p-8 md:p-10">
                   <h2 className="text-sm font-medium uppercase tracking-[0.2em] mb-8 text-foreground/50 border-b border-foreground/10 pb-4">Order Summary</h2>
                   
                   <div className="space-y-6 mb-8">
@@ -336,7 +343,7 @@ export default function CheckoutPage() {
                       <span className="text-foreground/70 flex items-center">
                         Shipping <Truck className="w-3 h-3 ml-2 text-foreground/40" />
                       </span>
-                      <span className="tracking-widest">${shippingCost.toFixed(2)}</span>
+                      <span className="tracking-widest">{shippingCost === 0 ? "Free" : `$${shippingCost.toFixed(2)}`}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-foreground/70">Taxes {isTexas && <span className="text-[11px] uppercase ml-2 text-foreground/40">(TX 8.25%)</span>}</span>
@@ -350,20 +357,22 @@ export default function CheckoutPage() {
                   </div>
                   
                   {/* PayPal Yellow but elevated */}
-                  <button 
-                    type="submit" 
+                  <button
+                    type="submit"
                     disabled={submitting}
-                    className="group relative w-full inline-flex items-center justify-center gap-4 rounded-full bg-[#FFC439] pl-8 pr-2 py-2 text-sm font-bold tracking-wide text-[#003087] transition-all active:scale-[0.98] hover:bg-[#F4BB33] hover:shadow-[0_0_20px_rgba(255,196,57,0.3)] disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="group relative w-full inline-flex items-center justify-center gap-4 rounded-full bg-[#FFC439] pl-8 pr-2 py-2 text-sm font-bold tracking-wide text-[#003087] transition-all active:scale-[0.98] hover:bg-[#F4BB33] hover:shadow-[0_0_20px_rgba(255,196,57,0.3)] disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                   >
-                    <span className="py-3">{submitting ? 'Processing...' : 'Pay with PayPal'}</span>
+                    <span className="py-3 flex items-center gap-2">
+                      {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                      {submitting ? 'Processing...' : 'Pay with PayPal'}
+                    </span>
                     {!submitting && (
                       <div className="absolute right-2 flex h-10 w-10 items-center justify-center rounded-full bg-white/30 transition-transform duration-300 ease-spring group-hover:scale-105">
                         <ArrowUpRight className="h-4 w-4 stroke-[2]" />
                       </div>
                     )}
                   </button>
-                </div>
-              </div>
+              </BezelCard>
             </motion.div>
           </div>
 

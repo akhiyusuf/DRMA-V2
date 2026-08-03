@@ -80,6 +80,35 @@ export async function GET(request: NextRequest) {
   }
 }
 
+export async function DELETE(request: NextRequest) {
+  // Same protection as writes: only an authenticated CMS session may delete.
+  const authError = requireCmsAuth(request);
+  if (authError) return authError;
+
+  try {
+    const { type, id } = await request.json();
+    if (type !== "products" || !id) {
+      return NextResponse.json({ error: "Expected { type: 'products', id }" }, { status: 400 });
+    }
+
+    // Remove the product from any homepage featured slots first so the
+    // storefront never references a deleted product.
+    await supabaseAdmin.from("cms_featured_products").delete().eq("product_id", id);
+
+    const { error } = await supabaseAdmin.from("products").delete().eq("id", id);
+    if (error) throw error;
+
+    revalidatePath("/");
+    revalidatePath("/shop");
+    revalidatePath("/cms/dashboard");
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("DELETE /api/cms/content error:", error);
+    return NextResponse.json({ error: "Failed to delete product" }, { status: 500 });
+  }
+}
+
 export async function POST(request: NextRequest) {
   // CRIT-01 fix: Require CMS authentication for all content writes.
   // Without this, any anonymous internet user could overwrite the live
