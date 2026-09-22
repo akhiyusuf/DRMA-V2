@@ -130,7 +130,12 @@ function buildCSP(nonce: string): string {
   return [
     "default-src 'none'",
     `script-src 'self' 'nonce-${nonce}'`,
-    `style-src 'self' 'nonce-${nonce}'`,
+    // style-src requires 'unsafe-inline' because Framer Motion renders the
+    // animate/whileHover target as inline style="" during SSR (e.g.
+    // style="opacity:1;transform:none"). CSS injection cannot execute JS
+    // (unlike script injection), so this is low-risk and standard practice
+    // for React + animation frameworks. script-src remains strict nonce-only.
+    `style-src 'self' 'nonce-${nonce}' 'unsafe-inline'`,
     "img-src 'self' https: data: blob:",
     "font-src 'self' https://fonts.gstatic.com data:",
     "connect-src 'self' https://fonts.googleapis.com",
