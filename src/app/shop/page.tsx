@@ -232,18 +232,18 @@ function ShopPageInner() {
         <div className="container mx-auto flex items-end justify-between gap-4">
           <div>
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
+              initial={false}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, ease: [0.32, 0.72, 0, 1] }}
-              className="mb-6"
+              className="anim-up-10 mb-6"
             >
               <SectionLabel>The Archive</SectionLabel>
             </motion.div>
             <motion.h1
-              initial={{ opacity: 0, y: 30, filter: "blur(8px)" }}
+              initial={false}
               animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
               transition={{ duration: 1.2, delay: 0.1, ease: [0.32, 0.72, 0, 1] }}
-              className="text-4xl md:text-5xl lg:text-6xl font-heading font-light tracking-tight text-foreground leading-[0.9] max-w-4xl"
+              className="anim-up-30-blur text-4xl md:text-5xl lg:text-6xl font-heading font-light tracking-tight text-foreground leading-[0.9] max-w-4xl"
             >
               Curated <br/> <span className="italic font-light text-foreground/70">Essentials.</span>
             </motion.h1>
@@ -251,11 +251,11 @@ function ShopPageInner() {
 
           {/* Mobile filter toggle button */}
           <motion.button
-            initial={{ opacity: 0, y: 10 }}
+            initial={false}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
             onClick={() => setFiltersOpen(true)}
-            className="lg:hidden flex items-center gap-2 px-4 py-2.5 rounded-full border border-foreground/10 bg-background text-xs uppercase tracking-widest text-foreground/70 hover:text-foreground hover:border-foreground/30 transition-colors shrink-0 mb-1"
+            className="anim-up-10 lg:hidden flex items-center gap-2 px-4 py-2.5 rounded-full border border-foreground/10 bg-background text-xs uppercase tracking-widest text-foreground/70 hover:text-foreground hover:border-foreground/30 transition-colors shrink-0 mb-1"
           >
             <SlidersHorizontal className="w-3.5 h-3.5" />
             Filters
@@ -336,12 +336,12 @@ function ShopPageInner() {
                 {sortedProducts.map((product, index) => (
                   <motion.div 
                     layout
-                    initial={{ opacity: 0, scale: 0.97, y: 15 }}
+                    initial={false}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.97 }}
                     transition={{ duration: 0.4, delay: index * 0.04, ease: [0.32, 0.72, 0, 1] }}
                     key={product.id}
-                    className="group flex flex-col break-inside-avoid mb-3 md:mb-4 lg:mb-6"
+                    className="anim-scale-97-up-15 group flex flex-col break-inside-avoid mb-3 md:mb-4 lg:mb-6"
                   >
                     <Link href={`/product/${product.id}`} className="block relative w-full mb-2.5 md:mb-4" aria-label={`View ${product.name}`}>
                       {/* Double Bezel Card */}
@@ -391,9 +391,9 @@ function ShopPageInner() {
             
             {!fetching && filteredProducts.length === 0 && (
               <motion.div 
-                initial={{ opacity: 0 }}
+                initial={false}
                 animate={{ opacity: 1 }}
-                className="py-24 md:py-32 flex flex-col items-center justify-center text-center border border-dashed border-foreground/10 rounded-[2rem]"
+                className="anim-fade py-24 md:py-32 flex flex-col items-center justify-center text-center border border-dashed border-foreground/10 rounded-[2rem]"
               >
                 <div className="w-16 h-16 rounded-full bg-foreground/5 flex items-center justify-center mb-6">
                   <X className="w-6 h-6 text-foreground/40" />
@@ -418,12 +418,12 @@ function ShopPageInner() {
       <AnimatePresence>
         {showFloatingFilter && !filtersOpen && (
           <motion.button
-            initial={{ opacity: 0, y: 24, scale: 0.9 }}
+            initial={false}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 24, scale: 0.9 }}
             transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
             onClick={() => setFiltersOpen(true)}
-            className="lg:hidden fixed bottom-6 right-6 z-50 flex items-center gap-2 px-5 py-3 rounded-full bg-foreground text-background shadow-[0_8px_30px_rgba(0,0,0,0.25)] text-xs uppercase tracking-widest font-medium hover:bg-foreground/90 active:scale-95 transition-all"
+            className="anim-float-btn lg:hidden fixed bottom-6 right-6 z-50 flex items-center gap-2 px-5 py-3 rounded-full bg-foreground text-background shadow-[0_8px_30px_rgba(0,0,0,0.25)] text-xs uppercase tracking-widest font-medium hover:bg-foreground/90 active:scale-95 transition-all"
             aria-label="Open filters"
           >
             <SlidersHorizontal className="w-4 h-4" />
@@ -443,20 +443,20 @@ function ShopPageInner() {
           <>
             {/* Backdrop */}
             <motion.div
-              initial={{ opacity: 0 }}
+              initial={false}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
-              className="fixed inset-0 bg-foreground/30 backdrop-blur-sm z-[70] lg:hidden"
+              className="anim-fade fixed inset-0 bg-foreground/30 backdrop-blur-sm z-[70] lg:hidden"
               onClick={() => setFiltersOpen(false)}
             />
             {/* Drawer panel */}
             <motion.div
-              initial={{ x: "-100%" }}
+              initial={false}
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
-              className="fixed top-0 left-0 bottom-0 w-[85%] max-w-[340px] bg-background z-[71] lg:hidden shadow-2xl flex flex-col"
+              className="anim-slide-left fixed top-0 left-0 bottom-0 w-[85%] max-w-[340px] bg-background z-[71] lg:hidden shadow-2xl flex flex-col"
             >
               <div className="p-5 pt-6 flex-1 overflow-hidden">
                 <FilterContent

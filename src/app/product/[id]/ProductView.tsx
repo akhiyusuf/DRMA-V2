@@ -226,10 +226,10 @@ export default function ProductView({ id }: { id: string }) {
         
         {/* Breadcrumb / Back */}
         <motion.div 
-          initial={{ opacity: 0, y: -10 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: [0.32, 0.72, 0, 1] }}
-          className="mb-6 md:mb-10"
+          className="anim-down-10 mb-6 md:mb-10"
         >
           <Link href="/shop" className="group inline-flex items-center text-xs uppercase tracking-[0.2em] text-foreground/50 hover:text-foreground transition-colors">
             <span className="flex items-center justify-center w-6 h-6 rounded-full bg-foreground/5 mr-3 transition-transform group-hover:-translate-x-1">
@@ -244,10 +244,10 @@ export default function ProductView({ id }: { id: string }) {
           {/* Product Image: Double Bezel Presentation */}
           <div className="w-full lg:w-1/2 lg:sticky lg:top-28 mb-4 lg:mb-0">
             <motion.div 
-              initial={{ opacity: 0, y: 40 }}
+              initial={false}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 1, ease: [0.32, 0.72, 0, 1] }}
-              className="p-1.5 md:p-2 rounded-[1.5rem] md:rounded-[2.5rem] bg-foreground/5 ring-1 ring-foreground/10"
+              className="anim-up-40 p-1.5 md:p-2 rounded-[1.5rem] md:rounded-[2.5rem] bg-foreground/5 ring-1 ring-foreground/10"
             >
               <div className="aspect-[3/4] relative rounded-[calc(1.5rem-0.375rem)] md:rounded-[calc(2.5rem-0.5rem)] overflow-hidden shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]">
                 {product.images[0] ? (
@@ -267,9 +267,10 @@ export default function ProductView({ id }: { id: string }) {
           {/* Product Info: Editorial Layout */}
           <div className="w-full lg:w-1/2 flex flex-col pt-2 md:pt-8">
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={false}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.2, ease: [0.32, 0.72, 0, 1] }}
+              className="anim-up-20"
             >
               <div className="mb-4 md:mb-6 flex flex-wrap gap-2">
                 {product.tags.map(tag => (
@@ -347,9 +348,9 @@ export default function ProductView({ id }: { id: string }) {
               {/* Inline Feedback — errors only (successes surface via the toast) */}
               {feedback && (
                 <motion.div
-                  initial={{ opacity: 0, y: -8 }}
+                  initial={false}
                   animate={{ opacity: 1, y: 0 }}
-                  className="text-sm px-4 py-2.5 md:px-5 md:py-3 rounded-xl mb-4 md:mb-6 flex items-center gap-2 bg-amber-50 text-amber-800 border border-amber-200"
+                  className="anim-down-8 text-sm px-4 py-2.5 md:px-5 md:py-3 rounded-xl mb-4 md:mb-6 flex items-center gap-2 bg-amber-50 text-amber-800 border border-amber-200"
                 >
                   {feedback.message}
                 </motion.div>
@@ -374,10 +375,10 @@ export default function ProductView({ id }: { id: string }) {
                 <div className="absolute inset-x-0 -bottom-4 h-8 flex items-start justify-center pointer-events-none overflow-visible">
                   <motion.div
                     key={pulseKey}
-                    initial={{ opacity: 0.4, scale: 0.8 }}
+                    initial={false}
                     animate={{ opacity: 0, scale: 1.4 }}
                     transition={{ duration: 1.2, ease: "easeOut" as const }}
-                    className="w-24 h-3 rounded-full bg-primary/15 blur-sm"
+                    className="anim-scale-8 w-24 h-3 rounded-full bg-primary/15 blur-sm"
                   />
                 </div>
 

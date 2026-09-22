@@ -39,10 +39,10 @@ export function Navbar() {
       <motion.header
         role="banner"
         aria-label="Site header"
-        initial={{ y: -100 }}
+        initial={false}
         animate={{ y: 0 }}
         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        className={`fixed top-4 inset-x-0 mx-auto z-[60] w-[95%] md:w-[90%] max-w-7xl transition-all duration-500 ${
+        className={`anim-nav-down fixed top-4 inset-x-0 mx-auto z-[60] w-[95%] md:w-[90%] max-w-7xl transition-all duration-500 ${
           scrolled || mobileMenuOpen
             ? "bg-background border border-border/50 shadow-sm"
             : "bg-background/0 backdrop-blur-none border-none shadow-none"
@@ -84,7 +84,7 @@ export function Navbar() {
               <Link href="/cart" className="p-2 hover:text-primary transition-colors relative block" aria-label="Shopping Cart">
                 <motion.div
                   key={cartBounceKey}
-                  initial={badgeBounce.initial}
+                  initial={false}
                   animate={badgeBounce.animate}
                   transition={badgeBounce.transition}
                 >
@@ -93,7 +93,7 @@ export function Navbar() {
                 {itemCount > 0 && (
                   <motion.span
                     key={`badge-${cartBounceKey}`}
-                    initial={badgeBounce.initial}
+                    initial={false}
                     animate={badgeBounce.animate}
                     transition={{ ...badgeBounce.transition, delay: 0.1 }}
                     className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-primary text-primary-foreground text-[11px] font-semibold rounded-full flex items-center justify-center px-1 leading-none"
@@ -113,11 +113,11 @@ export function Navbar() {
         <AnimatePresence>
           {mobileMenuOpen && (
             <motion.div
-              initial={{ height: 0, opacity: 0 }}
+              initial={false}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
-              className="md:hidden overflow-hidden"
+              className="anim-h-0 md:hidden overflow-hidden"
             >
               <div className="flex flex-col items-center py-12 gap-8 border-t border-border/20 mx-6">
                 <nav role="navigation" aria-label="Mobile" className="flex flex-col items-center gap-8">
@@ -143,9 +143,9 @@ export function Navbar() {
       </motion.header>
 
       <motion.div
-        initial={{ opacity: 0 }}
+        initial={false}
         animate={{ opacity: (scrolled || mobileMenuOpen) ? 0 : 1 }}
-        className="fixed top-20 left-0 w-full border-b-2 border-border/50 z-[59] transition-opacity duration-200"
+        className="anim-fade fixed top-20 left-0 w-full border-b-2 border-border/50 z-[59] transition-opacity duration-200"
       />
     </>
   );

@@ -153,10 +153,10 @@ export default function CheckoutPage() {
         
         {/* Header */}
         <motion.div 
-          initial={{ opacity: 0, y: 20 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: [0.32, 0.72, 0, 1] }}
-          className="flex flex-col items-center text-center mb-16"
+          className="anim-up-20 flex flex-col items-center text-center mb-16"
         >
           <Link href="/cart" className="group inline-flex items-center text-[11px] uppercase tracking-[0.2em] text-foreground/50 hover:text-foreground transition-colors mb-8">
             <span className="flex items-center justify-center w-6 h-6 rounded-full bg-foreground/5 mr-3 transition-transform group-hover:-translate-x-1">
@@ -178,7 +178,7 @@ export default function CheckoutPage() {
           <div className="w-full lg:w-3/5 space-y-16">
             
             {/* Contact Info */}
-            <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.8, ease: [0.32, 0.72, 0, 1] }}>
+            <motion.div initial={false} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.8, ease: [0.32, 0.72, 0, 1] }} className="anim-up-40">
               <div className="flex items-center mb-8 border-b border-foreground/10 pb-4">
                 <span className="w-6 h-6 rounded-full bg-foreground text-background flex items-center justify-center text-[11px] mr-4">1</span>
                 <h2 className="text-xs uppercase tracking-[0.2em] font-medium text-foreground/70">Contact Information</h2>
@@ -193,7 +193,7 @@ export default function CheckoutPage() {
             </motion.div>
             
             {/* Shipping Address */}
-            <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.8, ease: [0.32, 0.72, 0, 1] }}>
+            <motion.div initial={false} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.8, ease: [0.32, 0.72, 0, 1] }} className="anim-up-40">
               <div className="flex items-center mb-8 border-b border-foreground/10 pb-4">
                 <span className="w-6 h-6 rounded-full bg-foreground/10 text-foreground flex items-center justify-center text-[11px] mr-4">2</span>
                 <h2 className="text-xs uppercase tracking-[0.2em] font-medium text-foreground/70">Shipping Address</h2>
@@ -245,7 +245,7 @@ export default function CheckoutPage() {
             </motion.div>
 
             {/* Shipping Method */}
-            <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.8, ease: [0.32, 0.72, 0, 1] }}>
+            <motion.div initial={false} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.8, ease: [0.32, 0.72, 0, 1] }} className="anim-up-40">
               <div className="flex items-center mb-8 border-b border-foreground/10 pb-4">
                 <span className="w-6 h-6 rounded-full bg-foreground/10 text-foreground flex items-center justify-center text-[11px] mr-4">3</span>
                 <h2 className="text-xs uppercase tracking-[0.2em] font-medium text-foreground/70">Shipping Method</h2>
@@ -275,7 +275,7 @@ export default function CheckoutPage() {
             </motion.div>
 
             {/* Payment */}
-            <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4, duration: 0.8, ease: [0.32, 0.72, 0, 1] }}>
+            <motion.div initial={false} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4, duration: 0.8, ease: [0.32, 0.72, 0, 1] }} className="anim-up-40">
               <div className="flex items-center mb-8 border-b border-foreground/10 pb-4">
                 <span className="w-6 h-6 rounded-full bg-foreground/10 text-foreground flex items-center justify-center text-[11px] mr-4">4</span>
                 <h2 className="text-xs uppercase tracking-[0.2em] font-medium text-foreground/70">Payment</h2>
@@ -307,10 +307,10 @@ export default function CheckoutPage() {
           {/* Right Column - Summary: Double Bezel Card */}
           <div className="w-full lg:w-2/5">
             <motion.div 
-              initial={{ opacity: 0, y: 40 }}
+              initial={false}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3, duration: 1, ease: [0.32, 0.72, 0, 1] }}
-              className="sticky top-32"
+              className="anim-up-40 sticky top-32"
             >
               <BezelCard innerClassName="p-8 md:p-10">
                   <h2 className="text-sm font-medium uppercase tracking-[0.2em] mb-8 text-foreground/50 border-b border-foreground/10 pb-4">Order Summary</h2>

@@ -173,3 +173,49 @@
     transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
   }
 }
+
+/* ─── Framer Motion animation initial states (CSP-safe) ────────────
+   These CSS classes replace Framer Motion's `initial` prop during SSR
+   to avoid inline style="" attributes that CSP blocks. Components use
+   `initial={false}` so Framer Motion skips SSR inline styles, and
+   these classes provide the same visual state via CSS instead.
+   On client mount, Framer Motion reads the CSS-computed style and
+   animates to the `animate` / `whileInView` target. ─────────────── */
+
+.anim-up-20    { opacity: 0; transform: translateY(20px); }
+.anim-up-40    { opacity: 0; transform: translateY(40px); }
+.anim-up-60    { opacity: 0; transform: translateY(60px); }
+.anim-up-30    { opacity: 0; transform: translateY(30px); }
+.anim-up-24    { opacity: 0; transform: translateY(24px); }
+.anim-up-10    { opacity: 0; transform: translateY(10px); }
+.anim-down-10  { opacity: 0; transform: translateY(-10px); }
+.anim-down-8   { opacity: 0; transform: translateY(-8px); }
+.anim-nav-down { transform: translateY(-100px); }
+.anim-fade     { opacity: 0; }
+
+/* Combined: opacity + translateY + blur */
+.anim-up-40-blur  { opacity: 0; transform: translateY(40px); filter: blur(8px); }
+.anim-up-30-blur  { opacity: 0; transform: translateY(30px); filter: blur(8px); }
+.anim-up-20-blur  { opacity: 0; transform: translateY(20px); filter: blur(8px); }
+.anim-up-10-blur  { opacity: 0; transform: translateY(10px); filter: blur(8px); }
+
+/* Combined: opacity + translateY + scale */
+.anim-scale-97-up-15  { opacity: 0; transform: translateY(15px) scale(0.97); }
+.anim-scale-95-up-40  { opacity: 0; transform: translateY(40px) scale(0.95); }
+.anim-scale-98-up-40  { opacity: 0; transform: translateY(40px) scale(0.98); }
+.anim-scale-9-up-24   { opacity: 0; transform: translateY(24px) scale(0.9); }
+
+/* Special: product image variant hover */
+.anim-scale-8          { opacity: 0.4; transform: scale(0.8); }
+
+/* Special: mobile menu collapse */
+.anim-h-0              { height: 0; opacity: 0; overflow: hidden; }
+
+/* Special: filter drawer slide-in */
+.anim-slide-left       { transform: translateX(-100%); }
+
+/* Special: toast notification */
+.anim-toast            { opacity: 0; transform: translateX(40px) translateY(-8px); }
+
+/* Special: floating filter button (opacity + y + scale) */
+.anim-float-btn        { opacity: 0; transform: translateY(24px) scale(0.9); }

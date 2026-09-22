@@ -99,9 +99,10 @@ function OrderConfirmationContent() {
       <div className="w-full bg-background min-h-screen pt-24 md:pt-32 pb-16 md:pb-24">
         <div className="container mx-auto px-4 md:px-8 max-w-2xl text-center">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={false}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: [0.32, 0.72, 0, 1] }}
+            className="anim-up-20"
           >
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-heading font-light tracking-tight mb-6">
               Payment <span className="italic text-foreground/60">Cancelled.</span>
@@ -132,10 +133,10 @@ function OrderConfirmationContent() {
       <div className="container mx-auto px-4 md:px-8 max-w-3xl">
         
         <motion.div 
-          initial={{ opacity: 0, y: 20 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: [0.32, 0.72, 0, 1] }}
-          className="text-center mb-16"
+          className="anim-up-20 text-center mb-16"
         >
           <div className="w-16 h-16 rounded-full bg-green-100 text-green-600 flex items-center justify-center mx-auto mb-6">
             <Check className="w-8 h-8" />
@@ -172,10 +173,10 @@ function OrderConfirmationContent() {
         </motion.div>
 
         <motion.div 
-          initial={{ opacity: 0, y: 40 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.8, ease: [0.32, 0.72, 0, 1] }}
-          className="mb-12"
+          className="anim-up-40 mb-12"
         >
           <BezelCard innerClassName="p-8 md:p-10">
             <div className="flex items-center gap-3 mb-8 pb-4 border-b border-foreground/10">

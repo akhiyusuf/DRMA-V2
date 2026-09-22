@@ -70,11 +70,11 @@ export function ProductRecommendations({
     <section className={`py-20 md:py-32 ${surfaceBg} relative`}>
       <div className="container mx-auto px-4 md:px-8">
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={false}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 1, ease: [0.32, 0.72, 0, 1] }}
-          className="flex flex-col items-center text-center max-w-3xl mx-auto mb-14 md:mb-20"
+          className="anim-up-30 flex flex-col items-center text-center max-w-3xl mx-auto mb-14 md:mb-20"
         >
           <SectionLabel tone={isDark ? "dark" : "light"} className="mb-6">
             The Collection
@@ -104,11 +104,11 @@ export function ProductRecommendations({
             products.map((product, index) => (
               <motion.div
                 key={product.id}
-                initial={{ opacity: 0, y: 30 }}
+                initial={false}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-50px" }}
                 transition={{ duration: 0.8, delay: index * 0.1, ease: [0.32, 0.72, 0, 1] }}
-                className={`group relative flex flex-col ${cardBg} rounded-[1rem] md:rounded-[1.5rem] border ${borderColor} p-1 md:p-1.5 overflow-hidden shadow-sm hover:shadow-md transition-all duration-300`}
+                className={`anim-up-30 group relative flex flex-col ${cardBg} rounded-[1rem] md:rounded-[1.5rem] border ${borderColor} p-1 md:p-1.5 overflow-hidden shadow-sm hover:shadow-md transition-all duration-300`}
               >
                 <Link
                   href={`/product/${product.id}`}
@@ -156,11 +156,11 @@ export function ProductRecommendations({
 
         {/* "Shop Now" CTA */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={false}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-50px" }}
           transition={{ duration: 0.8, ease: [0.32, 0.72, 0, 1] }}
-          className="flex justify-center"
+          className="anim-up-20 flex justify-center"
         >
           <PillButton href="/shop" variant={isDark ? "light" : "dark"}>Shop Now</PillButton>
         </motion.div>

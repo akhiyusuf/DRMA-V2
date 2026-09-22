@@ -63,7 +63,7 @@ export function AddToCartToast() {
         {visible && lastAddedInfo && (
           <motion.div
             key={lastAddedInfo.timestamp}
-            initial={{ opacity: 0, x: 40, y: -8 }}
+            initial={false}
             animate={{ opacity: 1, x: 0, y: 0 }}
             exit={{ opacity: 0, x: 40, y: -8 }}
             transition={{ duration: 0.32, ease: [0.32, 0.72, 0, 1] }}
@@ -71,7 +71,7 @@ export function AddToCartToast() {
             // which is the appropriate live-region politeness for a cart
             // confirmation. role="status" on this element would silently
             // downgrade the inherited assertive region back to polite.
-            className="pointer-events-auto w-[calc(100vw-2rem)] sm:w-80 max-w-sm rounded-2xl bg-background border border-foreground/10 shadow-[0_8px_40px_rgba(0,0,0,0.12)] overflow-hidden"
+            className="anim-toast pointer-events-auto w-[calc(100vw-2rem)] sm:w-80 max-w-sm rounded-2xl bg-background border border-foreground/10 shadow-[0_8px_40px_rgba(0,0,0,0.12)] overflow-hidden"
           >
             {/* Top accent bar */}
             <div className="h-1 w-full bg-foreground" />

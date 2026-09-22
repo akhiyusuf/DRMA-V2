@@ -63,13 +63,13 @@ export default function HomeClient({ homepage, products }: HomeClientProps) {
             {/* Left Column: Typography (7 cols) */}
             <div className="lg:col-span-7 flex flex-col items-center lg:items-start text-center lg:text-left relative z-30 mb-8 lg:mb-0">
               <motion.h1
-                initial={{ opacity: 0, y: 40, filter: "blur(8px)" }}
+                initial={false}
                 animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
                 transition={{ duration: 1.2, ease: [0.32, 0.72, 0, 1] }}
                 // Was `lg:text-[10rem]` (160px) — too large vs the rest of
                 // the site's H1 scale (text-4xl → text-6xl). Capped at 128px
                 // via clamp so ultra-wide viewports don't blow it up further.
-                className="text-4xl sm:text-6xl md:text-8xl lg:text-[clamp(64px,8vw,128px)] font-heading font-normal tracking-tighter text-foreground leading-[0.85] lg:leading-[0.85] lg:-ml-2 z-10"
+                className="anim-up-40-blur text-4xl sm:text-6xl md:text-8xl lg:text-[clamp(64px,8vw,128px)] font-heading font-normal tracking-tighter text-foreground leading-[0.85] lg:leading-[0.85] lg:-ml-2 z-10"
               >
                 {heroLine1}{heroLine2 && ","} {heroLine2 && <br className="hidden sm:block" />}
                 {heroLine2 && (
@@ -81,10 +81,10 @@ export default function HomeClient({ homepage, products }: HomeClientProps) {
               </motion.h1>
 
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
+                initial={false}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 1, delay: 0.3, ease: [0.32, 0.72, 0, 1] }}
-                className="mt-6 md:mt-12 flex flex-col items-center lg:items-start gap-4 md:gap-6"
+                className="anim-up-20 mt-6 md:mt-12 flex flex-col items-center lg:items-start gap-4 md:gap-6"
               >
                 <PillButton href={homepageData.hero?.ctaUrl || "/shop"} variant="gold">
                   {homepageData.hero?.buttonLabel || "Shop Now"}
@@ -99,10 +99,10 @@ export default function HomeClient({ homepage, products }: HomeClientProps) {
             {/* Right Column: Main Visual */}
             <div className="lg:col-span-5 relative w-full z-20 flex items-start justify-center lg:items-end lg:justify-end">
               <motion.div
-                initial={{ opacity: 0, y: 40, scale: 0.98 }}
+                initial={false}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ duration: 1.6, delay: 0.2, ease: [0.32, 0.72, 0, 1] }}
-                className="w-full max-w-[400px] sm:max-w-[500px] lg:max-w-none z-20"
+                className="anim-scale-98-up-40 w-full max-w-[400px] sm:max-w-[500px] lg:max-w-none z-20"
               >
                 {homepageData.hero?.image && (
                   <img
@@ -163,11 +163,11 @@ export default function HomeClient({ homepage, products }: HomeClientProps) {
           <div className={`grid grid-cols-1 ${mission.image ? "md:grid-cols-2" : ""} gap-10 md:gap-16 lg:gap-24 items-center`}>
             {mission.image && (
             <motion.div
-              initial={{ opacity: 0, y: 60 }}
+              initial={false}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-100px" }}
               transition={{ duration: 1.2, delay: 0.1, ease: [0.32, 0.72, 0, 1] }}
-              className="w-full order-last md:order-first"
+              className="anim-up-60 w-full order-last md:order-first"
             >
               <div className="p-1.5 md:p-2 rounded-[1.5rem] md:rounded-[2rem] bg-foreground/5 ring-1 ring-foreground/10">
                 <div className="relative aspect-[4/5] md:aspect-square rounded-[calc(1.5rem-0.375rem)] md:rounded-[calc(2rem-0.5rem)] overflow-hidden shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]">
@@ -184,11 +184,11 @@ export default function HomeClient({ homepage, products }: HomeClientProps) {
             <div className={`flex flex-col items-start w-full ${mission.image ? "" : "max-w-2xl mx-auto items-center text-center"}`}>
               {(missionLine1 || "").trim() && (
               <motion.div
-                initial={{ opacity: 0, y: 40 }}
+                initial={false}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-100px" }}
                 transition={{ duration: 1, ease: [0.32, 0.72, 0, 1] }}
-                className="mb-6 md:mb-8"
+                className="anim-up-40 mb-6 md:mb-8"
               >
                 <h2 className="text-3xl md:text-5xl lg:text-6xl font-heading font-light mt-6 md:mt-8 leading-tight text-foreground">
                   {missionLine1}{missionLine2 && <><br/> <span className="italic text-foreground/60">{missionLine2}</span></>}
@@ -197,11 +197,11 @@ export default function HomeClient({ homepage, products }: HomeClientProps) {
               )}
 
               <motion.div
-                initial={{ opacity: 0, y: 40 }}
+                initial={false}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-100px" }}
                 transition={{ duration: 1, delay: 0.1, ease: [0.32, 0.72, 0, 1] }}
-                className={`flex flex-col justify-start ${mission.image ? "" : "items-center"}`}
+                className={`anim-up-40 flex flex-col justify-start ${mission.image ? "" : "items-center"}`}
               >
                 {(mission.description || "").trim() && (
                 <p className="text-foreground/70 text-base md:text-lg lg:text-xl leading-relaxed mb-8 md:mb-10 font-light max-w-lg">
@@ -234,11 +234,11 @@ export default function HomeClient({ homepage, products }: HomeClientProps) {
         <div className="container mx-auto px-4 md:px-8">
 
           <motion.div
-            initial={{ opacity: 0, y: 40 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 1, ease: [0.32, 0.72, 0, 1] }}
-            className="flex flex-col items-start mb-10 md:mb-16 lg:mb-24"
+            className="anim-up-40 flex flex-col items-start mb-10 md:mb-16 lg:mb-24"
           >
             <h2 className="text-3xl md:text-5xl lg:text-6xl font-heading font-light leading-tight text-foreground">
               The Best <span className="italic text-foreground/60">Products.</span>
@@ -260,11 +260,11 @@ export default function HomeClient({ homepage, products }: HomeClientProps) {
               return (
                 <motion.div
                   key={product.id}
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={false}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: "-50px" }}
                   transition={{ duration: 0.8, delay: index * 0.1, ease: [0.32, 0.72, 0, 1] }}
-                  className={`group relative flex flex-col bg-card rounded-[1rem] md:rounded-[1.5rem] lg:rounded-[2rem] border border-border p-1 md:p-1.5 overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 ${bentoClasses[index]}`}
+                  className={`anim-up-20 group relative flex flex-col bg-card rounded-[1rem] md:rounded-[1.5rem] lg:rounded-[2rem] border border-border p-1 md:p-1.5 overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 ${bentoClasses[index]}`}
                 >
                   <Link href={`/product/${product.id}`} className="absolute inset-0 z-30 block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring" aria-label={`View ${product.name}`} />
 
@@ -324,11 +324,11 @@ export default function HomeClient({ homepage, products }: HomeClientProps) {
 
         <div className="container mx-auto px-4 md:px-8 relative z-10">
           <motion.div
-            initial={{ opacity: 0, y: 40 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 1, ease: [0.32, 0.72, 0, 1] }}
-            className={`flex flex-col items-center text-center max-w-3xl mx-auto ${hasDiffTitle ? "mb-14 md:mb-20 lg:mb-24" : "mb-10 md:mb-14"}`}
+            className={`anim-up-40 flex flex-col items-center text-center max-w-3xl mx-auto ${hasDiffTitle ? "mb-14 md:mb-20 lg:mb-24" : "mb-10 md:mb-14"}`}
           >
             <div className={`flex items-center gap-3 md:gap-5 ${hasDiffTitle ? "mb-8 md:mb-12" : "mb-0"}`}>
               <span className="h-px w-8 md:w-14 bg-gold/50" />
@@ -348,14 +348,14 @@ export default function HomeClient({ homepage, products }: HomeClientProps) {
             {diffPoints.map((point: any, index: number) => (
               <motion.div
                 key={point.number}
-                initial={{ opacity: 0, y: 40 }}
+                initial={false}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-100px" }}
                 transition={{ duration: 0.8, delay: index * 0.1, ease: [0.32, 0.72, 0, 1] }}
                 whileHover={{ y: -4 }}
                 className={index === 2
-                  ? "md:col-span-12 rounded-[1.25rem] md:rounded-[2rem] bg-gradient-to-br from-[#262220] to-[#1a1614] border border-gold/20 shadow-[0_8px_40px_theme(colors.gold/6%)]"
-                  : "md:col-span-6 rounded-[1.25rem] md:rounded-[2rem] bg-gradient-to-br from-[#262220] to-[#1a1614] border border-white/[0.06] hover:border-gold/20 transition-colors duration-500"}
+                  ? "anim-up-40 md:col-span-12 rounded-[1.25rem] md:rounded-[2rem] bg-gradient-to-br from-[#262220] to-[#1a1614] border border-gold/20 shadow-[0_8px_40px_theme(colors.gold/6%)]"
+                  : "anim-up-40 md:col-span-6 rounded-[1.25rem] md:rounded-[2rem] bg-gradient-to-br from-[#262220] to-[#1a1614] border border-white/[0.06] hover:border-gold/20 transition-colors duration-500"}
               >
                 <div className="h-full p-5 md:p-8 lg:p-12 flex flex-col justify-between">
                   <div className="text-4xl md:text-5xl lg:text-6xl font-heading font-semibold text-gold mb-4 md:mb-6 lg:mb-8 tracking-tight">{point.number}</div>

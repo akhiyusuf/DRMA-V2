@@ -14,28 +14,28 @@ export default function EthicsPage() {
       <section className="relative min-h-[70dvh] w-full flex flex-col items-center justify-center pt-24 md:pt-32 pb-16 md:pb-24 text-center">
         <div className="container mx-auto px-4 md:px-8 max-w-4xl relative z-10">
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
+            initial={false}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: [0.32, 0.72, 0, 1] }}
-            className="mb-8"
+            className="anim-up-10 mb-8"
           >
             <SectionLabel>The Manifesto</SectionLabel>
           </motion.div>
           
           <motion.h1 
-            initial={{ opacity: 0, y: 40, filter: "blur(8px)" }}
+            initial={false}
             animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
             transition={{ duration: 1.2, ease: [0.32, 0.72, 0, 1] }}
-            className="text-4xl md:text-5xl lg:text-6xl font-heading font-normal tracking-tight text-foreground leading-[1]"
+            className="anim-up-40-blur text-4xl md:text-5xl lg:text-6xl font-heading font-normal tracking-tight text-foreground leading-[1]"
           >
             Our Ethical <br/> <span className="italic font-light text-foreground/80">Mission.</span>
           </motion.h1>
           
           <motion.p 
-            initial={{ opacity: 0, y: 20 }}
+            initial={false}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, delay: 0.2, ease: [0.32, 0.72, 0, 1] }}
-            className="mt-8 text-xl md:text-2xl text-foreground/60 max-w-2xl mx-auto font-light leading-relaxed"
+            className="anim-up-20 mt-8 text-xl md:text-2xl text-foreground/60 max-w-2xl mx-auto font-light leading-relaxed"
           >
             We exist to prove that beautiful, modest fashion does not require exploitation. 
             We are fighting against child labor and unethical practices in the fashion industry.
@@ -61,11 +61,11 @@ export default function EthicsPage() {
             
             {/* Reality Card */}
             <motion.div 
-              initial={{ opacity: 0, y: 40 }}
+              initial={false}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-100px" }}
               transition={{ duration: 1, ease: [0.32, 0.72, 0, 1] }}
-              className="p-1.5 rounded-[2rem] bg-foreground/5 ring-1 ring-foreground/10"
+              className="anim-up-40 p-1.5 rounded-[2rem] bg-foreground/5 ring-1 ring-foreground/10"
             >
               <div className="h-full rounded-[calc(2rem-0.375rem)] bg-background p-10 md:p-14 flex flex-col shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]">
                 <span className="text-xs uppercase tracking-widest text-foreground/40 font-medium mb-4">01. The Problem</span>
@@ -90,11 +90,11 @@ export default function EthicsPage() {
 
             {/* Commitment Card */}
             <motion.div 
-              initial={{ opacity: 0, y: 40 }}
+              initial={false}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-100px" }}
               transition={{ duration: 1, delay: 0.2, ease: [0.32, 0.72, 0, 1] }}
-              className="p-1.5 rounded-[2rem] bg-foreground ring-1 ring-foreground/10"
+              className="anim-up-40 p-1.5 rounded-[2rem] bg-foreground ring-1 ring-foreground/10"
             >
               <div className="h-full rounded-[calc(2rem-0.375rem)] bg-foreground p-10 md:p-14 flex flex-col shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] text-background">
                 <span className="text-xs uppercase tracking-widest text-background/40 font-medium mb-4">02. The Solution</span>
@@ -126,10 +126,10 @@ export default function EthicsPage() {
         <div className="container mx-auto px-4 md:px-8">
           
           <motion.div 
-            initial={{ opacity: 0, y: 20 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="flex flex-col items-center mb-24"
+            className="anim-up-20 flex flex-col items-center mb-24"
           >
             <SectionLabel className="mb-6">Foundation</SectionLabel>
             <h2 className="text-4xl md:text-6xl font-heading font-light text-center">Our Core <span className="italic text-foreground/60">Pillars</span></h2>
@@ -160,11 +160,11 @@ export default function EthicsPage() {
             ].map((pillar, i) => (
               <motion.div 
                 key={i}
-                initial={{ opacity: 0, y: 40 }}
+                initial={false}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-50px" }}
                 transition={{ duration: 0.8, delay: i * 0.1, ease: [0.32, 0.72, 0, 1] }}
-                className="flex flex-col text-center items-center group"
+                className="anim-up-40 flex flex-col text-center items-center group"
               >
                 <div className="w-20 h-20 mb-8 rounded-full bg-background shadow-sm border border-foreground/5 flex items-center justify-center transition-transform duration-500 ease-spring group-hover:scale-110 group-hover:-translate-y-2">
                   <pillar.icon className="w-8 h-8 text-foreground/80 stroke-[1.5]" />

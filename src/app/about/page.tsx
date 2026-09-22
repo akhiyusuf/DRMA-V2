@@ -17,28 +17,28 @@ export default function AboutPage() {
             {/* Left: Typography */}
             <div className="w-full md:w-1/2 flex flex-col items-start z-10">
               <motion.div
-                initial={{ opacity: 0, y: 10 }}
+                initial={false}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, ease: [0.32, 0.72, 0, 1] }}
-                className="mb-8"
+                className="anim-up-10 mb-8"
               >
                 <SectionLabel>The Origin</SectionLabel>
               </motion.div>
               
               <motion.h1 
-                initial={{ opacity: 0, y: 40, filter: "blur(8px)" }}
+                initial={false}
                 animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
                 transition={{ duration: 1.2, ease: [0.32, 0.72, 0, 1] }}
-                className="text-4xl md:text-5xl lg:text-6xl font-heading font-normal tracking-tight text-foreground leading-[0.9]"
+                className="anim-up-40-blur text-4xl md:text-5xl lg:text-6xl font-heading font-normal tracking-tight text-foreground leading-[0.9]"
               >
                 About <br/> <span className="italic font-light text-foreground/80">DRMA.</span>
               </motion.h1>
               
               <motion.p 
-                initial={{ opacity: 0, y: 20 }}
+                initial={false}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 1, delay: 0.2, ease: [0.32, 0.72, 0, 1] }}
-                className="mt-8 text-xl md:text-2xl text-foreground/80 max-w-md font-light leading-relaxed"
+                className="anim-up-20 mt-8 text-xl md:text-2xl text-foreground/80 max-w-md font-light leading-relaxed"
               >
                 Founded on a simple premise: modest fashion should honor not just the wearer, but the maker.
               </motion.p>
@@ -46,10 +46,10 @@ export default function AboutPage() {
 
             {/* Right: Floating Ethereal Pill Image */}
             <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 40 }}
+              initial={false}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               transition={{ duration: 1.4, delay: 0.1, ease: [0.32, 0.72, 0, 1] }}
-              className="w-full md:w-5/12 relative h-[50vh] md:h-[60vh] z-0"
+              className="anim-scale-95-up-40 w-full md:w-5/12 relative h-[50vh] md:h-[60vh] z-0"
             >
               {/* The Double-Bezel Shell */}
               <div className="absolute inset-0 p-2 rounded-[3rem] bg-foreground/5 ring-1 ring-foreground/10 md:ml-12">
@@ -74,11 +74,11 @@ export default function AboutPage() {
         <div className="container mx-auto px-4 md:px-8 max-w-5xl">
           
           <motion.div 
-            initial={{ opacity: 0, y: 40 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 1, ease: [0.32, 0.72, 0, 1] }}
-            className="mb-20 md:mb-32"
+            className="anim-up-40 mb-20 md:mb-32"
           >
             <div className="flex flex-col md:flex-row gap-12 md:gap-24">
               <div className="md:w-1/3">
@@ -98,11 +98,11 @@ export default function AboutPage() {
           </motion.div>
 
           <motion.div 
-            initial={{ opacity: 0, y: 40 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 1, ease: [0.32, 0.72, 0, 1] }}
-            className="border-t border-background/20 pt-20 md:pt-32"
+            className="anim-up-40 border-t border-background/20 pt-20 md:pt-32"
           >
             <div className="flex flex-col md:flex-row gap-12 md:gap-24">
               <div className="md:w-1/3">
